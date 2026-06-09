@@ -11,3 +11,6 @@ pub const REGISTRY_SCHEMA: &str = include_str!("../schemas/registry.schema.json"
 
 /// JSON Schema for `build-meta.json` (matches [`crate::BUILD_META_SCHEMA_VERSION`]).
 pub const BUILD_META_SCHEMA: &str = include_str!("../schemas/build-meta.schema.json");
+
+/// JSON Schema for `index.json` (matches [`crate::INDEX_SCHEMA_VERSION`]).
+pub const INDEX_SCHEMA: &str = include_str!("../schemas/codebase-index.schema.json");

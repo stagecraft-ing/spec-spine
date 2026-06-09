@@ -4,6 +4,8 @@
 //! `git`/clock side effects live here, never in the library.
 
 mod cmd_compile;
+mod cmd_index;
+mod cmd_lint;
 mod cmd_registry;
 
 use std::path::{Path, PathBuf};
@@ -35,6 +37,20 @@ enum Command {
         #[command(subcommand)]
         query: cmd_registry::RegistryQuery,
     },
+    /// Build the codebase index, or check it for staleness.
+    Index {
+        #[command(subcommand)]
+        action: Option<cmd_index::IndexAction>,
+    },
+    /// Run the corpus conformance lint.
+    Lint {
+        /// Fail (exit 1) if any warning-tier diagnostic is present.
+        #[arg(long)]
+        fail_on_warn: bool,
+        /// Fail (exit 1) if any info-tier diagnostic is present.
+        #[arg(long)]
+        fail_on_info: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -47,6 +63,11 @@ fn main() -> ExitCode {
     let result = match &cli.command {
         Command::Compile => cmd_compile::run(&repo),
         Command::Registry { query } => cmd_registry::run(&repo, query),
+        Command::Index { action } => cmd_index::run(&repo, action.as_ref()),
+        Command::Lint {
+            fail_on_warn,
+            fail_on_info,
+        } => cmd_lint::run(&repo, *fail_on_warn, *fail_on_info),
     };
 
     match result {

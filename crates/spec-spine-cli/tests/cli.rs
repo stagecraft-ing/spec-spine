@@ -100,3 +100,63 @@ fn registry_query_before_compile_exits_3() {
         .unwrap();
     assert_eq!(code(&out), 3);
 }
+
+#[test]
+fn index_then_check_fresh_then_stale() {
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(tmp.path(), "001-a", "001-a", "approved");
+
+    let built = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .arg("index")
+        .output()
+        .unwrap();
+    assert_eq!(code(&built), 0, "index writes -> 0");
+    assert!(
+        tmp.path()
+            .join(".derived/codebase-index/index.json")
+            .is_file()
+    );
+
+    let fresh = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["index", "check"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&fresh), 0, "fresh -> 0");
+
+    // Mutate a hashed input -> stale.
+    write_spec(tmp.path(), "001-a", "001-a", "draft");
+    let stale = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["index", "check"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&stale), 2, "stale -> 2");
+}
+
+#[test]
+fn lint_fail_on_warn_gating() {
+    let tmp = tempfile::tempdir().unwrap();
+    // An ordinary spec with no ownership edge -> L-001 (warning).
+    write_spec(tmp.path(), "001-a", "001-a", "approved");
+
+    let lenient = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .arg("lint")
+        .output()
+        .unwrap();
+    assert_eq!(code(&lenient), 0, "warnings alone do not fail");
+
+    let strict = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["lint", "--fail-on-warn"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&strict), 1, "--fail-on-warn fails on a warning");
+}

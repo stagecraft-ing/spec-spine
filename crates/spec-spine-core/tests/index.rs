@@ -1,0 +1,242 @@
+//! Index integration tests: determinism, conformance, manifest + npm discovery
+//! (the encore fix), file/section/symbol resolution with per-platform span
+//! goldens, staleness, and authorities.
+
+use std::fs;
+use std::path::Path;
+
+use spec_spine_core::{Freshness, authorities, check_index_freshness, index};
+use spec_spine_types::{Config, INDEX_SCHEMA, LineSpan, PackageKind, Unit};
+
+fn write(root: &Path, rel: &str, content: &str) {
+    let p = root.join(rel);
+    fs::create_dir_all(p.parent().unwrap()).unwrap();
+    fs::write(p, content).unwrap();
+}
+
+fn spec(id: &str, body: &str) -> String {
+    format!(
+        "---\nid: \"{id}\"\ntitle: \"T\"\nstatus: approved\ncreated: \"2026-06-09\"\nsummary: \"s\"\n{body}---\n# {id}\n"
+    )
+}
+
+/// A mixed Rust + npm fixture exercising manifest discovery, the encore fix, and
+/// symbol resolution in both languages.
+fn mixed_fixture() -> tempfile::TempDir {
+    let tmp = tempfile::tempdir().unwrap();
+    let r = tmp.path();
+
+    // Rust workspace + crate.
+    write(r, "Cargo.toml", "[workspace]\nmembers = [\"rs-thing\"]\n");
+    write(
+        r,
+        "rs-thing/Cargo.toml",
+        "[package]\nname = \"rs-thing\"\nversion = \"0.1.0\"\n[package.metadata.spec-spine]\nspec = \"001-rs\"\n",
+    );
+    write(
+        r,
+        "rs-thing/src/lib.rs",
+        "pub fn alpha() {}\npub struct Beta {\n    x: u8,\n}\n",
+    );
+
+    // npm workspace declared at the ROOT package.json (the encore fix).
+    write(
+        r,
+        "package.json",
+        "{\n  \"name\": \"root\",\n  \"workspaces\": [\"pkgs/*\"]\n}\n",
+    );
+    write(
+        r,
+        "pkgs/web/package.json",
+        "{\n  \"name\": \"web\",\n  \"spec-spine\": { \"spec\": \"002-ts\" }\n}\n",
+    );
+    write(
+        r,
+        "pkgs/web/src/util.ts",
+        "export function formatDate() {}\nexport class Helper {}\n",
+    );
+
+    // Specs declaring symbol units.
+    write(
+        r,
+        "specs/001-rs/spec.md",
+        &spec(
+            "001-rs",
+            "establishes:\n  - { kind: symbol, id: \"rs_thing::alpha\" }\n  - { kind: symbol, id: \"rs_thing::Beta\" }\n  - \"rs-thing/src/lib.rs\"\n",
+        ),
+    );
+    write(
+        r,
+        "specs/002-ts/spec.md",
+        &spec(
+            "002-ts",
+            "establishes:\n  - { kind: symbol, id: \"web::src::util::formatDate\" }\n",
+        ),
+    );
+    tmp
+}
+
+fn mapping<'a>(
+    idx: &'a spec_spine_types::CodebaseIndex,
+    id: &str,
+) -> &'a spec_spine_types::TraceMapping {
+    idx.traceability
+        .mappings
+        .iter()
+        .find(|m| m.spec_id == id)
+        .expect("mapping present")
+}
+
+fn symbol_span(m: &spec_spine_types::TraceMapping, sym_id: &str) -> Option<LineSpan> {
+    m.resolved_units
+        .iter()
+        .find(|u| matches!(&u.unit, Unit::Symbol { id } if id == sym_id))
+        .and_then(|u| u.locations.first())
+        .and_then(|loc| loc.span)
+}
+
+#[test]
+fn indexes_deterministically() {
+    let fx = mixed_fixture();
+    let cfg = Config::default();
+    let a = index(&cfg, fx.path()).unwrap();
+    let b = index(&cfg, fx.path()).unwrap();
+    assert_eq!(a.json, b.json, "index must be byte-identical across runs");
+    assert!(a.json.ends_with("}\n"));
+}
+
+#[test]
+fn discovers_rust_and_npm_packages() {
+    // The npm package is declared by root package.json#workspaces — the encore
+    // failure was that npm packages went undiscovered. They must appear here.
+    let fx = mixed_fixture();
+    let idx = index(&Config::default(), fx.path()).unwrap().index;
+
+    let names: Vec<&str> = idx.packages.iter().map(|p| p.name.as_str()).collect();
+    assert!(
+        names.contains(&"rs-thing"),
+        "rust crate discovered: {names:?}"
+    );
+    assert!(
+        names.contains(&"web"),
+        "npm package discovered (encore fix): {names:?}"
+    );
+
+    let web = idx.packages.iter().find(|p| p.name == "web").unwrap();
+    assert_eq!(web.kind, PackageKind::NpmPackage);
+    assert_eq!(web.spec_ref.as_deref(), Some("002-ts"));
+}
+
+#[test]
+fn resolves_rust_symbols_with_exact_spans() {
+    // Per-platform span golden (watch-item 2): pinned tree-sitter ⇒ identical
+    // spans on every triple.
+    let fx = mixed_fixture();
+    let idx = index(&Config::default(), fx.path()).unwrap().index;
+    let m = mapping(&idx, "001-rs");
+    assert_eq!(symbol_span(m, "rs_thing::alpha"), Some(LineSpan::new(1, 1)));
+    assert_eq!(symbol_span(m, "rs_thing::Beta"), Some(LineSpan::new(2, 4)));
+}
+
+#[test]
+fn resolves_typescript_symbols_with_exact_spans() {
+    let fx = mixed_fixture();
+    let idx = index(&Config::default(), fx.path()).unwrap().index;
+    let m = mapping(&idx, "002-ts");
+    assert_eq!(
+        symbol_span(m, "web::src::util::formatDate"),
+        Some(LineSpan::new(1, 1))
+    );
+}
+
+#[test]
+fn missing_file_unit_is_blocking_diagnostic_i004() {
+    let tmp = tempfile::tempdir().unwrap();
+    write(tmp.path(), "Cargo.toml", "[workspace]\nmembers = []\n");
+    write(
+        tmp.path(),
+        "specs/001-x/spec.md",
+        &spec("001-x", "establishes:\n  - \"src/does_not_exist.rs\"\n"),
+    );
+    let idx = index(&Config::default(), tmp.path()).unwrap().index;
+    assert!(idx.diagnostics.errors.iter().any(|d| d.code == "I-004"));
+}
+
+#[test]
+fn resolves_section_unit() {
+    let tmp = tempfile::tempdir().unwrap();
+    write(tmp.path(), "Cargo.toml", "[workspace]\nmembers = []\n");
+    write(
+        tmp.path(),
+        "Makefile",
+        "build:\n\tcargo build\n\ntest:\n\tcargo test\n",
+    );
+    write(
+        tmp.path(),
+        "specs/001-x/spec.md",
+        &spec(
+            "001-x",
+            "establishes:\n  - { kind: section, file: \"Makefile\", anchor: \"build\" }\n",
+        ),
+    );
+    let idx = index(&Config::default(), tmp.path()).unwrap().index;
+    let m = mapping(&idx, "001-x");
+    let loc = m.resolved_units[0]
+        .locations
+        .first()
+        .expect("section resolved");
+    assert_eq!(loc.file, "Makefile");
+    assert_eq!(loc.span, Some(LineSpan::new(1, 2)));
+}
+
+#[test]
+fn conforms_to_embedded_schema() {
+    let fx = mixed_fixture();
+    let outcome = index(&Config::default(), fx.path()).unwrap();
+    let schema: serde_json::Value = serde_json::from_str(INDEX_SCHEMA).unwrap();
+    let instance: serde_json::Value = serde_json::from_str(&outcome.json).unwrap();
+    let validator = jsonschema::validator_for(&schema).unwrap();
+    if !validator.is_valid(&instance) {
+        let errs: Vec<String> = validator
+            .iter_errors(&instance)
+            .map(|e| e.to_string())
+            .collect();
+        panic!("index.json does not conform:\n{}", errs.join("\n"));
+    }
+}
+
+#[test]
+fn staleness_detects_input_change() {
+    let fx = mixed_fixture();
+    let cfg = Config::default();
+    // Write the index to disk as the CLI would.
+    let outcome = index(&cfg, fx.path()).unwrap();
+    let out_dir = fx.path().join(".derived/codebase-index");
+    fs::create_dir_all(&out_dir).unwrap();
+    fs::write(out_dir.join("index.json"), &outcome.json).unwrap();
+
+    assert_eq!(
+        check_index_freshness(&cfg, fx.path()).unwrap(),
+        Freshness::Fresh
+    );
+
+    // Mutate a hashed input (a spec) -> stale.
+    write(
+        fx.path(),
+        "specs/001-rs/spec.md",
+        &spec("001-rs", "owner: \"changed\"\n"),
+    );
+    assert!(matches!(
+        check_index_freshness(&cfg, fx.path()).unwrap(),
+        Freshness::Stale { .. }
+    ));
+}
+
+#[test]
+fn authorities_resolves_owners() {
+    let fx = mixed_fixture();
+    let idx = index(&Config::default(), fx.path()).unwrap().index;
+    // The file unit established by 001-rs.
+    let owners = authorities(&idx, &Unit::file("rs-thing/src/lib.rs"));
+    assert!(owners.contains(&"001-rs".to_string()), "owners: {owners:?}");
+}

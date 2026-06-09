@@ -1,0 +1,408 @@
+{
+  "build": {
+    "contentHash": "1b322c72598877b3041a3f2aa380851edf38afd0c85e1398043a52085c1e99ed",
+    "indexerId": "spec-spine",
+    "indexerVersion": "0.1.0",
+    "repoRoot": "."
+  },
+  "diagnostics": {
+    "errors": [],
+    "warnings": []
+  },
+  "packages": [
+    {
+      "kind": "rust-bin",
+      "name": "spec-spine-cli",
+      "path": "crates/spec-spine-cli",
+      "specRef": "001-compile-registry"
+    },
+    {
+      "kind": "rust-lib",
+      "name": "spec-spine-core",
+      "path": "crates/spec-spine-core",
+      "specRef": "001-compile-registry"
+    },
+    {
+      "kind": "rust-lib",
+      "name": "spec-spine-types",
+      "path": "crates/spec-spine-types",
+      "specRef": "000-spec-spine-bootstrap"
+    }
+  ],
+  "schemaVersion": "0.1.0",
+  "traceability": {
+    "mappings": [
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-types",
+            "source": "manifest-metadata"
+          }
+        ],
+        "specId": "000-spec-spine-bootstrap",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "000-spec-spine-bootstrap"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-cli",
+            "source": "manifest-metadata"
+          },
+          {
+            "path": "crates/spec-spine-cli/src/cmd_compile.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-cli/src/main.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core",
+            "source": "manifest-metadata"
+          },
+          {
+            "path": "crates/spec-spine-core/src/canonical_json.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/compile.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/hash.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/lib.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/markdown.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/cmd_compile.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/cmd_compile.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/main.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/main.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/canonical_json.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/canonical_json.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/compile.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/compile.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/hash.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/hash.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/lib.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/markdown.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/markdown.rs"
+            }
+          }
+        ],
+        "specId": "001-compile-registry",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "001-compile-registry"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-cli/src/cmd_registry.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/lib.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/query.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/cmd_registry.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/cmd_registry.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/query.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/query.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/lib.rs"
+            }
+          }
+        ],
+        "specId": "002-registry-query",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "001-compile-registry"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-cli/src/cmd_lint.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/lint.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/cmd_lint.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/cmd_lint.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/lint.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/lint.rs"
+            }
+          }
+        ],
+        "specId": "003-conformance-lint",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "001-compile-registry",
+          "002-registry-query"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-cli/src/cmd_index.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/index.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/manifest.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/pathutil.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/sections.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/symbols.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/cmd_index.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/cmd_index.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/index.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/index.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/manifest.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/manifest.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/pathutil.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/pathutil.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/sections.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/sections.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/symbols.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/symbols.rs"
+            }
+          }
+        ],
+        "specId": "004-codebase-index",
+        "specStatus": "approved"
+      }
+    ],
+    "orphanedSpecs": [],
+    "untracedCode": []
+  }
+}

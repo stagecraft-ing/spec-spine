@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.1.0",
-    "contentHash": "aa421362ff859ffb40f70ce8dd936994168f1ea3744da8682088a1d2c2ce0deb",
+    "contentHash": "90a27e5e5e0f1ec6e742bec5e71adadef3477bd9e408f43235c2b993aae41023",
     "inputRoot": "."
   },
   "specVersion": "0.1.0",
@@ -141,6 +141,93 @@
       "status": "approved",
       "summary": "The query capability: typed, read-only access over a loaded registry — list, show, status-report, and relationships — plus load_registry (which rejects an unknown MAJOR schema version). Establishes the query module and the `spec-spine registry` CLI subcommands; extends 001's public surface additively.\n",
       "title": "Typed read-only query over the registry"
+    },
+    {
+      "created": "2026-06-09",
+      "dependsOn": [
+        "001-compile-registry"
+      ],
+      "establishes": [
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/lint.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_lint.rs"
+        }
+      ],
+      "id": "003-conformance-lint",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "003 — Corpus conformance lint",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 Severity gating",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/003-conformance-lint/spec.md",
+      "status": "approved",
+      "summary": "The conformance lint: corpus well-formedness checks beyond compile's structural validation, emitted as L-codes with error/warning/info tiers. Error-tier always fails; warning-tier fails under --fail-on-warn; info-tier under --fail-on-info. Establishes the lint engine and the `spec-spine lint` CLI subcommand.\n",
+      "title": "Corpus conformance lint"
+    },
+    {
+      "created": "2026-06-09",
+      "dependsOn": [
+        "001-compile-registry",
+        "002-registry-query"
+      ],
+      "establishes": [
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/index.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/manifest.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/sections.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/symbols.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/pathutil.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_index.rs"
+        }
+      ],
+      "id": "004-codebase-index",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "004 — Codebase index and the unit grammar",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 Package discovery (manifest scan)",
+        "3.2 Linkage (code → spec), three sources",
+        "3.3 Unit resolution (the grammar → physical locations)",
+        "3.4 Determinism",
+        "3.5 Content hash & staleness",
+        "3.6 Traceability and diagnostics",
+        "3.7 authorities(unit)",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/004-codebase-index/spec.md",
+      "status": "approved",
+      "summary": "The codebase indexer (code-as-source view): discover compilation units via the configurable manifest namespace, link code to specs three ways, resolve the file/section/symbol unit grammar to physical (file, line-span) locations (tree-sitter for symbols, Rust + TypeScript in v1), emit a deterministic index.json with a content-hash staleness mechanism, and answer authorities(unit). Establishes the manifest/section/symbol resolution layer and the `spec-spine index` CLI subcommand.\n",
+      "title": "Codebase index and the file/section/symbol unit grammar"
     }
   ],
   "validation": {

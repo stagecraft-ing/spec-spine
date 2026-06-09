@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spec-spine.dev/schemas/codebase-index.schema.json",
+  "title": "spec-spine codebase index (code-as-source view)",
+  "description": "The deterministic output of `spec-spine index`. v1 validates the structural envelope and required core fields; the typed-unit payload is permissive so an additive minor can extend it.",
+  "type": "object",
+  "required": ["schemaVersion", "build", "packages", "traceability", "diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "build": {
+      "type": "object",
+      "required": ["indexerId", "indexerVersion", "repoRoot", "contentHash"],
+      "additionalProperties": false,
+      "properties": {
+        "indexerId": { "type": "string", "minLength": 1 },
+        "indexerVersion": { "type": "string", "minLength": 1 },
+        "repoRoot": { "type": "string" },
+        "contentHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "packages": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/packageRecord" }
+    },
+    "traceability": {
+      "type": "object",
+      "required": ["mappings", "orphanedSpecs", "untracedCode"],
+      "additionalProperties": false,
+      "properties": {
+        "mappings": { "type": "array", "items": { "$ref": "#/$defs/traceMapping" } },
+        "orphanedSpecs": { "type": "array", "items": { "type": "string" } },
+        "untracedCode": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "required": ["warnings", "errors"],
+      "additionalProperties": false,
+      "properties": {
+        "warnings": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } },
+        "errors": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }
+      }
+    }
+  },
+  "$defs": {
+    "packageRecord": {
+      "type": "object",
+      "required": ["name", "path", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "path": { "type": "string" },
+        "kind": {
+          "enum": ["rust-lib", "rust-bin", "rust-lib-bin", "npm-package", "npm-workspace"]
+        },
+        "version": { "type": "string" },
+        "edition": { "type": "string" },
+        "specRef": { "type": "string" }
+      }
+    },
+    "traceMapping": {
+      "type": "object",
+      "required": ["specId", "implementingPaths"],
+      "properties": {
+        "specId": { "type": "string" },
+        "implementingPaths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "source"],
+            "properties": {
+              "path": { "type": "string" },
+              "source": {
+                "enum": ["spec-edge", "manifest-metadata", "comment-header", "multiple"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string", "pattern": "^I-[0-9]{3}$" },
+        "message": { "type": "string", "minLength": 1 },
+        "path": { "type": "string" }
+      }
+    }
+  }
+}

@@ -5,7 +5,8 @@
 
 use serde::Serialize;
 use spec_spine_types::{
-    Error, REGISTRY_SCHEMA_VERSION, Registry, SpecRecord, Status, parse_semver,
+    CodebaseIndex, Error, INDEX_SCHEMA_VERSION, REGISTRY_SCHEMA_VERSION, Registry, SpecRecord,
+    Status, parse_semver,
 };
 
 /// Parse `registry.json` bytes into a typed [`Registry`], rejecting an unknown
@@ -14,20 +15,29 @@ use spec_spine_types::{
 pub fn load_registry(bytes: &[u8]) -> Result<Registry, Error> {
     let registry: Registry = serde_json::from_slice(bytes)
         .map_err(|e| Error::Parse(format!("invalid registry.json: {e}")))?;
-    let (want_major, ..) =
-        parse_semver(REGISTRY_SCHEMA_VERSION).expect("our own version constant is semver");
-    let (got_major, ..) = parse_semver(&registry.spec_version).ok_or_else(|| {
-        Error::Schema(format!(
-            "registry specVersion '{}' is not semver",
-            registry.spec_version
-        ))
-    })?;
+    reject_unknown_major("registry", &registry.spec_version, REGISTRY_SCHEMA_VERSION)?;
+    Ok(registry)
+}
+
+/// Parse `index.json` bytes into a typed [`CodebaseIndex`], rejecting an unknown
+/// MAJOR schema version. The index-side overlay seam.
+pub fn load_index(bytes: &[u8]) -> Result<CodebaseIndex, Error> {
+    let index: CodebaseIndex = serde_json::from_slice(bytes)
+        .map_err(|e| Error::Parse(format!("invalid index.json: {e}")))?;
+    reject_unknown_major("index", &index.schema_version, INDEX_SCHEMA_VERSION)?;
+    Ok(index)
+}
+
+fn reject_unknown_major(what: &str, found: &str, ours: &str) -> Result<(), Error> {
+    let (want_major, ..) = parse_semver(ours).expect("our own version constant is semver");
+    let (got_major, ..) = parse_semver(found)
+        .ok_or_else(|| Error::Schema(format!("{what} schemaVersion '{found}' is not semver")))?;
     if got_major != want_major {
         return Err(Error::Schema(format!(
-            "registry schema MAJOR {got_major} is unsupported (this build understands {want_major}.x)"
+            "{what} schema MAJOR {got_major} is unsupported (this build understands {want_major}.x)"
         )));
     }
-    Ok(registry)
+    Ok(())
 }
 
 /// Filter for [`list`]. Extend additively as needs grow.
