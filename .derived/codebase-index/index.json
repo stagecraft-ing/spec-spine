@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "1b322c72598877b3041a3f2aa380851edf38afd0c85e1398043a52085c1e99ed",
+    "contentHash": "038f069f27ab531d75d2c4d5d1e8aedfc1e12a267fa267d5b80d50698b83b807",
     "indexerId": "spec-spine",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -399,6 +399,234 @@
           }
         ],
         "specId": "004-codebase-index",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "001-compile-registry",
+          "002-registry-query",
+          "004-codebase-index"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-cli/src/cmd_couple.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-cli/src/main.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-cli/tests/couple.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/couple.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/lib.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/tests/couple.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/cmd_couple.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/cmd_couple.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/tests/couple.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/tests/couple.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/couple.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/couple.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/tests/couple.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/tests/couple.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/main.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/main.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/lib.rs"
+            }
+          }
+        ],
+        "specId": "005-coupling-gate",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "001-compile-registry"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-cli/src/cmd_init.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-cli/src/main.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-cli/tests/init.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/lib.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/scaffold.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/tests/scaffold.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/cmd_init.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/cmd_init.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/tests/init.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/tests/init.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/scaffold.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/scaffold.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/tests/scaffold.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/tests/scaffold.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/main.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/main.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/lib.rs"
+            }
+          }
+        ],
+        "specId": "006-init-scaffold",
         "specStatus": "approved"
       }
     ],

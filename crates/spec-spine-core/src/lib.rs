@@ -1,17 +1,20 @@
 //! # spec-spine-core
 //!
-//! The spec-spine engine. Phase 2 shipped **compile** + **query**; Phase 3 adds
-//! **index** (code-as-source view, staleness, authorities) and **lint**.
-//! `couple` / `init` land in later phases.
+//! The spec-spine engine. Phase 2 shipped **compile** + **query**; Phase 3 added
+//! **index** (code-as-source view, staleness, authorities) and **lint**; Phase 4
+//! adds **couple** (the PR-time drift gate) and **init** (the adopter scaffolder).
 //!
 //! Every artifact-producing function is a pure function of `(config, file
-//! contents)` — no ambient clock or environment reads. The public API returns
+//! contents)` — no ambient clock or environment reads, and **no git** (the CLI
+//! parses the diff and passes a typed [`DiffInput`] in). The public API returns
 //! owned, `serde`-serializable DTOs (from [`spec_spine_types`]); the
 //! JSON-in/JSON-out facade ([`compile_json`], [`query_json`], [`index_json`],
-//! [`lint_json`], …) is the seam future FFI bindings wrap.
+//! [`lint_json`], [`couple_json`], [`scaffold_init_json`], …) is the seam future
+//! FFI bindings wrap.
 
 mod canonical_json;
 pub mod compile;
+pub mod couple;
 mod hash;
 pub mod index;
 pub mod lint;
@@ -19,6 +22,7 @@ pub mod manifest;
 mod markdown;
 pub mod pathutil;
 pub mod query;
+pub mod scaffold;
 pub mod sections;
 pub mod symbols;
 
@@ -32,12 +36,17 @@ pub use spec_spine_types::{
 };
 
 pub use compile::{CompileOutcome, MAX_UNDECLARED_EXTRA_FRONTMATTER, compile};
+pub use couple::{
+    CoupleReport, DEFAULT_BYPASS_PREFIXES, DiffFile, DiffInput, Waiver, couple, couple_with,
+    parse_waiver,
+};
 pub use index::{Freshness, IndexOutcome, authorities, check_index_freshness, index};
 pub use lint::{LintReport, lint};
 pub use query::{
     ListFilter, RelationshipView, StatusReport, list, load_index, load_registry, relationships,
     show, status_report,
 };
+pub use scaffold::{Scaffold, ScaffoldFile, scaffold_init};
 
 // ===== JSON-in / JSON-out facade (the FFI seam) =====
 
@@ -133,6 +142,41 @@ pub fn check_freshness_json(config_json: &str, repo_root: &str) -> Result<String
 pub fn load_config_json(toml_src: &str) -> Result<String, Error> {
     let config = load_config(toml_src)?;
     to_json(&config)
+}
+
+/// Run the coupling gate. `request_json` bundles config + repo_root + diff +
+/// optional waiver:
+/// `{ "config"?: Config, "repoRoot": string, "diff": DiffInput, "waiver"?: { "reason": string } }`.
+/// Returns the [`CoupleReport`] as JSON (even when drift is present — the caller
+/// inspects `violations` / `waiver`).
+pub fn couple_json(request_json: &str) -> Result<String, Error> {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase", deny_unknown_fields)]
+    struct Request {
+        #[serde(default)]
+        config: Config,
+        repo_root: String,
+        diff: DiffInput,
+        #[serde(default)]
+        waiver: Option<Waiver>,
+    }
+
+    let request: Request = serde_json::from_str(request_json)
+        .map_err(|e| Error::Parse(format!("invalid couple request: {e}")))?;
+    let report = couple(
+        &request.config,
+        std::path::Path::new(&request.repo_root),
+        &request.diff,
+        request.waiver.as_ref(),
+    )?;
+    to_json(&report)
+}
+
+/// Generate the adopter scaffold for `config_json` (`"{}"` ⇒ defaults), returning
+/// the [`Scaffold`] (files-as-data) as JSON. The caller writes the files.
+pub fn scaffold_init_json(config_json: &str) -> Result<String, Error> {
+    let config = config_from_json(config_json)?;
+    to_json(&scaffold_init(&config)?)
 }
 
 // --- facade helpers ---

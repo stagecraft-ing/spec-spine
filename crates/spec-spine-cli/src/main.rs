@@ -4,7 +4,9 @@
 //! `git`/clock side effects live here, never in the library.
 
 mod cmd_compile;
+mod cmd_couple;
 mod cmd_index;
+mod cmd_init;
 mod cmd_lint;
 mod cmd_registry;
 
@@ -51,6 +53,28 @@ enum Command {
         #[arg(long)]
         fail_on_info: bool,
     },
+    /// The PR-time coupling gate: refuse code that drifts from its owning spec.
+    Couple {
+        /// Base ref for the diff (merge-base of `base...head`).
+        #[arg(long, default_value = "origin/main")]
+        base: String,
+        /// Head ref for the diff.
+        #[arg(long, default_value = "HEAD")]
+        head: String,
+        /// PR body (waiver source); a file path. Falls back to $SPEC_SPINE_PR_BODY.
+        #[arg(long)]
+        pr_body: Option<PathBuf>,
+        /// Override the diff: read newline-delimited changed paths from this file
+        /// (whole-file authority; no hunk data).
+        #[arg(long)]
+        paths_from: Option<PathBuf>,
+    },
+    /// Scaffold a new adopter: config, standards, a bootstrap spec, agent rules.
+    Init {
+        /// Overwrite existing files instead of skipping them.
+        #[arg(long)]
+        force: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -68,6 +92,21 @@ fn main() -> ExitCode {
             fail_on_warn,
             fail_on_info,
         } => cmd_lint::run(&repo, *fail_on_warn, *fail_on_info),
+        Command::Couple {
+            base,
+            head,
+            pr_body,
+            paths_from,
+        } => cmd_couple::run(
+            &repo,
+            &cmd_couple::CoupleArgs {
+                base: base.clone(),
+                head: head.clone(),
+                pr_body: pr_body.clone(),
+                paths_from: paths_from.clone(),
+            },
+        ),
+        Command::Init { force } => cmd_init::run(&repo, *force),
     };
 
     match result {

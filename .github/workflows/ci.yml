@@ -1,0 +1,67 @@
+name: CI
+
+# Build + test + lint, then dogfood: run spec-spine's OWN governance gates against
+# its OWN corpus. A spec-spine that is not itself spec-governed is hypocritical.
+#
+# Cross-triple tree-sitter symbol-span determinism is a Phase-5 release-matrix
+# concern (the resolver is pinned exact; see docs/design/00-architecture.md §10.1),
+# not gated here.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: build · test · clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # rust-toolchain.toml pins the exact channel (+ rustfmt, clippy).
+      - name: Show toolchain
+        run: rustc --version && cargo --version
+      - name: Build
+        run: cargo build --workspace --locked
+      - name: Test
+        run: cargo test --workspace --locked
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Format
+        run: cargo fmt --all --check
+
+  dogfood:
+    name: self-governance (compile · index · lint · couple)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the coupling gate can diff against the merge base.
+          fetch-depth: 0
+      - name: Build CLI
+        run: cargo build --bin spec-spine --locked
+      - name: Compile registry (validation gate)
+        run: ./target/debug/spec-spine compile
+      - name: Codebase index freshness (committed artifacts must be current)
+        run: ./target/debug/spec-spine index check
+      - name: Conformance lint (fail on warn)
+        run: ./target/debug/spec-spine lint --fail-on-warn
+      - name: Coupling gate (spec/code drift)
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
+          fi
+          echo "coupling base: $BASE → HEAD"
+          printf '%s' "${PR_BODY:-}" > /tmp/pr-body.txt
+          ./target/debug/spec-spine couple --base "$BASE" --head HEAD --pr-body /tmp/pr-body.txt

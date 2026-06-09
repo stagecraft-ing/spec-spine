@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.1.0",
-    "contentHash": "90a27e5e5e0f1ec6e742bec5e71adadef3477bd9e408f43235c2b993aae41023",
+    "contentHash": "af12389d343a6fa6ab33d73cbf882f59400835f5dacd27f31c263b8cebbea3d2",
     "inputRoot": "."
   },
   "specVersion": "0.1.0",
@@ -228,6 +228,134 @@
       "status": "approved",
       "summary": "The codebase indexer (code-as-source view): discover compilation units via the configurable manifest namespace, link code to specs three ways, resolve the file/section/symbol unit grammar to physical (file, line-span) locations (tree-sitter for symbols, Rust + TypeScript in v1), emit a deterministic index.json with a content-hash staleness mechanism, and answer authorities(unit). Establishes the manifest/section/symbol resolution layer and the `spec-spine index` CLI subcommand.\n",
       "title": "Codebase index and the file/section/symbol unit grammar"
+    },
+    {
+      "created": "2026-06-09",
+      "dependsOn": [
+        "001-compile-registry",
+        "002-registry-query",
+        "004-codebase-index"
+      ],
+      "establishes": [
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/couple.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_couple.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/couple.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/tests/couple.rs"
+        }
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/lib.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-cli/src/main.rs"
+          }
+        }
+      ],
+      "id": "005-coupling-gate",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "005 — The coupling gate",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 The boundary — git stays out of core",
+        "3.2 Owner derivation — three granularities",
+        "3.3 Amends-awareness and the strict-expansion guard (FR-005)",
+        "3.4 Supersedes — authority transfer",
+        "3.5 Clearance, waivers, and bypass",
+        "3.6 Granularity reconciliation (the crate-spec vs file-establishes question)",
+        "3.7 Exit codes",
+        "3.8 Determinism",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/005-coupling-gate/spec.md",
+      "status": "approved",
+      "summary": "The PR-time coupling gate (spec-spine.md guardrail 2): cross-reference every changed code path against the authority graph and refuse the merge when code drifts from the spec that owns it. A pure function of (config, registry, index, diff, waiver); the CLI parses `git diff --no-color -U0 base...head` into a typed DiffInput so git stays out of core. Matches a diff hunk to its owning unit at file, section, and symbol granularity; is amends-aware with the FR-005 strict-expansion guard; transfers authority across supersedes; honors PR-body waivers and an additive bypass list. Establishes the couple engine and the `spec-spine couple` subcommand.\n",
+      "title": "The coupling gate — join the two views and refuse drift"
+    },
+    {
+      "created": "2026-06-09",
+      "dependsOn": [
+        "001-compile-registry"
+      ],
+      "establishes": [
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/scaffold.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_init.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/scaffold.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/tests/init.rs"
+        }
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/lib.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-cli/src/main.rs"
+          }
+        }
+      ],
+      "id": "006-init-scaffold",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "006 — init — scaffold a new adopter",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 Files as data (core stays IO-light)",
+        "3.2 What is scaffolded",
+        "3.3 `--force`",
+        "3.4 Exit codes",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/006-init-scaffold/spec.md",
+      "status": "approved",
+      "summary": "The adoption UX: `spec-spine init` scaffolds a fresh repo so it can be governed with zero source edits to the library — a starter spec-spine.toml, a standards/spec/ constitution + contract + templates, a bootstrap specs/000-* spec.md, and the .claude/rules/ agent rule files. Core stays IO-light: scaffold_init returns the files as data (rel_path, contents, overwrite); the CLI writes them, with --force to overwrite existing files. Establishes the scaffold generator and the `spec-spine init` CLI subcommand.\n",
+      "title": "init — scaffold a new adopter"
     }
   ],
   "validation": {
