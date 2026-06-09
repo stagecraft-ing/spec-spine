@@ -119,12 +119,17 @@ either the predecessor or the successor clears the path.
 
 - **Clearance**: a path is cleared when **any one** of its legitimate owners has
   its `specs/<owner-id>/spec.md` in the diff. An owned path with no owner edit is
-  a **drift violation**.
+  a **drift violation**, emitted with code `C-001` (the coupling band of the
+  shared `V`/`L`/`I`/`C` diagnostic scheme — see `docs/design/00-architecture.md`
+  §10.3).
 - **Bypass**: a path exempt from the gate is skipped. The match rules
   (`is_bypass_against`): trailing `/` ⇒ directory prefix; leading `**/` ⇒
   tail-suffix anywhere in the tree; else exact file. The effective bypass set is
-  a **hardcoded generic floor** unioned with `config.coupling.bypass_prefixes` —
-  the adopter list is **additive and cannot remove a floor entry**.
+  a **hardcoded generic floor** (`couple.rs::DEFAULT_BYPASS_PREFIXES`, the single
+  built-in source) unioned with `config.coupling.bypass_prefixes` — the adopter
+  list is **additive and cannot remove a floor entry**. Because the floor is
+  always unioned in, the config default is **empty**: an adopter declares only
+  their additions, never a copy of the floor.
 - **Waiver**: the gate reads the first PR-body line beginning with
   `config.coupling.waiver_keyword` (default `Spec-Drift-Waiver:`); the trimmed
   remainder is the reason. A present waiver suppresses the failure exit but the
@@ -167,6 +172,11 @@ owner sets are `BTreeSet`-ordered. No clock, env, or git in core.
 ## 4. Out of scope
 
 The indexer and unit resolution (spec 004). The `init` scaffolder (spec 006).
-Source-line staleness beyond the manifest/spec/config content-hash (the gate
-relies on a freshly recomputed index in CI; the freshness guard catches
-spec/manifest/config drift only — see spec 004 §3.5).
+
+Span-backing source staleness is **in scope** as of Phase 4.5: the index
+content-hash folds every source file behind a resolved `symbol`/`section` span
+(spec 004 §3.5), so a source-line shift that moves a committed span forces the
+index `Stale` and the gate refuses to run against stale spans (exit 2, recompute
+first). What remains out of scope is **semantic** drift that preserves line spans
+(e.g. a refactor that changes behavior without moving the owning symbol's lines):
+the gate detects line-span coupling, not behavioral equivalence.

@@ -233,6 +233,46 @@ fn staleness_detects_input_change() {
 }
 
 #[test]
+fn staleness_detects_symbol_source_line_shift() {
+    // The freshness false-negative (spec 004 §3.5): a source-line shift in a file
+    // backing a resolved SYMBOL span must report Stale, even though that file is
+    // neither a manifest, a spec.md, nor an extra_hashed_input. Before the fix the
+    // span-backing source was not hashed, so this read Fresh against stale spans.
+    let fx = mixed_fixture();
+    let cfg = Config::default();
+    let outcome = index(&cfg, fx.path()).unwrap();
+    let out_dir = fx.path().join(".derived/codebase-index");
+    fs::create_dir_all(&out_dir).unwrap();
+    fs::write(out_dir.join("index.json"), &outcome.json).unwrap();
+
+    // Sanity: the committed index resolved a symbol span into rs-thing/src/lib.rs.
+    assert_eq!(
+        symbol_span(mapping(&outcome.index, "001-rs"), "rs_thing::Beta"),
+        Some(LineSpan::new(2, 4)),
+        "fixture must back a symbol span with this source file"
+    );
+    assert_eq!(
+        check_index_freshness(&cfg, fx.path()).unwrap(),
+        Freshness::Fresh
+    );
+
+    // Prepend a line to the symbol's source file — this shifts every committed
+    // span downward but touches no manifest/spec/config. It MUST go Stale.
+    write(
+        fx.path(),
+        "rs-thing/src/lib.rs",
+        "// a new leading comment line\npub fn alpha() {}\npub struct Beta {\n    x: u8,\n}\n",
+    );
+    assert!(
+        matches!(
+            check_index_freshness(&cfg, fx.path()).unwrap(),
+            Freshness::Stale { .. }
+        ),
+        "a source-line shift behind a resolved symbol span must report Stale"
+    );
+}
+
+#[test]
 fn authorities_resolves_owners() {
     let fx = mixed_fixture();
     let idx = index(&Config::default(), fx.path()).unwrap().index;

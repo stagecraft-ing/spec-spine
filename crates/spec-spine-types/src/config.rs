@@ -162,9 +162,13 @@ impl Default for BrandingConfig {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CouplingConfig {
-    /// Paths exempt from the gate. Match rules: trailing `/` ⇒ dir prefix;
-    /// leading `**/` ⇒ tail-suffix anywhere; else exact file. An adopter list is
-    /// additive — it cannot remove a default entry.
+    /// **Additional** paths exempt from the gate, on top of the always-applied
+    /// hardcoded floor (`spec_spine_core::DEFAULT_BYPASS_PREFIXES`). Match rules:
+    /// trailing `/` ⇒ dir prefix; leading `**/` ⇒ tail-suffix anywhere; else
+    /// exact file. This list is **additive** — it adds to the floor and can never
+    /// remove a floor entry. The default is **empty**: the floor is the single
+    /// built-in source, so an adopter declares only their own additions rather
+    /// than restating (and seeming able to override) the floor.
     pub bypass_prefixes: Vec<String>,
     /// The PR-body waiver keyword; the free-text reason follows the colon.
     pub waiver_keyword: String,
@@ -173,21 +177,10 @@ pub struct CouplingConfig {
 impl Default for CouplingConfig {
     fn default() -> Self {
         CouplingConfig {
-            bypass_prefixes: vec![
-                ".github/".to_string(),
-                "docs/".to_string(),
-                "README.md".to_string(),
-                "CHANGELOG.md".to_string(),
-                "LICENSE".to_string(),
-                "CODEOWNERS".to_string(),
-                ".gitignore".to_string(),
-                ".gitattributes".to_string(),
-                "standards/spec/constitution.md".to_string(),
-                ".derived/".to_string(),
-                "**/Cargo.lock".to_string(),
-                "**/package-lock.json".to_string(),
-                "**/pnpm-lock.yaml".to_string(),
-            ],
+            // Empty by design — the floor lives in `couple.rs` and is always
+            // unioned in; duplicating it here was redundant and misleadingly
+            // implied it was overridable.
+            bypass_prefixes: Vec::new(),
             waiver_keyword: "Spec-Drift-Waiver:".to_string(),
         }
     }

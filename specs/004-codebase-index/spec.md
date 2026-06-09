@@ -15,6 +15,7 @@ establishes:
   - "crates/spec-spine-core/src/sections.rs"
   - "crates/spec-spine-core/src/symbols.rs"
   - "crates/spec-spine-core/src/pathutil.rs"
+  - "crates/spec-spine-core/tests/index.rs"
   - "crates/spec-spine-cli/src/cmd_index.rs"
 summary: >
   The codebase indexer (code-as-source view): discover compilation units via the
@@ -99,12 +100,20 @@ line-spans are identical across the release matrix.
 
 ### 3.5 Content hash & staleness
 
-`build.contentHash` is SHA-256 over the normalized, **path-sorted** set of: every
-discovered manifest, every `spec.md`, and every file matched by
-`index.extra_hashed_inputs`. `spec-spine index check` recomputes this over
-current inputs and compares it to the committed `index.json`; a mismatch is
-`Stale` (exit 2). Resolver hard-error diagnostics (`I-003`..`I-009`) also fail
-`check`.
+`build.contentHash` is SHA-256 over the normalized, **path-sorted** (and
+path-deduplicated) set of: every discovered manifest, every `spec.md`, every file
+matched by `index.extra_hashed_inputs`, **and every source file backing a resolved
+`symbol` or `section` unit's span** (the files appearing in the index's
+`resolvedUnits` locations for those two kinds). Folding the span-backing sources
+closes a freshness false-negative: a source-line shift that moves a committed
+span would otherwise leave the hash unchanged, so the gate would match diff hunks
+against stale spans. `file` units carry no span — a content edit cannot invalidate
+a `None` location — so they are deliberately **not** folded (a file-unit-only
+corpus adds zero hashed inputs, hence zero churn). `spec-spine index check`
+recomputes this over current inputs — reading the span-backing file set from the
+committed `index.json`'s own `resolvedUnits` — and compares it to the committed
+hash; a mismatch is `Stale` (exit 2). Resolver hard-error diagnostics
+(`I-003`..`I-009`) also fail `check`.
 
 ### 3.6 Traceability and diagnostics
 

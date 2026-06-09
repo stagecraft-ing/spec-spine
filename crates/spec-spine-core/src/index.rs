@@ -178,11 +178,14 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
         .collect();
     untraced_code.sort();
 
-    // --- content hash over path-sorted manifests + specs + extra inputs ---
+    // --- content hash over path-sorted manifests + specs + extra inputs +
+    // every source file backing a resolved symbol/section span (spec 004 §3.5) ---
+    let span_files = resolved_span_files(&mappings);
     let content_hash = hash::content_hash(collect_hash_inputs(
         cfg,
         repo_root,
         &discovered.manifest_paths,
+        &span_files,
     )?);
 
     let codebase_index = CodebaseIndex {
@@ -239,10 +242,15 @@ pub fn check_index_freshness(
     }
 
     let discovered = manifest::discover(cfg, repo_root);
+    // The span-backing source set is read from the committed index's own
+    // resolvedUnits, so editing such a file (shifting a committed span) changes
+    // the recomputed hash and reports Stale (spec 004 §3.5).
+    let span_files = resolved_span_files(&committed.traceability.mappings);
     let actual = hash::content_hash(collect_hash_inputs(
         cfg,
         repo_root,
         &discovered.manifest_paths,
+        &span_files,
     )?);
     if actual == committed.build.content_hash {
         Ok(Freshness::Fresh)
@@ -441,6 +449,7 @@ fn collect_hash_inputs(
     cfg: &spec_spine_types::Config,
     repo_root: &Path,
     manifest_paths: &[PathBuf],
+    span_files: &BTreeSet<String>,
 ) -> Result<Vec<(String, String)>, Error> {
     let mut pieces: Vec<(String, String)> = Vec::new();
     let push = |abs: &Path, pieces: &mut Vec<(String, String)>| {
@@ -474,8 +483,36 @@ fn collect_hash_inputs(
             push(&file, &mut pieces);
         }
     }
-    // content_hash sorts by path; order here is irrelevant.
+    // Source files backing a resolved symbol/section span (spec 004 §3.5).
+    // `span_files` are repo-relative POSIX paths from the index's resolvedUnits.
+    for rel in span_files {
+        push(&repo_root.join(rel), &mut pieces);
+    }
+    // De-duplicate by path so an input folded by two routes (e.g. a section unit
+    // in a file also matched by extra_hashed_inputs) is hashed once — content for
+    // a given path is identical, so the hash stays a pure function of the set.
+    pieces.sort_by(|a, b| a.0.cmp(&b.0));
+    pieces.dedup_by(|a, b| a.0 == b.0);
     Ok(pieces)
+}
+
+/// The set of repo-relative source files backing a resolved `symbol`/`section`
+/// unit's span. These are folded into the content hash so a source-line shift
+/// that moves a committed span forces the index `Stale` (spec 004 §3.5). `file`
+/// units carry no span and are intentionally excluded — a file-unit-only corpus
+/// contributes nothing here.
+fn resolved_span_files(mappings: &[TraceMapping]) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    for m in mappings {
+        for ru in &m.resolved_units {
+            if matches!(ru.unit, Unit::Section { .. } | Unit::Symbol { .. }) {
+                for loc in &ru.locations {
+                    out.insert(loc.file.clone());
+                }
+            }
+        }
+    }
+    out
 }
 
 fn glob_files(repo_root: &Path, pattern: &str) -> Vec<PathBuf> {

@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.1.0",
-    "contentHash": "af12389d343a6fa6ab33d73cbf882f59400835f5dacd27f31c263b8cebbea3d2",
+    "contentHash": "a1b95607e9e8219153127b603ac42da34fb41aa43c5f0459c687ce24d377c7c4",
     "inputRoot": "."
   },
   "specVersion": "0.1.0",
@@ -200,6 +200,10 @@
         {
           "kind": "file",
           "path": "crates/spec-spine-core/src/pathutil.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/index.rs"
         },
         {
           "kind": "file",

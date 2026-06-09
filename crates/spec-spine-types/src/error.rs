@@ -6,8 +6,10 @@
 //! `println!` data — those belong only in the CLI crate.
 //!
 //! Exit-code contract (see `docs/design/00-architecture.md` §6):
-//! `0` ok, `1` validation failure / not found / drift, `2` stale,
-//! `3` IO / parse / schema / config error.
+//! `0` ok, `1` validation failure / not found, `2` stale,
+//! `3` IO / parse / schema / config error. Coupling drift also exits `1`, but is
+//! carried as a `CoupleReport` (not an `Error`) so the JSON facade returns the
+//! structured report even on drift; the CLI maps the report to exit `1`.
 
 use crate::registry::Violation;
 
@@ -25,8 +27,6 @@ pub enum Error {
     NotFound(String),
     /// The committed index is out of date relative to current inputs. → exit 2.
     Stale { expected: String, actual: String },
-    /// Coupling found uncovered changed paths and no waiver was present. → exit 1.
-    Drift(Vec<Violation>),
     /// A filesystem / git / read failure. → exit 3.
     Io(String),
     /// A frontmatter / TOML / JSON parse failure. → exit 3.
@@ -39,7 +39,7 @@ impl Error {
     /// The stable process exit code for this error.
     pub fn exit_code(&self) -> u8 {
         match self {
-            Error::Validation(_) | Error::NotFound(_) | Error::Drift(_) => 1,
+            Error::Validation(_) | Error::NotFound(_) => 1,
             Error::Stale { .. } => 2,
             Error::Config(_) | Error::Io(_) | Error::Parse(_) | Error::Schema(_) => 3,
         }
@@ -58,7 +58,6 @@ impl std::fmt::Display for Error {
                     "index is stale: expected content-hash {expected}, got {actual}"
                 )
             }
-            Error::Drift(v) => write!(f, "spec/code drift: {} uncovered path(s)", v.len()),
             Error::Io(m) => write!(f, "io error: {m}"),
             Error::Parse(m) => write!(f, "parse error: {m}"),
             Error::Schema(m) => write!(f, "schema error: {m}"),

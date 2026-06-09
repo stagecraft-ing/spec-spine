@@ -159,6 +159,15 @@ Determinism is what makes the ledger a ledger: two agents producing changes
 independently produce diffable, mechanically-mergeable artifacts, and staleness
 is detectable by content-hash comparison alone.
 
+**Staleness completeness corollary.** Because staleness is detected by
+content-hash comparison alone, that hash MUST fold *every* input that can change
+the resolved artifact — not only the spec/manifest/config corpus, but the source
+files whose `symbol`/`section` spans the index resolved. A blind spot in the hash
+is a silent correctness hole: an input could drift while the artifact reads
+fresh, and the coupling gate would then match diffs against stale spans. The
+hash's input set is therefore a closed function of what the artifact actually
+depends on.
+
 ## 7. The guardrails
 
 1. A **deterministic compiler** mints the registry (§5, §6).

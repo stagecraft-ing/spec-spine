@@ -23,11 +23,12 @@ use spec_spine_types::{CodebaseIndex, Config, Error, LineSpan, Registry, Severit
 use crate::index::{Freshness, check_index_freshness};
 use crate::query::{load_index, load_registry};
 
-/// The hardcoded generic bypass floor (spec 005 §3.5). The adopter's
-/// `config.coupling.bypass_prefixes` is unioned with this — it is **additive and
-/// cannot remove a floor entry** (ported from OAP `BYPASS_PREFIXES`, pruned to
-/// the generic subset). Match rules: trailing `/` ⇒ directory prefix; leading
-/// `**/` ⇒ tail-suffix anywhere; else exact file.
+/// The hardcoded generic bypass floor (spec 005 §3.5) — the **single built-in
+/// source** of bypass entries. The adopter's `config.coupling.bypass_prefixes`
+/// (default **empty**) is unioned with this — it is **additive and cannot remove
+/// a floor entry** (ported from OAP `BYPASS_PREFIXES`, pruned to the generic
+/// subset). Match rules: trailing `/` ⇒ directory prefix; leading `**/` ⇒
+/// tail-suffix anywhere; else exact file.
 pub const DEFAULT_BYPASS_PREFIXES: &[&str] = &[
     ".github/",
     "docs/",

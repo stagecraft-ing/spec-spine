@@ -35,12 +35,10 @@ compiler_id = "spec-spine"
 indexer_id  = "spec-spine"
 
 [coupling]
-bypass_prefixes = [
-  ".github/", "docs/", "README.md", "CHANGELOG.md", "LICENSE",
-  "CODEOWNERS", ".gitignore", ".gitattributes",
-  "standards/spec/constitution.md", ".derived/",
-  "**/Cargo.lock", "**/package-lock.json", "**/pnpm-lock.yaml",
-]
+# Additions to the built-in generic bypass floor (see couple.rs::DEFAULT_BYPASS_PREFIXES).
+# This list is ADDITIVE and cannot remove a floor entry, so it is left empty:
+# the floor already covers .github/, docs/, lockfiles, .derived/, etc.
+bypass_prefixes = []
 waiver_keyword = "Spec-Drift-Waiver:"
 
 [provenance.uri_schemes]

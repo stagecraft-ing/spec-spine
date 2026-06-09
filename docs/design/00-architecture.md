@@ -253,17 +253,15 @@ resolver_exclusions = ["target", "node_modules", ".derived", "dist", "build", ".
 compiler_id = "spec-spine"
 indexer_id  = "spec-spine"
 
+# ADDITIONS to the always-applied hardcoded bypass floor (the generic subset of
+# OAP's BYPASS_PREFIXES — `.github/`, `docs/`, lockfiles, `.derived/`, … — which
+# lives in `couple.rs::DEFAULT_BYPASS_PREFIXES`, the single built-in source).
+# Match rules: trailing `/` ⇒ dir prefix; leading `**/` ⇒ tail-suffix anywhere;
+# else exact file. The list is ADDITIVE — it adds to the floor and can never
+# remove a floor entry (OAP's overlay semantics) — so the DEFAULT IS EMPTY:
+# restating the floor here was redundant and falsely implied it was overridable.
 [coupling]
-# Paths exempt from the gate. Default = docs + lockfiles + derived + vendored, the
-# generic subset of OAP's BYPASS_PREFIXES. Match rules: trailing `/` ⇒ dir prefix;
-# leading `**/` ⇒ tail-suffix anywhere; else exact file. (Adopter list is ADDITIVE;
-# it cannot remove an entry — matching OAP's overlay semantics.)
-bypass_prefixes = [
-  ".github/", "docs/", "README.md", "CHANGELOG.md", "LICENSE",
-  "CODEOWNERS", ".gitignore", ".gitattributes",
-  "standards/spec/constitution.md", ".derived/",
-  "**/Cargo.lock", "**/package-lock.json", "**/pnpm-lock.yaml",
-]
+bypass_prefixes = []
 # The PR-body waiver keyword (free-text reason follows the colon).
 waiver_keyword = "Spec-Drift-Waiver:"
 
@@ -401,7 +399,9 @@ pub enum Error {
     Validation(Vec<Violation>),  // compile validation failed            → exit 1
     NotFound(String),     // spec id / view / path not found            → exit 1
     Stale { expected: String, actual: String },  // index out of date    → exit 2
-    Drift(Vec<Violation>),// coupling: uncovered paths, no waiver        → exit 1
+    // (coupling drift is NOT an Error variant — it is carried as a CoupleReport
+    //  so the JSON facade returns the structured report even on drift; the CLI
+    //  maps report.has_blocking_drift() → exit 1.)
     Io(String),           // filesystem / git / read failure            → exit 3
     Parse(String),        // frontmatter / TOML / JSON parse failure     → exit 3
     Schema(String),       // emitted/loaded JSON fails schema/version    → exit 3
@@ -623,8 +623,8 @@ The compiler is built to satisfy `000`; once built, it compiles its own corpus
 
 ### 10.3 Lint / validation / diagnostic code scheme (fresh, minimal)
 
-A clean three-band namespace (the references' V-/W-/I- soup is pruned to generic
-checks; full enumeration lands in the Phase 1/3 specs):
+A clean four-band namespace (the references' V-/W-/I- soup is pruned to generic
+checks; full enumeration lands in the Phase 1/3/4 specs):
 
 - **`V###`** — compile-time *validation* (gate `registry.validation.passed`):
   missing required key, malformed frontmatter, duplicate id, duplicate numeric
@@ -637,6 +637,9 @@ checks; full enumeration lands in the Phase 1/3 specs):
   enabled), legacy bare-path inside a workspace member, etc.
 - **`I###`** — *index* diagnostics; a small **blocking** band (resolver hard
   errors) fails `index check`.
+- **`C###`** — *coupling* gate violations (spec 005). `C-001` = a changed,
+  non-bypassed path lacks an authoring edit to any spec that owns it (and no
+  waiver excuses it) → exit 1.
 
 ### 10.4 Deliberately dropped from the generic core (overlay territory)
 
