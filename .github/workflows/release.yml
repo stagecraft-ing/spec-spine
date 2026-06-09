@@ -115,24 +115,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Publish types, core, cli (skip versions already live)
+      - name: Publish types, core, cli (tolerate versions already on crates.io)
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
-          set -euo pipefail
-          version="$(grep -m1 '^version' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')"
-          echo "workspace version: $version"
+          # No -e: we inspect cargo's exit so an already-published version is a
+          # skip, not a failure (re-running a tag is then idempotent). cargo
+          # publish waits for the new version to be queryable before returning,
+          # so the next dependent crate's verify build finds it. No crates.io API
+          # call here: that endpoint needs a User-Agent and is easy to get wrong.
+          set -uo pipefail
           for crate in spec-spine-types spec-spine-core spec-spine-cli; do
-            code="$(curl -fsS -o /dev/null -w '%{http_code}' "https://crates.io/api/v1/crates/$crate/$version" || echo 000)"
-            if [ "$code" = "200" ]; then
-              echo "$crate $version already on crates.io, skipping"
-              continue
+            echo "::group::publish $crate"
+            if out="$(cargo publish -p "$crate" --locked 2>&1)"; then
+              echo "$out"; echo ">> published $crate"
+            else
+              echo "$out"
+              if echo "$out" | grep -qiE "already (uploaded|exists)"; then
+                echo ">> $crate version already on crates.io, skipping"
+              else
+                echo ">> publish failed for $crate"; exit 1
+              fi
             fi
-            echo "publishing $crate $version"
-            cargo publish -p "$crate" --locked
-            # cargo waits for availability post-publish; re-confirm before the next dependent crate
-            for _ in $(seq 1 30); do
-              c="$(curl -fsS -o /dev/null -w '%{http_code}' "https://crates.io/api/v1/crates/$crate/$version" || echo 000)"
-              [ "$c" = "200" ] && break || sleep 5
-            done
+            echo "::endgroup::"
           done
