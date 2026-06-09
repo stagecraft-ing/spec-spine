@@ -12,3 +12,6 @@
 # OS / editor cruft
 .DS_Store
 *.swp
+.env*
+# Local secrets (e.g. CARGO_REGISTRY_TOKEN) — never commit
+.env
