@@ -76,6 +76,7 @@ operation has a JSON-in/JSON-out facade (`compile_json`, `query_json`, …); see
 
 | Doc | What |
 |---|---|
+| [concept.md](docs/concept.md) | the origin story and the model: what spec-spine is and why it exists |
 | [design/00-architecture.md](docs/design/00-architecture.md) | the full design: crate layout, `Config`, public API, exit codes, schema plan |
 | [adoption-guide.md](docs/adoption-guide.md) | install → init → annotate → wire CI; the full `Config` knob table |
 | [api.md](docs/api.md) | the `spec-spine-core` public API + JSON facade |
