@@ -1,0 +1,27 @@
+[package]
+name = "spec-spine-types"
+description = "Typed DTOs, frontmatter grammar, configuration, and schema-version constants for spec-spine — the data substrate shared by the engine and (future) bindings."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+# Dogfood: this crate's owning spec, read via the configurable metadata namespace.
+# spec-spine-types is the substrate, governed by the bootstrap spec itself.
+[package.metadata.spec-spine]
+spec = "000-spec-spine-bootstrap"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+toml = { workspace = true }
+
+[lints]
+workspace = true

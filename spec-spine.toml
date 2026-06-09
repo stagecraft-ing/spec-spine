@@ -1,0 +1,51 @@
+# spec-spine governing its own repository (dogfood).
+#
+# This repo is a single Cargo workspace with specs/ at the root and no npm
+# packages, so most of this matches the built-in defaults — it is written out
+# explicitly to exercise the config parser and document the dogfood setup.
+# Every key here is optional; an absent file would behave identically.
+
+[manifest]
+# Our own crates carry `[package.metadata.spec-spine].spec = "NNN-slug"`.
+metadata_namespace = "spec-spine"
+
+[domains]
+allowed = []        # disabled: specs in this repo do not declare a `domain`
+
+[kind]
+allowed = []        # disabled: `kind` is free-text here (symmetric with [domains])
+
+[layout]
+specs_dir     = "specs"
+derived_dir   = ".derived"
+standards_dir = "standards/spec"
+schemas_dir   = "standards/schemas"
+cargo_workspace = "Cargo.toml"
+# No npm in this repo; the default still probes these at the root and finds none.
+npm_workspaces = ["package.json", "pnpm-workspace.yaml"]
+standalone_rust_workspaces = []
+standalone_npm_packages    = []
+
+[index]
+extra_hashed_inputs = ["standards/**", ".github/workflows/**"]
+resolver_exclusions = ["target", "node_modules", ".derived", "dist", "build", ".next"]
+
+[branding]
+compiler_id = "spec-spine"
+indexer_id  = "spec-spine"
+
+[coupling]
+bypass_prefixes = [
+  ".github/", "docs/", "README.md", "CHANGELOG.md", "LICENSE",
+  "CODEOWNERS", ".gitignore", ".gitattributes",
+  "standards/spec/constitution.md", ".derived/",
+  "**/Cargo.lock", "**/package-lock.json", "**/pnpm-lock.yaml",
+]
+waiver_keyword = "Spec-Drift-Waiver:"
+
+[provenance.uri_schemes]
+knowledge        = "knowledge://"
+code-fingerprint = "fingerprint://"
+
+[frontmatter]
+extra_known_keys = []

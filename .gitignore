@@ -1,0 +1,11 @@
+# Rust build output
+/target
+**/*.rs.bk
+
+# NOTE: .derived/ (compiler/indexer output) is intentionally NOT ignored — it is
+# committed so the coupling gate and content-hash staleness check can compare the
+# committed registry/index against current inputs. Determinism makes this sane.
+
+# OS / editor cruft
+.DS_Store
+*.swp

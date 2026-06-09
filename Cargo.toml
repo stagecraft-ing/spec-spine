@@ -1,0 +1,32 @@
+# spec-spine — workspace root.
+# A typed, hash-verifiable authority ledger over a markdown spec corpus.
+# Three published crates (types/core/cli); see docs/design/00-architecture.md.
+[workspace]
+resolver = "2"
+members = [
+    "crates/spec-spine-types",
+    # spec-spine-core  — added in Phase 2 (compile + query)
+    # spec-spine-cli   — added in Phase 2/4
+]
+
+# Shared metadata inherited by member crates via `field.workspace = true`.
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+repository = "https://github.com/spec-spine/spec-spine"
+homepage = "https://github.com/spec-spine/spec-spine"
+authors = ["The spec-spine Authors"]
+keywords = ["spec", "governance", "authority", "determinism", "agents"]
+categories = ["development-tools", "command-line-utilities"]
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+toml = "0.8"
+
+# The library must not contain unsafe; the public boundary is FFI-friendly without it.
+[workspace.lints.rust]
+unsafe_code = "forbid"

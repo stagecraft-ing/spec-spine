@@ -1,0 +1,7 @@
+# Pinned toolchain for reproducible builds of this repo (does NOT affect adopters
+# who `cargo install spec-spine-cli` — that uses their own toolchain).
+# MSRV (the floor we support) is declared as `rust-version = "1.85"` in Cargo.toml;
+# this pin is the exact version CI and local dev build with.
+[toolchain]
+channel = "1.92.0"
+components = ["rustfmt", "clippy"]
