@@ -5,7 +5,7 @@ hash-verifiable authority registry (`registry.json`) and provides typed,
 read-only query over it.
 
 Every artifact-producing function is a pure function of `(config, file
-contents)` — no ambient clock or environment reads — so the same inputs produce
+contents)`, with no ambient clock or environment reads, so the same inputs produce
 byte-identical output. The public API returns owned, `serde`-serializable DTOs
 (from `spec-spine-types`) and a JSON-in/JSON-out facade, the seam future FFI
 bindings will wrap.

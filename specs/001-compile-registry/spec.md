@@ -24,7 +24,7 @@ summary: >
   the `spec-spine compile` CLI subcommand.
 ---
 
-# 001 — Compile the spec corpus into a deterministic registry
+# 001: Compile the spec corpus into a deterministic registry
 
 ## 1. Purpose
 
@@ -34,10 +34,10 @@ spec-as-source view), deterministically. This is the first guardrail from spec
 
 ## 2. Territory
 
-`spec-spine-core`'s compile engine and its shared scaffolding — content hashing
+`spec-spine-core`'s compile engine and its shared scaffolding: content hashing
 (`hash.rs`), canonical JSON serialization (`canonical_json.rs`), markdown heading
 extraction (`markdown.rs`), the `compile` entry point (`compile.rs`), and the
-crate's public surface (`lib.rs`) — plus the `spec-spine compile` CLI subcommand
+crate's public surface (`lib.rs`), plus the `spec-spine compile` CLI subcommand
 (`cmd_compile.rs`) and the CLI dispatch frame (`main.rs`).
 
 ## 3. Behavior
@@ -48,7 +48,7 @@ crate's public surface (`lib.rs`) — plus the `spec-spine compile` CLI subcomma
   `<repo_root>/<layout.specs_dir>/NNN-slug/spec.md`, in sorted order.
 - Each spec's frontmatter is parsed via the `spec-spine-types` grammar. A spec
   whose frontmatter cannot be parsed (bad YAML, missing required key, invalid
-  enum) is recorded as an **error-tier violation** and skipped — compile does not
+  enum) is recorded as an **error-tier violation** and skipped; compile does not
   abort the whole corpus on one bad spec. `Err` is reserved for I/O failures.
 
 ### 3.2 Validation (V-codes)
@@ -62,8 +62,8 @@ The compiler MUST emit these validation codes (error-tier unless noted):
 - `V-005` `domain` not in `domains.allowed` (only when that allowlist is non-empty).
 - `V-006` `kind` not in `kind.allowed` (only when that allowlist is non-empty).
 - `V-007` more than the cap of **undeclared** `extra_frontmatter` keys (keys not
-  in `frontmatter.extra_known_keys` are counted; the cap stops escape-hatch abuse
-  — ported from OAP's V-002 ~8-entry cap).
+  in `frontmatter.extra_known_keys` are counted; the cap stops escape-hatch abuse,
+  ported from OAP's V-002 ~8-entry cap).
 - `V-008` `status: superseded` without `superseded_by` resolving to an existing id.
 - `V-009` `status: retired` without `retirement_rationale`.
 - `V-010` (warning) `depends_on` references a non-existent spec id.
@@ -75,7 +75,7 @@ The compiler MUST emit these validation codes (error-tier unless noted):
 
 For each valid spec the compiler builds a `SpecRecord` carrying the frontmatter
 fields, the computed `spec_path`, the `section_headings` extracted from the body,
-and — critically — **a verbatim copy of `extra_frontmatter`**. The overlay seam
+and, critically, **a verbatim copy of `extra_frontmatter`**. The overlay seam
 depends on downstream-specific frontmatter reaching `registry.json`; the compiler
 MUST NOT drop it.
 

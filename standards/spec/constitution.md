@@ -7,10 +7,10 @@ specs (`001`+).
 
 **Normative hierarchy (highest wins):**
 
-1. `specs/000-spec-spine-bootstrap/spec.md` — the bootstrap spec. Non-overridable.
-2. `standards/spec/constitution.md` — this document.
-3. `standards/spec/contract.md` — a normative summary of the bootstrap spec.
-4. Ordinary specs (`001`+) — feature-level claims within this envelope.
+1. `specs/000-spec-spine-bootstrap/spec.md`: the bootstrap spec. Non-overridable.
+2. `standards/spec/constitution.md`: this document.
+3. `standards/spec/contract.md`: a normative summary of the bootstrap spec.
+4. Ordinary specs (`001`+): feature-level claims within this envelope.
 
 When two specs conflict, resolve in this order, then by the typed authority graph.
 
@@ -37,7 +37,7 @@ instead of silently somewhere downstream. *(Bootstrap anchors: `json-truth-bound
 A change to behavior begins with a change to a spec. The spec defines the
 territory (the units it owns) and the relationships (the typed edges) before the
 code is written. The coupling gate enforces this at PR time: a claimed code unit
-that changes without its owning `spec.md` changing — or vice versa — refuses the
+that changes without its owning `spec.md` changing, or vice versa, refuses the
 merge. The escape valve is a named, scoped waiver recorded in the PR body, never
 a silent edit to an owner spec.
 
@@ -52,7 +52,7 @@ carries an ambient clock or environment read except the excluded `builtAt` field
 
 ## V. Legacy as evidence
 
-Code that predates a governing spec is not a violation to be erased — it is
+Code that predates a governing spec is not a violation to be erased; it is
 evidence. A spec that claims authority over pre-existing code declares
 `origin.retroactive: true` to record that it holds authority it has had since
 before the graph existed, rather than masquerading as a fresh `establishes`

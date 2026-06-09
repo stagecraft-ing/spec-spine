@@ -38,7 +38,7 @@ summary: >
 # unamendable: ["anchor"]
 ---
 
-# NNN — Title
+# NNN: Title
 
 ## 1. Purpose
 

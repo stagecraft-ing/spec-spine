@@ -18,7 +18,7 @@
 Each is a **compile-time `const`** in `spec-spine-types`
 (`REGISTRY_SCHEMA_VERSION`, `INDEX_SCHEMA_VERSION`, `BUILD_META_SCHEMA_VERSION`,
 `CONFIG_VERSION`). The conformance test asserts that emitted JSON validates
-against the *embedded* JSON Schema of that version — so a schema/version mismatch
+against the *embedded* JSON Schema of that version, so a schema/version mismatch
 fails the **build**, not at runtime. The schemas live inside
 `spec-spine-types/schemas/` and are `include_str!`'d, which makes the published
 crate self-contained and the version a true compile-time constant.
@@ -46,7 +46,7 @@ crate version (though in practice they move together pre-1.0).
 
 ## How loaders react
 
-`load_registry` / `load_index` (the overlay seam — see
+`load_registry` / `load_index` (the overlay seam; see
 [overlay-contract.md](overlay-contract.md)) enforce the policy at read time. They
 **reject an unknown MAJOR**:
 
@@ -61,7 +61,7 @@ So a build understands **its own MAJOR line only**. A `0.x` build reads any `0.y
 artifact; it refuses a `1.x` artifact. A `1.x` build refuses a `0.x` or `2.x`
 artifact. This is what lets an overlay pinned to a MAJOR trust the bytes it reads.
 
-Within a MAJOR, MINOR differences are *not* rejected by the loader — new optional
+Within a MAJOR, MINOR differences are *not* rejected by the loader; new optional
 fields a newer producer added are simply ignored by an older reader (standard
 additive evolution). The exception is the pre-1.0 caveat below.
 
@@ -70,7 +70,7 @@ additive evolution). The exception is the pre-1.0 caveat below.
 ## Pre-1.0 caveat (`0.x`)
 
 Under SemVer `0.x`, **MINOR may break.** While the library is `0.x`, a MINOR
-schema bump (`0.1 → 0.2`) is permitted to make a breaking change — there is no
+schema bump (`0.1 → 0.2`) is permitted to make a breaking change; there is no
 stable MAJOR yet to absorb it. Because every MAJOR is `0`, the loader's
 MAJOR-equality check does **not** catch a `0.1`-vs-`0.2` break; the guard against
 it is:
@@ -93,11 +93,11 @@ Both the `Config` (`spec-spine.toml`) and the artifact DTOs use
   binary does not understand, is a **loud error**, never a silently-ignored
   setting or a silent misread. This is the exact failure class that sank a
   reference repo (a stale config silently producing wrong output).
-- **Consequence — an older pinned binary errors on a newer config/artifact.** If
+- **Consequence: an older pinned binary errors on a newer config/artifact.** If
   you upgrade your `spec-spine.toml` to use a knob added in a newer release, an
   older pinned `spec-spine` binary will reject it with a clear `config error`
   rather than ignoring the knob. **This is correct behavior under the pre-1.0
-  pin model** — the error tells you to upgrade the binary, instead of letting a
+  pin model**: the error tells you to upgrade the binary, instead of letting a
   newer config quietly do nothing on an old binary. Upgrade the binary and the
   config together.
 
@@ -110,9 +110,9 @@ an unknown field fails loudly, which is the intended safety net.
 
 Determinism + pinning is how an adopter gets reproducible governance:
 
-- **crates.io:** pin the CLI version — `cargo install spec-spine-cli --version
-  =0.1.0` — or commit a `Cargo.lock`/`--locked` in CI.
-- **Prebuilt binary:** pin the release tag — `SPEC_SPINE_VERSION=v0.1.0
+- **crates.io:** pin the CLI version, `cargo install spec-spine-cli --version
+  =0.1.0`, or commit a `Cargo.lock`/`--locked` in CI.
+- **Prebuilt binary:** pin the release tag, `SPEC_SPINE_VERSION=v0.1.0
   install.sh` (see [adoption-guide.md](adoption-guide.md)).
 - The binary **embeds** the schema version; every emitted artifact **carries** it
   (`specVersion` / `schemaVersion`). So a committed `registry.json` /
@@ -130,11 +130,11 @@ together, and let the loader's MAJOR check (post-1.0) or the pin + `deny_unknown
 These are already shaped so they slot in as a MINOR (additive) bump later,
 without breaking readers:
 
-- **`Unit` kinds `crate` and `module`** — the enum is additive; today's readers
+- **`Unit` kinds `crate` and `module`**: the enum is additive; today's readers
   ignore a unit kind they do not recognize within the same MAJOR.
-- **New edge types** — additive enum variant.
-- **`provenance.uri_schemes`** — an open map, so new schemes are config, not a
+- **New edge types**: additive enum variant.
+- **`provenance.uri_schemes`**: an open map, so new schemes are config, not a
   schema change at all.
-- **`frontmatter.extra_known_keys` / `extra_frontmatter`** — overlay-specific
+- **`frontmatter.extra_known_keys` / `extra_frontmatter`**: overlay-specific
   fields ride through without a schema bump (see
   [overlay-contract.md](overlay-contract.md) §5).

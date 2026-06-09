@@ -12,12 +12,12 @@ time. Each `specs/NNN-slug/spec.md` declares, in YAML frontmatter, typed edges t
 other specs and the authority units it owns (**file / section / symbol**). Two
 deterministic views are emitted and joined by a coupling gate:
 
-- **`registry.json`** — the *spec-as-source* view (the compiler's output).
-- **`index.json`** — the *code-as-source* view (the indexer's output), with a
+- **`registry.json`**: the *spec-as-source* view (the compiler's output).
+- **`index.json`**: the *code-as-source* view (the indexer's output), with a
   content-hash staleness mechanism.
 
 Every artifact-producing function is a **pure function of `(config, file
-contents)`** — same inputs, byte-identical output, on every platform.
+contents)`**: same inputs, byte-identical output, on every platform.
 
 ---
 
@@ -68,7 +68,7 @@ Exit codes: `0` ok · `1` validation failure / not found / drift · `2` stale ·
 | [`spec-spine-core`](crates/spec-spine-core) | the engine: compile / index / query / lint / couple + the JSON facade |
 | [`spec-spine-cli`](crates/spec-spine-cli) | the thin `spec-spine` multi-call binary |
 
-**The library API — not the CLI — is the stable surface bindings wrap.** Every
+**The library API, not the CLI, is the stable surface bindings wrap.** Every
 operation has a JSON-in/JSON-out facade (`compile_json`, `query_json`, …); see
 [docs/api.md](docs/api.md).
 
@@ -91,10 +91,10 @@ operation has a JSON-in/JSON-out facade (`compile_json`, `query_json`, …); see
   tree-sitter grammars pinned exact. CI proves **byte-identical `registry.json` +
   `index.json` across all five release triples**, not just locally.
 - **spec-spine governs itself.** This repo's own coupling gate runs against its
-  own spec corpus in CI — a spec-spine that is not itself spec-governed would be
+  own spec corpus in CI: a spec-spine that is not itself spec-governed would be
   hypocritical.
 
 ## License
 
-Apache-2.0 — chosen for its explicit patent grant, which matters once FFI
+Apache-2.0, chosen for its explicit patent grant, which matters once FFI
 bindings and corporate adopters arrive. See [LICENSE](LICENSE).

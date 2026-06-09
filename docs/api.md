@@ -1,7 +1,7 @@
 # spec-spine API reference
 
 > Stable surface: `spec-spine-core` (the engine) over `spec-spine-types` (the
-> data substrate). **The library API — not the CLI — is the contract bindings
+> data substrate). **The library API, not the CLI, is the contract bindings
 > wrap.** This document describes the public Rust API and the JSON-in/JSON-out
 > facade. For the CLI surface see [adoption-guide.md](adoption-guide.md); for the
 > design rationale see [design/00-architecture.md](design/00-architecture.md).
@@ -9,8 +9,8 @@
 spec-spine turns a markdown spec corpus into a typed, hash-verifiable authority
 ledger. Two views are emitted deterministically and joined at PR time:
 
-- **`registry.json`** — the *spec-as-source* view (compiler output).
-- **`index.json`** — the *code-as-source* view (indexer output), with a
+- **`registry.json`**: the *spec-as-source* view (compiler output).
+- **`index.json`**: the *code-as-source* view (indexer output), with a
   content-hash staleness mechanism.
 
 Every artifact-producing function is a **pure function of `(Config, file
@@ -78,7 +78,7 @@ pub enum   Freshness      { Fresh, Stale { expected: String, actual: String } }
 
 ### Coupling input
 
-The gate never shells out — the caller passes a parsed diff:
+The gate never shells out; the caller passes a parsed diff:
 
 ```rust
 pub struct DiffInput { pub files: Vec<DiffFile> }
@@ -89,7 +89,7 @@ pub struct Waiver    { pub reason: String }
 pub fn parse_waiver(cfg: &Config, pr_body: &str) -> Option<Waiver>;
 ```
 
-`couple` returns a `CoupleReport` **even on drift** — drift is data, not an
+`couple` returns a `CoupleReport` **even on drift**: drift is data, not an
 `Error`, so the JSON facade can return the structured report. Map it to an exit
 code with `report.has_blocking_drift()` (the CLI does exactly this → exit 1).
 `DEFAULT_BYPASS_PREFIXES` is exported so callers can see the always-applied
@@ -102,7 +102,7 @@ bypass floor that `coupling.bypass_prefixes` adds to.
 ```rust
 use spec_spine_types::{Config, load_config};
 
-// Parse and validate a spec-spine.toml. Clean Error::Config on malformed input —
+// Parse and validate a spec-spine.toml. Clean Error::Config on malformed input,
 // never a panic. An absent file ⇒ use Config::default() (a working single-Cargo-
 // workspace default with specs/ at the root).
 pub fn load_config(toml_src: &str) -> Result<Config, Error>;
@@ -119,7 +119,7 @@ misspelled knob is a loud `Error::Config`, not a silently-ignored setting. See
 
 ---
 
-## 4. The overlay seam — typed read-only loaders
+## 4. The overlay seam: typed read-only loaders
 
 These are the public functions an external **overlay** crate depends on to read
 a generic artifact and emit its own enriched sibling (`*-<overlay>.json`) without
@@ -179,7 +179,7 @@ maps an `Error` to a process exit code.
 | `Error::Parse(String)` | frontmatter / TOML / JSON parse failure | **3** |
 | `Error::Schema(String)` | emitted/loaded JSON failed schema or version check | **3** |
 
-Coupling **drift** is *not* an `Error` variant — it is carried in the
+Coupling **drift** is *not* an `Error` variant; it is carried in the
 `CoupleReport` and mapped to exit **1** by the CLI. `Error::exit_code(&self) ->
 u8` is the authoritative mapping.
 
@@ -215,7 +215,7 @@ pub fn scaffold_init_json  (config_json: &str)                  -> Result<String
 - `check_freshness_json` returns `{ "fresh": bool, "expected"?, "actual"? }`.
 
 All emitted JSON is **pretty-printed with sorted keys, LF line endings, and a
-trailing newline** (diffability over compactness — see
+trailing newline** (diffability over compactness; see
 [design/00-architecture.md](design/00-architecture.md) §10.1).
 
 ---
@@ -225,7 +225,7 @@ trailing newline** (diffability over compactness — see
 These hold across the public surface and are what make the library safe to wrap
 from another language:
 
-- Owned, `serde`-serializable plain-data DTOs — **no lifetimes, generics, or
+- Owned, `serde`-serializable plain-data DTOs: **no lifetimes, generics, or
   trait objects** at the boundary.
 - A single `Error` enum with stable, documented variants → stable exit codes.
 - **No `process::exit`, no `println!`-for-data, no `panic!`-on-user-input** inside

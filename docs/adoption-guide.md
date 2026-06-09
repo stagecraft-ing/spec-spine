@@ -2,7 +2,7 @@
 
 > Take any conventional repo from zero to spec-governed: **install →
 > `spec-spine init` → annotate manifests → wire CI.** No source edits to the
-> library — every project-specific assumption is a `spec-spine.toml` knob (see
+> library; every project-specific assumption is a `spec-spine.toml` knob (see
 > §Config). For the design rationale see
 > [design/00-architecture.md](design/00-architecture.md); for the programmatic
 > API see [api.md](api.md).
@@ -47,7 +47,7 @@ spec-spine --help
 
 ---
 
-## 2. Scaffold the corpus — `spec-spine init`
+## 2. Scaffold the corpus: `spec-spine init`
 
 Run at your repo root:
 
@@ -60,7 +60,7 @@ spec-spine init --force    # overwrite existing files
 
 | Path | What it is |
 |---|---|
-| `spec-spine.toml` | your config — every knob defaulted, ready to edit |
+| `spec-spine.toml` | your config: every knob defaulted, ready to edit |
 | `standards/spec/constitution.md` | tier-2 durable principles |
 | `standards/spec/contract.md` | the normative summary |
 | `standards/spec/templates/spec-template.md` | template for new specs |
@@ -84,7 +84,7 @@ frontmatter edges.
 
 ---
 
-## 3. Annotate manifests — link code to specs
+## 3. Annotate manifests: link code to specs
 
 Three linkage directions connect code ↔ spec; the gate joins all three. The two
 you author directly:
@@ -103,13 +103,13 @@ spec = "001-my-capability"
 { "spec-spine": { "spec": "001-my-capability" } }
 ```
 
-**Comment header** (file → spec) — a doc-comment at file root:
+**Comment header** (file → spec), a doc-comment at file root:
 
 ```rust
 // Spec: specs/001-my-capability/spec.md
 ```
 
-The third direction — **spec edges** — is the `unit:` declarations inside each
+The third direction, **spec edges**, is the `unit:` declarations inside each
 spec's frontmatter (`establishes` / `extends` / `refines` / `supersedes` /
 `amends` / `co_authority` / `constrains`). See the bootstrap spec and the
 template for the grammar.
@@ -129,7 +129,7 @@ git add .derived/           # committed so the staleness + coupling checks can c
 
 ---
 
-## 4. Wire CI — the coupling gate
+## 4. Wire CI: the coupling gate
 
 The gate runs at PR time and refuses a changed, owned path whose owning spec was
 *not* also edited (exit 1). Run it against the PR's merge base:
@@ -163,7 +163,7 @@ jobs:
             --pr-body /tmp/pr-body.txt
 ```
 
-This repo dogfoods exactly this pattern — see
+This repo dogfoods exactly this pattern; see
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 ### Waivers
@@ -179,19 +179,19 @@ The waiver is global to the run and downgrades violations to warnings.
 
 ---
 
-## Config — `spec-spine.toml`
+## Config: `spec-spine.toml`
 
 An **absent file yields a working default** for a single-Cargo-workspace repo
 with `specs/` at the root. Every knob below is optional and traces to a real
 divergence observed across the reference repos. Every sub-table is
-`deny_unknown_fields` — a typo is a loud `config error`, not a silent no-op.
+`deny_unknown_fields`: a typo is a loud `config error`, not a silent no-op.
 
 | Knob | Purpose | Default |
 |---|---|---|
 | `manifest.metadata_namespace` | the Cargo `[package.metadata.<ns>].spec` / package.json `"<ns>".spec` key | `"spec-spine"` |
 | `domains.allowed` | closed enum for the optional `domain` field; **empty ⇒ disabled** (free-text) | `[]` |
 | `kind.allowed` | closed enum for the optional `kind` field; symmetric with `domains` | `[]` |
-| `layout.specs_dir` / `derived_dir` / `standards_dir` / `schemas_dir` | path conventions — never hardcoded | `specs` / `.derived` / `standards/spec` / `standards/schemas` |
+| `layout.specs_dir` / `derived_dir` / `standards_dir` / `schemas_dir` | path conventions, never hardcoded | `specs` / `.derived` / `standards/spec` / `standards/schemas` |
 | `layout.cargo_workspace` | root Cargo workspace manifest | `Cargo.toml` |
 | `layout.npm_workspaces` | manifests that *declare* npm/pnpm workspace members | `["package.json", "pnpm-workspace.yaml"]` |
 | `layout.standalone_rust_workspaces` / `standalone_npm_packages` | crates/packages outside the root workspace | `[]` |
@@ -231,8 +231,8 @@ anything else is an exact path.
 
 ## A note on OAP-style adopters
 
-A repo with domain-specific output — compliance reports, factory artifacts, a
-Claude config-hash gate — adopts spec-spine as **generic core + its own overlay
+A repo with domain-specific output (compliance reports, factory artifacts, a
+Claude config-hash gate) adopts spec-spine as **generic core + its own overlay
 crate**, *not* as a drop-in. The generic core deliberately omits that machinery
 (see [design/00-architecture.md](design/00-architecture.md) §10.4); the overlay
 reads `registry.json` / `index.json` via the public loaders and emits its own

@@ -1,6 +1,6 @@
-# spec-spine — Phase 0 Architecture & Design Proposal
+# spec-spine: Phase 0 Architecture & Design Proposal
 
-> **Status:** Phase 0 checkpoint ⛔ — load-bearing decisions confirmed by human
+> **Status:** Phase 0 checkpoint ⛔, load-bearing decisions confirmed by human
 > (2026-06-08); holding for explicit go-ahead to Phase 1.
 > **Confirmed decisions:** (Q1) license **Apache-2.0**; (Q2) **one multi-call
 > binary**; (Q3) bootstrap corpus **minimal-original**; (Q4) v1 symbol resolution
@@ -9,9 +9,9 @@
 > **Mandate:** Fresh architecture; *port* the reference repos' proven behavioral
 > semantics rather than reinventing them.
 > **Reference repos (read-only, never modified):**
-> `/Users/bart/Dev/open-agentic-platform` (OAP — origin, most mature),
-> `/Users/bart/DevWork/aide-agentic-template` (aide — prior de-brand, closest target),
-> `/Users/bart/DevWork/template-encore` (encore — the broken-vendoring cautionary tale).
+> `/Users/bart/Dev/open-agentic-platform` (OAP: origin, most mature),
+> `/Users/bart/DevWork/aide-agentic-template` (aide: prior de-brand, closest target),
+> `/Users/bart/DevWork/template-encore` (encore: the broken-vendoring cautionary tale).
 
 This document is the deliverable for **Phase 0** of `spec-spine-agent-prompt.md`.
 It fixes the crate layout, the full `Config` schema, the `spec-spine-core` public
@@ -56,14 +56,14 @@ spec-spine/
 │  ├─ spec-spine-types/             # DTOs, frontmatter grammar, Config, schema-version
 │  │  │                             #   consts, EMBEDDED JSON Schemas, the Error enum.
 │  │  └─ schemas/                   #   registry / index / config-hash / build-meta .schema.json
-│  │                                #   (include_str!'d — the crate is self-contained)
+│  │                                #   (include_str!'d: the crate is self-contained)
 │  ├─ spec-spine-core/              # THE library: compile / index / query / lint / couple
 │  │                                #   + load_registry / load_index (overlay seam)
 │  │                                #   + scaffold_init + JSON facade. Internal canonical-json
 │  │                                #   + content-hash + tree-sitter symbol resolver modules.
 │  └─ spec-spine-cli/               # thin clap wrapper → ONE `spec-spine` multi-call binary;
 │                                   #   git invocation, stdout/stderr, process::exit live HERE only.
-├─ specs/                           # the library's own spec corpus (000 = bootstrap) — dogfood
+├─ specs/                           # the library's own spec corpus (000 = bootstrap); dogfood
 ├─ standards/spec/                  # constitution.md, contract.md, templates/   (generic, scaffolded by init)
 ├─ .claude/rules/                   # orchestrator / governed-reads / refusal rules (generic)
 ├─ docs/
@@ -106,7 +106,7 @@ spec-spine-cli     (depends on core + types; clap; shells out to git; owns proce
 
 No `path`-only deps on the published surface; all three publish to crates.io with
 real `version`/`license`/`repository`/`description`/`keywords` and **no
-`publish = false`** (the references set `publish = false` everywhere — we must
+`publish = false`** (the references set `publish = false` everywhere; we must
 not, or bindings can never depend on a published crate). `examples/overlay-min`
 is `publish = false` (it is not part of the shipped surface).
 
@@ -114,7 +114,7 @@ is `publish = false` (it is not part of the shipped surface).
 
 ## 2. Authority model (the conceptual core the schema serves)
 
-### 2.1 Typed edges — 8 total, 7 ownership-bearing + 1 non-owning
+### 2.1 Typed edges: 8 total, 7 ownership-bearing + 1 non-owning
 
 Ported verbatim from `spec-spine.md` and OAP `spec-types`. Frontmatter keys are
 `snake_case`; registry JSON is `camelCase`.
@@ -131,12 +131,12 @@ Ported verbatim from `spec-spine.md` and OAP `spec-types`. Frontmatter keys are
 | `references` | **no** | points at another spec/artifact without claiming authority |
 
 `references` is the only non-owning edge; the coupling gate ignores it. (The
-8-vs-9 discrepancy in recon is whether `origin: retroactive` counts as an edge —
+8-vs-9 discrepancy in recon is whether `origin: retroactive` counts as an edge:
 it does not; it is a **bootstrap marker**, not a relationship. The concept doc and
 `spec-spine.md` are authoritative: **eight edge types**, with `origin` tracked
 separately as frontmatter, not as a graph edge.)
 
-### 2.2 Authority unit grammar — v1 ships file / section / symbol
+### 2.2 Authority unit grammar: v1 ships file / section / symbol
 
 A spec declares the units it owns via a `unit:` object on an edge. The full
 grammar (ported from OAP `LogicalUnit`, `spec-types/src/lib.rs`) is six kinds;
@@ -146,10 +146,10 @@ grammar (ported from OAP `LogicalUnit`, `spec-types/src/lib.rs`) is six kinds;
 |---|---|---|---|
 | `file` | **v1** | `{ kind: file, path }` | literal path; trailing-`/` path ⇒ directory subtree (prefix match) |
 | `section` | **v1** | `{ kind: section, file, anchor }` | anchor parser by file type (Makefile target / Markdown heading slug / `region:` marker / workflow `jobs.<name>`) |
-| `symbol` | **v1** | `{ kind: symbol, id }` | tree-sitter (**Rust + TypeScript** in v1; Python deferred — Q4) → `(file, line-span)` |
-| `directory` | folded | — | expressed as a `file` unit with a trailing-slash path; **not a separate kind in v1** |
-| `crate` | deferred | `{ kind: crate, id }` | workspace-member validation — reserved (additive minor) |
-| `module` | deferred | `{ kind: module, id }` | tree-sitter module index — reserved (additive minor) |
+| `symbol` | **v1** | `{ kind: symbol, id }` | tree-sitter (**Rust + TypeScript** in v1; Python deferred, Q4) → `(file, line-span)` |
+| `directory` | folded | n/a | expressed as a `file` unit with a trailing-slash path; **not a separate kind in v1** |
+| `crate` | deferred | `{ kind: crate, id }` | workspace-member validation; reserved (additive minor) |
+| `module` | deferred | `{ kind: module, id }` | tree-sitter module index; reserved (additive minor) |
 
 A bare string on an edge is shorthand for `{ kind: file, path }`. The `Unit`
 enum is designed additively so `crate`/`module` slot in as a MINOR schema bump
@@ -159,25 +159,25 @@ later without breaking readers.
 
 Ported from OAP `TraceSource`. The coupling gate joins all three:
 
-1. **Manifest key** — `[package.metadata.<ns>].spec = "NNN-slug"` (Cargo) and
+1. **Manifest key:** `[package.metadata.<ns>].spec = "NNN-slug"` (Cargo) and
    top-level `{"<ns>": {"spec": "NNN-slug"}}` (package.json). `<ns>` is the
    configurable `manifest.metadata_namespace`. (crate/package → spec)
-2. **Comment header** — `// Spec: specs/NNN-slug/spec.md` doc-comment at file
+2. **Comment header:** `// Spec: specs/NNN-slug/spec.md` doc-comment at file
    root. (file → spec)
-3. **Spec edges** — a spec's `establishes`/`extends`/… `unit:` declarations.
+3. **Spec edges:** a spec's `establishes`/`extends`/… `unit:` declarations.
    (spec → code)
 
 ### 2.4 Authority resolution & amends-awareness (ported algorithm)
 
 "Who currently owns unit X" is a near-pure set-membership query, *not* a runtime
-graph walk — the indexer pre-flattens edges into resolved units at index time
+graph walk; the indexer pre-flattens edges into resolved units at index time
 (OAP `xref.rs`). The gate's clearance rule (OAP
 `spec-code-coupling-check/src/lib.rs:legitimate_owners`):
 
 - The owners of a path = every spec whose edge units resolve to it.
 - **Amends-awareness:** if the changed path is exactly `specs/<id>/spec.md`, the
   owner set is *expanded* to include every spec that `amends` `<id>` and the
-  `amendment_record` target — but **only if the base owner set is non-empty**
+  `amendment_record` target, but **only if the base owner set is non-empty**
   (the FR-005 "strict-expansion guard": amends can add owners to an
   already-firing path, never silently enroll a new one).
 - A path is **cleared** if *any one* owner's `spec.md` is in the diff.
@@ -190,7 +190,7 @@ This is the single most battle-tested algorithm in the references; we port it
 
 ---
 
-## 3. The `Config` schema (every knob + default) — the heart of the task
+## 3. The `Config` schema (every knob + default): the heart of the task
 
 `spec-spine.toml` at the consumer repo root deserializes into a typed `Config`.
 **An absent file yields a working default** for a single-Cargo-workspace repo
@@ -201,7 +201,7 @@ repos.
 ### 3.1 Full TOML with defaults
 
 ```toml
-# spec-spine.toml — all keys optional; shown values are the defaults.
+# spec-spine.toml: all keys optional; shown values are the defaults.
 
 [manifest]
 # Drives BOTH the Cargo `[package.metadata.<ns>].spec` read and the
@@ -254,11 +254,11 @@ compiler_id = "spec-spine"
 indexer_id  = "spec-spine"
 
 # ADDITIONS to the always-applied hardcoded bypass floor (the generic subset of
-# OAP's BYPASS_PREFIXES — `.github/`, `docs/`, lockfiles, `.derived/`, … — which
+# OAP's BYPASS_PREFIXES (`.github/`, `docs/`, lockfiles, `.derived/`, …), which
 # lives in `couple.rs::DEFAULT_BYPASS_PREFIXES`, the single built-in source).
 # Match rules: trailing `/` ⇒ dir prefix; leading `**/` ⇒ tail-suffix anywhere;
-# else exact file. The list is ADDITIVE — it adds to the floor and can never
-# remove a floor entry (OAP's overlay semantics) — so the DEFAULT IS EMPTY:
+# else exact file. The list is ADDITIVE: it adds to the floor and can never
+# remove a floor entry (OAP's overlay semantics), so the DEFAULT IS EMPTY:
 # restating the floor here was redundant and falsely implied it was overridable.
 [coupling]
 bypass_prefixes = []
@@ -266,7 +266,7 @@ bypass_prefixes = []
 waiver_keyword = "Spec-Drift-Waiver:"
 
 [provenance]
-# OPEN scheme registry — the closed enum forced edits to shared types
+# OPEN scheme registry: the closed enum forced edits to shared types
 # (OAP stagecraft://,xray-fingerprint:// vs aide knowledge://,fingerprint://).
 # Map of provenance kind → URI scheme. Adopters add/override freely.
 [provenance.uri_schemes]
@@ -287,7 +287,7 @@ extra_known_keys = []
 pub struct Config {
     pub manifest:    ManifestConfig,
     pub domains:     DomainsConfig,   // { allowed: Vec<String> }
-    pub kind:        KindConfig,      // { allowed: Vec<String> } — symmetric with domains
+    pub kind:        KindConfig,      // { allowed: Vec<String> }; symmetric with domains
     pub layout:      LayoutConfig,
     pub index:       IndexConfig,
     pub branding:    BrandingConfig,
@@ -300,7 +300,7 @@ impl Default for Config { /* the §3.1 defaults */ }
 
 Each sub-struct is `#[serde(default, deny_unknown_fields)]`. `Config::default()`
 is the working single-workspace default. `deny_unknown_fields` turns a misspelled
-knob into a clear `Error::Config` instead of a silently-ignored setting — this is
+knob into a clear `Error::Config` instead of a silently-ignored setting; this is
 the exact failure class that sank encore (a stale/missing config silently
 producing wrong output).
 
@@ -309,10 +309,10 @@ producing wrong output).
 | Knob | Decision | Rationale |
 |---|---|---|
 | all §3 knobs | **kept** | each traces to a real divergence |
-| `index.resolver_exclusions` | **added** | encore showed `RESOLVER_EXCLUSIONS` is a hardcoded layout assumption (`out/`, `coverage/` adopters get them walked) — promote to config |
+| `index.resolver_exclusions` | **added** | encore showed `RESOLVER_EXCLUSIONS` is a hardcoded layout assumption (`out/`, `coverage/` adopters get them walked); promote to config |
 | `coupling.waiver_keyword` | **added** | trivially configurable; some orgs want a house keyword |
 | `provenance.uri_schemes` | **modeled as a map**, not a list | a kind→scheme map is what the closed enum actually was; cleaner than a flat list |
-| `kind` enforcement | **symmetric with `domains`** (item 2) | OAP's 16-value `kind` enum + `shape`/`category`/capability/registry/profile machinery is dropped (§10.4). `kind` becomes an optional taxonomy with a `[kind] allowed` allowlist — empty ⇒ free-text/disabled, non-empty ⇒ validated-when-present — **identical semantics to `[domains]`**. Resolves the asymmetry before the `Config` struct freezes; additively extensible later. |
+| `kind` enforcement | **symmetric with `domains`** (item 2) | OAP's 16-value `kind` enum + `shape`/`category`/capability/registry/profile machinery is dropped (§10.4). `kind` becomes an optional taxonomy with a `[kind] allowed` allowlist: empty ⇒ free-text/disabled, non-empty ⇒ validated-when-present, **identical semantics to `[domains]`**. Resolves the asymmetry before the `Config` struct freezes; additively extensible later. |
 
 ---
 
@@ -323,7 +323,7 @@ DTOs (no lifetimes/generics/trait-objects at the boundary); a single `Error`
 enum; no `process::exit`/`println!`-for-data/`panic!`-on-user-input in the
 library; pure functions of `(Config, file bytes)` with **no ambient clock/env**
 (the one `build-meta.builtAt` wall-clock field lives in a separate file excluded
-from determinism checks). **`git` is never invoked in core** — the CLI parses the
+from determinism checks). **`git` is never invoked in core**; the CLI parses the
 diff and passes a typed `DiffInput` in (a deliberate clean-up of OAP, which shells
 out to git inside the coupling crate).
 
@@ -366,7 +366,7 @@ pub fn scaffold_init(cfg: &Config) -> Result<Scaffold, Error>;
 pub struct Scaffold { pub files: Vec<ScaffoldFile> }            // {rel_path, contents, overwrite: bool}
 ```
 
-### 4.3 The overlay seam — typed read-only loaders
+### 4.3 The overlay seam: typed read-only loaders
 
 ```rust
 pub fn load_registry(bytes: &[u8]) -> Result<Registry,      Error>;  // rejects unknown MAJOR schema
@@ -374,7 +374,7 @@ pub fn load_index   (bytes: &[u8]) -> Result<CodebaseIndex, Error>;
 ```
 
 These are the public functions an external overlay crate depends on to read the
-generic artifact and emit a sibling (`*-<overlay>.json`) — the supported
+generic artifact and emit a sibling (`*-<overlay>.json`): the supported
 extensibility model (OAP's enrichers do exactly this).
 
 ### 4.4 Typed query layer (over a loaded `Registry`)
@@ -399,7 +399,7 @@ pub enum Error {
     Validation(Vec<Violation>),  // compile validation failed            → exit 1
     NotFound(String),     // spec id / view / path not found            → exit 1
     Stale { expected: String, actual: String },  // index out of date    → exit 2
-    // (coupling drift is NOT an Error variant — it is carried as a CoupleReport
+    // (coupling drift is NOT an Error variant; it is carried as a CoupleReport
     //  so the JSON facade returns the structured report even on drift; the CLI
     //  maps report.has_blocking_drift() → exit 1.)
     Io(String),           // filesystem / git / read failure            → exit 3
@@ -432,7 +432,7 @@ pub fn load_config_json    (toml_src: &str)                     -> Result<String
 pub fn scaffold_init_json  (config_json: &str)                  -> Result<String, Error>;
 ```
 
-### 5.2 CLI — one multi-call `spec-spine` binary (recommended; no blocker found)
+### 5.2 CLI: one multi-call `spec-spine` binary (recommended; no blocker found)
 
 ```
 spec-spine compile                                  # → .derived/spec-registry/registry.json (+ build-meta.json)
@@ -459,13 +459,13 @@ unified table:
 
 | Subcommand | `0` | `1` | `2` | `3` |
 |---|---|---|---|---|
-| `compile` | validation passed | validation failed | — | IO / parse / schema |
-| `index` (write) | ok | — | — | IO / parse / schema |
-| `index check` | fresh | — | **stale** | IO / parse |
-| `registry *` | ok | not found | — | IO / parse / schema |
-| `lint` | clean | error-tier (always) or warn-tier w/ `--fail-on-warn` | — | IO / parse |
+| `compile` | validation passed | validation failed | n/a | IO / parse / schema |
+| `index` (write) | ok | n/a | n/a | IO / parse / schema |
+| `index check` | fresh | n/a | **stale** | IO / parse |
+| `registry *` | ok | not found | n/a | IO / parse / schema |
+| `lint` | clean | error-tier (always) or warn-tier w/ `--fail-on-warn` | n/a | IO / parse |
 | `couple` | no drift, or waived | **drift** (uncovered paths) | index stale (recompute first) | IO / parse / load |
-| `init` | scaffolded | target exists w/o `--force` | — | IO write error |
+| `init` | scaffolded | target exists w/o `--force` | n/a | IO write error |
 
 ---
 
@@ -495,7 +495,7 @@ We **do not inherit those lines.** spec-spine starts every schema fresh at
   semantics). Adopters pin the toolchain version (`cargo`/release tag); the
   binary embeds the schema version; emitted artifacts carry it.
 - **Schemas live INSIDE `spec-spine-types/schemas/` and are `include_str!`'d**
-  (a deliberate divergence — OAP keeps them in `standards/schemas/` loaded at
+  (a deliberate divergence: OAP keeps them in `standards/schemas/` loaded at
   runtime). Embedding makes the published crate self-contained and the version a
   true compile-time constant. The adopter's `standards/schemas/` is for *their*
   schemas (contract-parity), not ours.
@@ -505,15 +505,15 @@ We **do not inherit those lines.** spec-spine starts every schema fresh at
 ## 8. License recommendation
 
 **Recommended: Apache-2.0.** The explicit patent grant (§3 of Apache-2.0) matters
-the moment FFI bindings and corporate adopters arrive — exactly the trajectory of
+the moment FFI bindings and corporate adopters arrive: exactly the trajectory of
 this library. The reference repos are AGPL by deliberate choice (audit-chain as a
 public good); a broadly-adoptable library + bindings wants permissive licensing.
 **Not AGPL.**
 
-Two viable permissive picks (your call at this checkpoint — §10 Q1):
+Two viable permissive picks (your call at this checkpoint, §10 Q1):
 
-- **Apache-2.0** (recommended) — patent grant + explicit contribution terms.
-- **`MIT OR Apache-2.0` dual** — the Rust-ecosystem idiom; maximal downstream
+- **Apache-2.0** (recommended): patent grant + explicit contribution terms.
+- **`MIT OR Apache-2.0` dual**: the Rust-ecosystem idiom; maximal downstream
   compatibility (some downstreams prefer MIT's brevity, some need Apache's patent
   grant). Slightly more boilerplate (two LICENSE files, dual SPDX in every
   `Cargo.toml`).
@@ -553,9 +553,9 @@ spec-spine.toml                         # this repo's own config (dogfood)
 
 ### 9.1 Constitutional tiers (ported)
 
-1. **`specs/000` bootstrap spec** — non-overridable; defines what a spec *is*.
-2. **`standards/spec/constitution.md`** — durable principles, subordinate to 000.
-3. **Ordinary specs** (`001`+) — within the constitutional envelope.
+1. **`specs/000` bootstrap spec**: non-overridable; defines what a spec *is*.
+2. **`standards/spec/constitution.md`**: durable principles, subordinate to 000.
+3. **Ordinary specs** (`001`+): within the constitutional envelope.
 
 ### 9.2 `specs/000` frontmatter sketch (hand-authored)
 
@@ -601,7 +601,7 @@ The compiler is built to satisfy `000`; once built, it compiles its own corpus
   written by the CLI, excluded from determinism/golden tests.
 - **The symbol resolver is a determinism input** (Phase-0 checkpoint item 1).
   tree-sitter core and each grammar crate are pinned to **exact** versions
-  (`=x.y.z`) with `Cargo.lock` committed — an unpinned grammar shifts symbol
+  (`=x.y.z`) with `Cargo.lock` committed; an unpinned grammar shifts symbol
   line-spans and surfaces as flaky goldens late, across the 5-triple release
   matrix. Phase 3 (specs 004/005) adds a **per-platform golden test for symbol
   line-spans** so a span drift fails CI on every target, not just locally.
@@ -626,18 +626,18 @@ The compiler is built to satisfy `000`; once built, it compiles its own corpus
 A clean four-band namespace (the references' V-/W-/I- soup is pruned to generic
 checks; full enumeration lands in the Phase 1/3/4 specs):
 
-- **`V###`** — compile-time *validation* (gate `registry.validation.passed`):
+- **`V###`**: compile-time *validation* (gate `registry.validation.passed`):
   missing required key, malformed frontmatter, duplicate id, duplicate numeric
   prefix, invalid `domain` (when `domains.allowed` non-empty), invalid `kind`
   (when `kind.allowed` non-empty), dangling
   `depends_on`, malformed `unit:`, amend-into-`unamendable`,
   `superseded` without `superseded_by`, `retired` without `retirement_rationale`.
-- **`L###`** — *lint* conformance (severity error/warn/info; `--fail-on-warn`
+- **`L###`**: *lint* conformance (severity error/warn/info; `--fail-on-warn`
   semantics ported): no-relationship-and-not-retroactive, missing `domain` (when
   enabled), legacy bare-path inside a workspace member, etc.
-- **`I###`** — *index* diagnostics; a small **blocking** band (resolver hard
+- **`I###`**: *index* diagnostics; a small **blocking** band (resolver hard
   errors) fails `index check`.
-- **`C###`** — *coupling* gate violations (spec 005). `C-001` = a changed,
+- **`C###`**: *coupling* gate violations (spec 005). `C-001` = a changed,
   non-bypassed path lacks an authoring edit to any spec that owns it (and no
   waiver excuses it) → exit 1.
 
@@ -665,24 +665,24 @@ forking.
   `x86_64-pc-windows-msvc`, each with a `.sha256` sidecar, plus an `install.sh`
   (`curl … | sh`) that detects platform/arch and drops the binary on `PATH`.
 - **SBOM** (CycloneDX per archive): nice-to-have; flagged as low-but-nonzero
-  workflow time — defer unless requested (§10 Q7).
+  workflow time; defer unless requested (§10 Q7).
 
 ---
 
-## 12. Quality bar (how Phase 2–5 prove correctness)
+## 12. Quality bar (how Phase 2 to 5 prove correctness)
 
-- **Determinism tests** — compile/index a fixture corpus twice; assert
+- **Determinism tests:** compile/index a fixture corpus twice; assert
   byte-identical output; golden-file tests for registry + index shapes.
-- **Schema conformance** — emitted JSON validates against the embedded schema;
+- **Schema conformance:** emitted JSON validates against the embedded schema;
   version mismatch fails at build (compile-time const).
-- **Exit-code tests** — assert the §6 table per subcommand.
-- **Config tests** — absent (defaults) / minimal / full / malformed (clean
+- **Exit-code tests:** assert the §6 table per subcommand.
+- **Config tests:** absent (defaults) / minimal / full / malformed (clean
   `Error::Config`, no panic).
-- **Adoption integration test (the §8 definition-of-done)** — scaffold a
+- **Adoption integration test (the §8 definition-of-done):** scaffold a
   throwaway repo via `init`, run the full compile→index→lint→couple loop with a
   **non-default `manifest.metadata_namespace` and a custom `domains.allowed`**,
   zero source edits to the library.
-- **Self-coupling (dogfood)** — this repo's own coupling gate green in its own CI.
+- **Self-coupling (dogfood):** this repo's own coupling gate green in its own CI.
 
 ---
 
@@ -694,10 +694,10 @@ forking.
    tree-sitter-rust **and** tree-sitter-typescript are wired for `symbol` units;
    `file`/`section` units are language-agnostic. Python symbols are a later minor.
    **TS resolver file scope in v1 = `.ts` / `.tsx` only** (Phase-0 checkpoint
-   item 3); `.vue` `<script lang="ts">` blocks are deferred — Vue-heavy adopters
+   item 3); `.vue` `<script lang="ts">` blocks are deferred; Vue-heavy adopters
    won't parse with tree-sitter-typescript directly, and `.vue` is excludable via
    `index.resolver_exclusions` until SFC-block extraction lands in a later minor.
-   (OAP only had the Rust resolver active, so the TS resolver is new clean work —
+   (OAP only had the Rust resolver active, so the TS resolver is new clean work;
    budget for it in Phase 3.)
 3. **Edition 2024 / pinned toolchain**, matching the references (rust 1.85+),
    unless a lower MSRV is requested for broader adopter reach (minor; flagged).
@@ -717,7 +717,7 @@ forking.
 
 ## 14. Open questions (with my recommendation)
 
-Q1–Q4 are **resolved** (confirmed by human, 2026-06-08). Q5–Q11 I will proceed on
+Q1 to Q4 are **resolved** (confirmed by human, 2026-06-08). Q5 to Q11 I will proceed on
 as recommended unless you redirect.
 
 | # | Question | Resolution / recommendation |
@@ -730,19 +730,19 @@ as recommended unless you redirect.
 | Q6 | Registry/index JSON: pretty (diffable) vs compact (OAP)? | **Pretty**, sorted keys, LF, trailing newline |
 | Q7 | Per-archive CycloneDX SBOM in the release workflow? | Defer (low value/time ratio for v1); add on request |
 | Q8 | `index.extra_hashed_inputs` default base set contents? | `["standards/**", ".github/workflows/**"]` + always-hashed core (specs, manifests, config) |
-| Q9 | `manifest.metadata_namespace` default `"spec-spine"` ⇒ `[package.metadata.spec-spine]` (hyphenated TOML key — legal but unusual). Prefer `"spec"`? | Keep **`"spec-spine"`** (self-describing; hyphenated bare keys are valid TOML) |
+| Q9 | `manifest.metadata_namespace` default `"spec-spine"` ⇒ `[package.metadata.spec-spine]` (hyphenated TOML key, legal but unusual). Prefer `"spec"`? | Keep **`"spec-spine"`** (self-describing; hyphenated bare keys are valid TOML) |
 | Q10 | How much provenance/`references` semantics in v1? | Ship the `references` edge + open `provenance.uri_schemes` config + basic URI well-formedness; defer rich knowledge-graph semantics |
-| Q11 | MSRV / edition — match references (2024/1.85) or lower MSRV for reach? | **Match references (edition 2024)** unless you want broader adopter MSRV |
+| Q11 | MSRV / edition: match references (2024/1.85) or lower MSRV for reach? | **Match references (edition 2024)** unless you want broader adopter MSRV |
 
 ---
 
 ## 15. Phase boundary
 
-This is the Phase 0 deliverable. **Approved 2026-06-08** (Q1–Q4 confirmed; Q5–Q11
+This is the Phase 0 deliverable. **Approved 2026-06-08** (Q1 to Q4 confirmed; Q5 to Q11
 proceed as recommended). Phase 1 implements `spec-spine-types` (DTOs, frontmatter
 grammar, `Config` incl. the symmetric `[kind]`/`[domains]` allowlists,
 schema-version consts, embedded schemas, `Error`) and hand-authors `specs/000`,
-the constitution, contract, templates, and this repo's `spec-spine.toml` — then
+the constitution, contract, templates, and this repo's `spec-spine.toml`, then
 stops for review.
 
 ---
@@ -751,17 +751,17 @@ stops for review.
 
 Confirmations from the Phase-0 approval, each tracked to where it lands:
 
-- **[Phase 1]** ✅ folded here — `kind`/`domains` symmetry resolved via a `[kind]
+- **[Phase 1]** ✅ folded here: `kind`/`domains` symmetry resolved via a `[kind]
   allowed` allowlist (§3.1/§3.2/§3.3), before the `Config` struct freezes.
-- **[Phase 3 — specs 004/005]** Pin tree-sitter core + grammar crate versions
+- **[Phase 3, specs 004/005]** Pin tree-sitter core + grammar crate versions
   (exact `=x.y.z`, lockfile committed) and add a **per-platform golden test for
   symbol line-spans** across the 5-triple matrix (recorded in §10.1).
-- **[Phase 3 — spec 004]** TS resolver scope = `.ts`/`.tsx`; `.vue`
+- **[Phase 3, spec 004]** TS resolver scope = `.ts`/`.tsx`; `.vue`
   `<script lang="ts">` deferred, excludable via `resolver_exclusions` (§13).
-- **[Phase 5 — `docs/schema-versioning.md`]** Document that `deny_unknown_fields`
-  means an **older pinned binary errors on a newer config** — correct behavior
+- **[Phase 5, `docs/schema-versioning.md`]** Document that `deny_unknown_fields`
+  means an **older pinned binary errors on a newer config**: correct behavior
   under the pre-1.0 pin caveat (§7), so adopters aren't surprised.
-- **[Phase 5 — `docs/adoption-guide.md`]** Note that **OAP self-adoption =
-  generic core + an OAP overlay crate, not drop-in** — a direct consequence of
+- **[Phase 5, `docs/adoption-guide.md`]** Note that **OAP self-adoption =
+  generic core + an OAP overlay crate, not drop-in**: a direct consequence of
   the §10.4 prune (compliance/factory/capability machinery lives in an overlay,
   per §4.3).

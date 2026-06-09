@@ -20,13 +20,13 @@ summary: >
   (with YAML frontmatter); machine-consumable truth is compiler-emitted JSON
   only; the corpus compiles in full from day one; every artifact-producing step
   is a pure, deterministic function of (config, file contents); and a typed
-  authority graph — not a flat pile of claims — governs who may change what.
+  authority graph, not a flat pile of claims, governs who may change what.
   This spec defines what a spec IS. It is tier-1: its `unamendable` anchors are
   non-overridable, and it bootstraps the corpus by declaring authority it has
   held since before the graph existed (`origin.retroactive`).
 ---
 
-# 000 — Bootstrap spec system
+# 000: Bootstrap spec system
 
 This is the spec that defines what a spec is. It bootstraps the corpus: it was
 authored by hand before the compiler existed, the compiler is built to satisfy
@@ -46,7 +46,7 @@ There are exactly two kinds of truth in a spec-spine'd repository.
   hand-authored JSON is authoritative; no consumer may treat hand-edited JSON as
   truth. *(anchor: `json-truth-boundary`)*
 
-Corollary — **typed reads or nothing.** Compiled JSON is read only through a
+Corollary: **typed reads or nothing.** Compiled JSON is read only through a
 typed consumer (the `spec-spine` binary or the `spec-spine-core` library). Ad-hoc
 parsing of compiled JSON (`jq`/`awk`/`sed`/hand-rolled readers) is a workflow
 violation: it silently encodes schema assumptions that then fail far from the
@@ -76,7 +76,7 @@ Every `spec.md` begins with a YAML frontmatter block delimited by `---` fences.
 `feature_branch`, `implementation` (`pending`/`in-progress`/`complete`/`n-a`/
 `deferred`), and the two opt-in categorical taxonomies `domain` and `kind`
 (each validated against its configured allowlist only when that allowlist is
-non-empty; otherwise free-text — see the constitution).
+non-empty; otherwise free-text, see the constitution).
 
 **Bootstrap marker**: `origin.retroactive: true` declares authority held since
 before the graph existed. Without it, a pre-graph spec would read as a fresh
@@ -99,7 +99,7 @@ edges** to the rest of the corpus and the **authority units** it owns. Authority
 over any unit is *derived by walking the graph*, never declared directly.
 *(anchor: `typed-authority-graph`)*
 
-### 4.1 Edges — eight types, seven ownership-bearing
+### 4.1 Edges: eight types, seven ownership-bearing
 
 | Edge | Ownership? | Meaning |
 |---|---|---|
@@ -114,15 +114,15 @@ over any unit is *derived by walking the graph*, never declared directly.
 
 `origin` is a bootstrap marker, **not** an edge. The graph has eight edge types.
 
-### 4.2 Authority units — file, section, symbol (v1)
+### 4.2 Authority units: file, section, symbol (v1)
 
 Ownership resolves at three granularities, declared via a `unit:` on an edge:
 
-- **file** — `{ kind: file, path }` (a bare string is shorthand for this; a
+- **file**: `{ kind: file, path }` (a bare string is shorthand for this; a
   trailing-slash path denotes the directory subtree).
-- **section** — `{ kind: section, file, anchor }` (a Makefile target, a Markdown
+- **section**: `{ kind: section, file, anchor }` (a Makefile target, a Markdown
   heading slug, a `region:` marker, a CI `jobs.<name>`).
-- **symbol** — `{ kind: symbol, id }` (a function/type/export, resolved by the
+- **symbol**: `{ kind: symbol, id }` (a function/type/export, resolved by the
   indexer; Rust and TypeScript in v1).
 
 (`crate`, `module`, `directory` are reserved for additive future minors.)
@@ -133,14 +133,14 @@ Ownership resolves at three granularities, declared via a `unit:` on an edge:
 indexer at index time, not a runtime guess. A `supersedes` edge transfers a
 predecessor's current authority to the superseding spec; `establishes` records
 historical origin. An `amends` edge grants the amender co-authority over the
-predecessor's `spec.md`, but only expands an already-firing owner set — it never
+predecessor's `spec.md`, but only expands an already-firing owner set; it never
 silently enrolls a new owner.
 
 ## 5. The compiled artifacts
 
-- **Registry** (`registry.json`, spec-as-source) — the output of `compile`: for
+- **Registry** (`registry.json`, spec-as-source): the output of `compile`: for
   each spec, its status, relationships, claimed units, and a validation report.
-- **Codebase index** (`index.json`, code-as-source) — the output of `index`: for
+- **Codebase index** (`index.json`, code-as-source): the output of `index`: for
   each path/section/symbol, which spec(s) currently claim it, plus a content-hash
   for staleness detection.
 
@@ -151,7 +151,7 @@ if they disagree. Both are compiler-owned JSON (§1).
 
 Every artifact-producing function is a pure function of `(config, file
 contents)`: the same committed inputs MUST produce byte-identical output. No
-ambient clock or environment reads enter an artifact — the sole exception is a
+ambient clock or environment reads enter an artifact; the sole exception is a
 wall-clock `builtAt` field in `build-meta.json`, which is excluded from every
 determinism and golden check. *(anchor: `determinism-requirement`)*
 
@@ -161,7 +161,7 @@ is detectable by content-hash comparison alone.
 
 **Staleness completeness corollary.** Because staleness is detected by
 content-hash comparison alone, that hash MUST fold *every* input that can change
-the resolved artifact — not only the spec/manifest/config corpus, but the source
+the resolved artifact: not only the spec/manifest/config corpus, but the source
 files whose `symbol`/`section` spans the index resolved. A blind spot in the hash
 is a silent correctness hole: an input could drift while the artifact reads
 fresh, and the coupling gate would then match diffs against stale spans. The

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "ec46ad04840142e6bf64ee67e507f9c67a6211a3ceadd361ef979313fb15c4f4",
+    "contentHash": "2da261da7d9b3ef363443c1a7e65d6db24fb7c15dfba71c5c1dc561b685a78e2",
     "indexerId": "spec-spine",
     "indexerVersion": "0.1.0",
     "repoRoot": "."

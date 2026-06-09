@@ -5,7 +5,7 @@
 > artifacts via stable loaders, and emits its own *sibling* artifact. This is the
 > supported extensibility model; the generic core implements **none** of it.
 
-The generic core deliberately omits domain machinery — OAP's `kind`-enum,
+The generic core deliberately omits domain machinery: OAP's `kind`-enum,
 `shape`/`category` dimensions, capability/registry/profile system, compliance and
 factory output, and the Claude `config-hash` gate are all out of scope (see
 [design/00-architecture.md](design/00-architecture.md) §10.4). Anything in that
@@ -22,7 +22,7 @@ An overlay is a separate crate (published or private) that:
 2. reads the committed generic artifacts (`registry.json`, `index.json`) via the
    public loaders;
 3. computes whatever enriched view it needs;
-4. emits a **sibling** artifact next to the generic one — by convention
+4. emits a **sibling** artifact next to the generic one, by convention
    `<artifact>-<overlay>.json` (e.g. `registry-compliance.json`,
    `index-factory.json`).
 
@@ -42,11 +42,11 @@ It does **not** modify, replace, or re-emit the generic artifacts. The generic
 
 ---
 
-## 2. The stable seam — typed loaders
+## 2. The stable seam: typed loaders
 
 These two functions are the contract. They parse the canonical bytes into owned,
 `serde`-serializable DTOs and **reject an unknown MAJOR schema version** (so an
-overlay built for `0.x` will not silently misread a `1.x` artifact — see
+overlay built for `0.x` will not silently misread a `1.x` artifact; see
 [schema-versioning.md](schema-versioning.md)):
 
 ```rust
@@ -103,7 +103,7 @@ Read the policy in [schema-versioning.md](schema-versioning.md).
 ## 4. Re-using the canonicalization (so your sibling is diffable too)
 
 The generic artifacts are emitted with **sorted object keys, 2-space pretty
-printing, LF line endings, and a trailing newline** — so they diff and merge
+printing, LF line endings, and a trailing newline**, so they diff and merge
 mechanically. An overlay's sibling artifact *should* match, but core's
 `canonical_json` is an internal module (not part of the stable surface). Reproduce
 the rules in your overlay: serialize via a `BTreeMap`-backed value (sorted keys),
@@ -112,16 +112,16 @@ This keeps your sibling artifact as review-friendly as the generic one.
 
 ---
 
-## 5. The `extra_frontmatter` escape hatch — carrying overlay data through
+## 5. The `extra_frontmatter` escape hatch: carrying overlay data through
 
 An overlay usually needs spec authors to declare overlay-specific fields in their
 frontmatter (e.g. `compliance_tier:`, `factory_target:`). spec-spine carries
 those through the compiler **without forking the types crate**, two ways:
 
-- **`frontmatter.extra_known_keys`** (config) — list the keys your overlay
+- **`frontmatter.extra_known_keys`** (config): list the keys your overlay
   recognizes. They are accepted as first-class frontmatter rather than triggering
   an unknown-key diagnostic.
-- **`extra_frontmatter`** (DTO field) — any frontmatter key not otherwise known
+- **`extra_frontmatter`** (DTO field): any frontmatter key not otherwise known
   overflows into a capped `extra_frontmatter` map on the `SpecRecord` (scalar /
   string-list values only). Your overlay reads it from the loaded `Registry`.
 
@@ -148,7 +148,7 @@ overlay crate**, not as a drop-in replacement for its current tooling:
   coupling gate, reading the same diff.
 
 This mirrors exactly how OAP's enrichers already work today (they consume the
-generic crates as libraries and emit sibling `*-oap.json` artifacts) — spec-spine
+generic crates as libraries and emit sibling `*-oap.json` artifacts); spec-spine
 makes that the *supported* shape instead of an internal convention.
 
 ---
@@ -160,7 +160,7 @@ makes that the *supported* shape instead of an internal convention.
 - **Pin your core dependency** to the MAJOR you target; the loaders enforce it at
   read time.
 - **Stay deterministic.** If your overlay is to be CI-gated the same way, keep it
-  a pure function of `(generic artifacts, overlay config, file contents)` — no
+  a pure function of `(generic artifacts, overlay config, file contents)`, no
   ambient clock/env, matching the core's determinism contract.
 - **Name siblings `<artifact>-<overlay>.json`** so they are discoverable and never
   collide with the generic names.

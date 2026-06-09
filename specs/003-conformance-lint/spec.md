@@ -18,13 +18,13 @@ summary: >
   Establishes the lint engine and the `spec-spine lint` CLI subcommand.
 ---
 
-# 003 — Corpus conformance lint
+# 003: Corpus conformance lint
 
 ## 1. Purpose
 
 Compile (spec 001) answers "is this a structurally valid spec?" (V-codes, error
 tier, gates the registry). Lint answers "does this spec follow the corpus
-conventions?" — softer checks that a project opts into failing on. The two code
+conventions?": softer checks that a project opts into failing on. The two code
 namespaces are disjoint: `V-` for compile, `L-` for lint.
 
 ## 2. Territory
@@ -37,17 +37,17 @@ namespaces are disjoint: `V-` for compile, `L-` for lint.
 `lint(cfg, repo_root)` compiles the corpus and runs conformance checks over the
 resulting registry, returning a list of `L-` diagnostics. v1 checks:
 
-- `L-001` (warning) — an ordinary spec (not `origin.retroactive`) declares no
+- `L-001` (warning): an ordinary spec (not `origin.retroactive`) declares no
   ownership edge (`establishes`/`extends`/`refines`/`supersedes`/`amends`/
   `co_authority`/`constrains`): it claims no territory (spec 000 §4).
-- `L-002` (warning) — `domain` is absent while `domains.allowed` is configured
+- `L-002` (warning): `domain` is absent while `domains.allowed` is configured
   non-empty (the project classifies by domain; this spec is unclassified).
-- `L-003` (warning) — `kind` is absent while `kind.allowed` is configured
+- `L-003` (warning): `kind` is absent while `kind.allowed` is configured
   non-empty.
-- `L-004` (warning) — an edge (`extends`/`co_authority`/`constrains`/
+- `L-004` (warning): an edge (`extends`/`co_authority`/`constrains`/
   `references` target, `supersedes`/`amends` id) names a spec id that does not
   exist in the corpus (a dangling relationship).
-- `L-005` (info) — the spec body has no Markdown sections (a stub).
+- `L-005` (info): the spec body has no Markdown sections (a stub).
 
 ### 3.1 Severity gating
 

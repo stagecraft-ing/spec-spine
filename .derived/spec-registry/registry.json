@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.1.0",
-    "contentHash": "a1b95607e9e8219153127b603ac42da34fb41aa43c5f0459c687ce24d377c7c4",
+    "contentHash": "52da5535542313d57a63275d7e796a8a633bae55d19f83f69390abb3581f7fe1",
     "inputRoot": "."
   },
   "specVersion": "0.1.0",
@@ -18,13 +18,13 @@
         "retroactive": true
       },
       "sectionHeadings": [
-        "000 — Bootstrap spec system",
+        "000: Bootstrap spec system",
         "1. The authoring/derived boundary",
         "2. Identity: directory name equals id",
         "3. Frontmatter grammar",
         "4. The typed authority graph",
-        "4.1 Edges — eight types, seven ownership-bearing",
-        "4.2 Authority units — file, section, symbol (v1)",
+        "4.1 Edges: eight types, seven ownership-bearing",
+        "4.2 Authority units: file, section, symbol (v1)",
         "4.3 Resolution and amends-awareness",
         "5. The compiled artifacts",
         "6. Determinism",
@@ -34,7 +34,7 @@
       ],
       "specPath": "specs/000-spec-spine-bootstrap/spec.md",
       "status": "approved",
-      "summary": "Foundational contract for spec-spine. Authored truth lives only in markdown (with YAML frontmatter); machine-consumable truth is compiler-emitted JSON only; the corpus compiles in full from day one; every artifact-producing step is a pure, deterministic function of (config, file contents); and a typed authority graph — not a flat pile of claims — governs who may change what. This spec defines what a spec IS. It is tier-1: its `unamendable` anchors are non-overridable, and it bootstraps the corpus by declaring authority it has held since before the graph existed (`origin.retroactive`).\n",
+      "summary": "Foundational contract for spec-spine. Authored truth lives only in markdown (with YAML frontmatter); machine-consumable truth is compiler-emitted JSON only; the corpus compiles in full from day one; every artifact-producing step is a pure, deterministic function of (config, file contents); and a typed authority graph, not a flat pile of claims, governs who may change what. This spec defines what a spec IS. It is tier-1: its `unamendable` anchors are non-overridable, and it bootstraps the corpus by declaring authority it has held since before the graph existed (`origin.retroactive`).\n",
       "title": "Bootstrap spec system (markdown → compiled JSON authority ledger)",
       "unamendable": [
         "markdown-truth-boundary",
@@ -85,7 +85,7 @@
       "kind": "tooling",
       "owner": "The spec-spine Authors",
       "sectionHeadings": [
-        "001 — Compile the spec corpus into a deterministic registry",
+        "001: Compile the spec corpus into a deterministic registry",
         "1. Purpose",
         "2. Territory",
         "3. Behavior",
@@ -131,7 +131,7 @@
       "kind": "tooling",
       "owner": "The spec-spine Authors",
       "sectionHeadings": [
-        "002 — Typed read-only query over the registry",
+        "002: Typed read-only query over the registry",
         "1. Purpose",
         "2. Territory",
         "3. Behavior",
@@ -139,7 +139,7 @@
       ],
       "specPath": "specs/002-registry-query/spec.md",
       "status": "approved",
-      "summary": "The query capability: typed, read-only access over a loaded registry — list, show, status-report, and relationships — plus load_registry (which rejects an unknown MAJOR schema version). Establishes the query module and the `spec-spine registry` CLI subcommands; extends 001's public surface additively.\n",
+      "summary": "The query capability: typed, read-only access over a loaded registry: list, show, status-report, and relationships; plus load_registry (which rejects an unknown MAJOR schema version). Establishes the query module and the `spec-spine registry` CLI subcommands; extends 001's public surface additively.\n",
       "title": "Typed read-only query over the registry"
     },
     {
@@ -162,7 +162,7 @@
       "kind": "tooling",
       "owner": "The spec-spine Authors",
       "sectionHeadings": [
-        "003 — Corpus conformance lint",
+        "003: Corpus conformance lint",
         "1. Purpose",
         "2. Territory",
         "3. Behavior",
@@ -215,7 +215,7 @@
       "kind": "tooling",
       "owner": "The spec-spine Authors",
       "sectionHeadings": [
-        "004 — Codebase index and the unit grammar",
+        "004: Codebase index and the unit grammar",
         "1. Purpose",
         "2. Territory",
         "3. Behavior",
@@ -281,14 +281,14 @@
       "kind": "tooling",
       "owner": "The spec-spine Authors",
       "sectionHeadings": [
-        "005 — The coupling gate",
+        "005: The coupling gate",
         "1. Purpose",
         "2. Territory",
         "3. Behavior",
-        "3.1 The boundary — git stays out of core",
-        "3.2 Owner derivation — three granularities",
+        "3.1 The boundary: git stays out of core",
+        "3.2 Owner derivation: three granularities",
         "3.3 Amends-awareness and the strict-expansion guard (FR-005)",
-        "3.4 Supersedes — authority transfer",
+        "3.4 Supersedes: authority transfer",
         "3.5 Clearance, waivers, and bypass",
         "3.6 Granularity reconciliation (the crate-spec vs file-establishes question)",
         "3.7 Exit codes",
@@ -298,7 +298,7 @@
       "specPath": "specs/005-coupling-gate/spec.md",
       "status": "approved",
       "summary": "The PR-time coupling gate (spec-spine.md guardrail 2): cross-reference every changed code path against the authority graph and refuse the merge when code drifts from the spec that owns it. A pure function of (config, registry, index, diff, waiver); the CLI parses `git diff --no-color -U0 base...head` into a typed DiffInput so git stays out of core. Matches a diff hunk to its owning unit at file, section, and symbol granularity; is amends-aware with the FR-005 strict-expansion guard; transfers authority across supersedes; honors PR-body waivers and an additive bypass list. Establishes the couple engine and the `spec-spine couple` subcommand.\n",
-      "title": "The coupling gate — join the two views and refuse drift"
+      "title": "The coupling gate: join the two views and refuse drift"
     },
     {
       "created": "2026-06-09",
@@ -346,7 +346,7 @@
       "kind": "tooling",
       "owner": "The spec-spine Authors",
       "sectionHeadings": [
-        "006 — init — scaffold a new adopter",
+        "006: init: scaffold a new adopter",
         "1. Purpose",
         "2. Territory",
         "3. Behavior",
@@ -358,8 +358,8 @@
       ],
       "specPath": "specs/006-init-scaffold/spec.md",
       "status": "approved",
-      "summary": "The adoption UX: `spec-spine init` scaffolds a fresh repo so it can be governed with zero source edits to the library — a starter spec-spine.toml, a standards/spec/ constitution + contract + templates, a bootstrap specs/000-* spec.md, and the .claude/rules/ agent rule files. Core stays IO-light: scaffold_init returns the files as data (rel_path, contents, overwrite); the CLI writes them, with --force to overwrite existing files. Establishes the scaffold generator and the `spec-spine init` CLI subcommand.\n",
-      "title": "init — scaffold a new adopter"
+      "summary": "The adoption UX: `spec-spine init` scaffolds a fresh repo so it can be governed with zero source edits to the library: a starter spec-spine.toml, a standards/spec/ constitution + contract + templates, a bootstrap specs/000-* spec.md, and the .claude/rules/ agent rule files. Core stays IO-light: scaffold_init returns the files as data (rel_path, contents, overwrite); the CLI writes them, with --force to overwrite existing files. Establishes the scaffold generator and the `spec-spine init` CLI subcommand.\n",
+      "title": "init: scaffold a new adopter"
     }
   ],
   "validation": {

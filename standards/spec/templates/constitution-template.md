@@ -5,9 +5,9 @@ bootstrap spec (`specs/000-*/spec.md`) and governing all ordinary specs.
 
 **Normative hierarchy (highest wins):**
 
-1. `specs/000-*/spec.md` — the bootstrap spec. Non-overridable.
-2. `standards/spec/constitution.md` — this document.
-3. `standards/spec/contract.md` — normative summary of the bootstrap spec.
+1. `specs/000-*/spec.md`: the bootstrap spec. Non-overridable.
+2. `standards/spec/constitution.md`: this document.
+3. `standards/spec/contract.md`: normative summary of the bootstrap spec.
 4. Ordinary specs (`001`+).
 
 ---

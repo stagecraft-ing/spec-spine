@@ -16,13 +16,13 @@ extends:
     unit: { kind: file, path: "crates/spec-spine-core/src/lib.rs" }
     nature: additive
 summary: >
-  The query capability: typed, read-only access over a loaded registry — list,
-  show, status-report, and relationships — plus load_registry (which rejects an
+  The query capability: typed, read-only access over a loaded registry: list,
+  show, status-report, and relationships; plus load_registry (which rejects an
   unknown MAJOR schema version). Establishes the query module and the
   `spec-spine registry` CLI subcommands; extends 001's public surface additively.
 ---
 
-# 002 — Typed read-only query over the registry
+# 002: Typed read-only query over the registry
 
 ## 1. Purpose
 
@@ -53,6 +53,6 @@ parsing (spec 000 §1 corollary). This capability is that consumer.
 
 ## 4. Out of scope
 
-`authorities(unit)` — "who currently owns this code unit?" — requires the
+`authorities(unit)`, "who currently owns this code unit?", requires the
 codebase index and is defined with the indexer (spec 004). Mutations of any kind
 are out of scope; this capability is read-only.

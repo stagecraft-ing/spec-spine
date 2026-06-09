@@ -1,6 +1,6 @@
 # spec-spine-cli
 
-The `spec-spine` command-line tool — a thin translation of `spec-spine-core`
+The `spec-spine` command-line tool: a thin translation of `spec-spine-core`
 results into stdout/stderr and stable exit codes. All `process::exit`, stdout,
 and `git`/clock side effects live here; the engine ([`spec-spine-core`]) stays
 pure.
