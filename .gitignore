@@ -2,6 +2,15 @@
 /target
 **/*.rs.bk
 
+# npm binary-distribution shim (spec 007): generated platform packages (and the
+# prebuilt binaries they carry) are assembled from release artifacts at publish
+# time, never committed; ditto local install artifacts and the publish-time
+# LICENSE copy.
+/npm/dist/
+/npm/package-lock.json
+/npm/LICENSE
+node_modules/
+
 # NOTE: .derived/ (compiler/indexer output) is intentionally NOT ignored — it is
 # committed so the coupling gate and content-hash staleness check can compare the
 # committed registry/index against current inputs. Determinism makes this sane.

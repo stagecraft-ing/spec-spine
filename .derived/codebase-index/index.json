@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "2da261da7d9b3ef363443c1a7e65d6db24fb7c15dfba71c5c1dc561b685a78e2",
+    "contentHash": "1f33dbadec0ecd5447a46775c4d88af333a25f1efe5140692ced0e976e8a442e",
     "indexerId": "spec-spine",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -27,6 +27,13 @@
       "name": "spec-spine-types",
       "path": "crates/spec-spine-types",
       "specRef": "000-spec-spine-bootstrap"
+    },
+    {
+      "kind": "npm-package",
+      "name": "spec-spine",
+      "path": "npm",
+      "specRef": "007-distribution",
+      "version": "0.1.0"
     }
   ],
   "schemaVersion": "0.1.0",
@@ -644,6 +651,109 @@
           }
         ],
         "specId": "006-init-scaffold",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "001-compile-registry"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/release.yml",
+            "source": "spec-edge"
+          },
+          {
+            "path": "docs/releasing.md",
+            "source": "spec-edge"
+          },
+          {
+            "path": "install.sh",
+            "source": "spec-edge"
+          },
+          {
+            "path": "npm",
+            "source": "manifest-metadata"
+          },
+          {
+            "path": "npm/",
+            "source": "spec-edge"
+          },
+          {
+            "path": "npm/bin/spec-spine.js",
+            "source": "comment-header"
+          },
+          {
+            "path": "npm/lib/platform.js",
+            "source": "comment-header"
+          },
+          {
+            "path": "npm/scripts/generate-platform-packages.js",
+            "source": "comment-header"
+          },
+          {
+            "path": "npm/scripts/smoke-test.sh",
+            "source": "comment-header"
+          },
+          {
+            "path": "npm/test/platform.test.js",
+            "source": "comment-header"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": ".github/workflows/release.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/release.yml"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "docs/releasing.md"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "docs/releasing.md"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "install.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "install.sh"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "npm/"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "npm/"
+            }
+          }
+        ],
+        "specId": "007-distribution",
         "specStatus": "approved"
       }
     ],

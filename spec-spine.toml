@@ -24,7 +24,9 @@ cargo_workspace = "Cargo.toml"
 # No npm in this repo; the default still probes these at the root and finds none.
 npm_workspaces = ["package.json", "pnpm-workspace.yaml"]
 standalone_rust_workspaces = []
-standalone_npm_packages    = []
+# The npm binary-distribution shim (spec 007) is a tracked npm package outside any
+# npm workspace (this repo has none), so it is declared as a standalone package.
+standalone_npm_packages    = ["npm"]
 
 [index]
 extra_hashed_inputs = ["standards/**", ".github/workflows/**"]

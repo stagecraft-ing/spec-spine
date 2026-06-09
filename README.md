@@ -27,11 +27,15 @@ contents)`**: same inputs, byte-identical output, on every platform.
 cargo install spec-spine-cli                                           # from crates.io
 # or, no Rust toolchain:
 curl -fsSL https://raw.githubusercontent.com/bartekus/spec-spine/main/install.sh | sh
+# or, in a TS/JS repo (prebuilt binary, no Rust toolchain):
+npm i -D spec-spine
 # or, from this checkout:
 cargo install --path crates/spec-spine-cli
 ```
 
-All three yield a `spec-spine` binary on your `PATH`.
+Each yields a `spec-spine` binary (on your `PATH`, or via `npx spec-spine` for the
+npm install). The npm package ships the prebuilt binary per platform; its Linux
+binaries are glibc (Alpine/musl use `cargo install`). See [npm/](npm/).
 
 ## Quickstart
 

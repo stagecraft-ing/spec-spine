@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.1.0",
-    "contentHash": "52da5535542313d57a63275d7e796a8a633bae55d19f83f69390abb3581f7fe1",
+    "contentHash": "8f8a08a37d3e4e9f7d6f1d62dc3900774cd0ff21c4f17d8727622193a8e8a356",
     "inputRoot": "."
   },
   "specVersion": "0.1.0",
@@ -360,6 +360,51 @@
       "status": "approved",
       "summary": "The adoption UX: `spec-spine init` scaffolds a fresh repo so it can be governed with zero source edits to the library: a starter spec-spine.toml, a standards/spec/ constitution + contract + templates, a bootstrap specs/000-* spec.md, and the .claude/rules/ agent rule files. Core stays IO-light: scaffold_init returns the files as data (rel_path, contents, overwrite); the CLI writes them, with --force to overwrite existing files. Establishes the scaffold generator and the `spec-spine init` CLI subcommand.\n",
       "title": "init: scaffold a new adopter"
+    },
+    {
+      "created": "2026-06-09",
+      "dependsOn": [
+        "001-compile-registry"
+      ],
+      "establishes": [
+        {
+          "kind": "file",
+          "path": "npm/"
+        },
+        {
+          "kind": "file",
+          "path": "install.sh"
+        },
+        {
+          "kind": "file",
+          "path": ".github/workflows/release.yml"
+        },
+        {
+          "kind": "file",
+          "path": "docs/releasing.md"
+        }
+      ],
+      "id": "007-distribution",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "007: Distribution",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 The pattern: optional-dependencies platform packages",
+        "3.2 Platform map (the five triples)",
+        "3.3 The launcher",
+        "3.4 Unsupported hosts fail clearly",
+        "3.5 Version lock",
+        "3.6 Release integration",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/007-distribution/spec.md",
+      "status": "approved",
+      "summary": "How the spec-spine CLI reaches users who do not have a Rust toolchain. Two channels already existed but were unspecced: the tag-gated GitHub release pipeline (release.yml) that builds the five per-triple archives, and install.sh (curl | sh) that consumes them. This spec adopts both as governed territory and adds a third channel: an npm binary-distribution shim under npm/ so a TS/JS repo can `npm i -D spec-spine` and get the CLI with no Rust. The shim is a launcher, not a native addon: the main package's bin resolves a per-triple platform package (optionalDependencies, os/cpu-gated) and exec's the prebuilt binary, forwarding argv and exit code. No postinstall, no network at install, no archive extraction; it works under `npm ci --ignore-scripts` and offline. Version-locked to the binary release tag (npm 0.1.0 ships the v0.1.0 assets).\n",
+      "title": "Distribution: npm binary shim + the release pipeline"
     }
   ],
   "validation": {

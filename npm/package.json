@@ -1,0 +1,54 @@
+{
+  "name": "spec-spine",
+  "version": "0.1.0",
+  "description": "The spec-spine CLI: compile a markdown spec corpus into a deterministic authority ledger and refuse code that drifts from its owning spec. Ships the prebuilt binary; no Rust toolchain required.",
+  "keywords": [
+    "spec",
+    "specification",
+    "authority",
+    "governance",
+    "coupling",
+    "cli",
+    "rust",
+    "deterministic"
+  ],
+  "homepage": "https://github.com/bartekus/spec-spine#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bartekus/spec-spine.git",
+    "directory": "npm"
+  },
+  "bugs": {
+    "url": "https://github.com/bartekus/spec-spine/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "The spec-spine Authors",
+  "type": "commonjs",
+  "bin": {
+    "spec-spine": "bin/spec-spine.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "generate": "node scripts/generate-platform-packages.js",
+    "smoke": "scripts/smoke-test.sh"
+  },
+  "optionalDependencies": {
+    "@spec-spine/cli-darwin-arm64": "0.1.0",
+    "@spec-spine/cli-darwin-x64": "0.1.0",
+    "@spec-spine/cli-linux-x64": "0.1.0",
+    "@spec-spine/cli-linux-arm64": "0.1.0",
+    "@spec-spine/cli-win32-x64": "0.1.0"
+  },
+  "spec-spine": {
+    "spec": "007-distribution"
+  }
+}

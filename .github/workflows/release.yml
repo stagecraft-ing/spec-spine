@@ -10,8 +10,11 @@ name: release
 # deprecated and queues badly. The crate source is identical, so the binary matches
 # what the determinism workflow proves byte-identical.
 #
-# publish-crates is idempotent: it skips any crate version already on crates.io, so
-# re-running a tag is safe. CycloneDX SBOM is deferred (Q7): low v1 value.
+# publish-crates and publish-npm are idempotent: each skips any version already
+# live (crates.io / npm), so re-running a tag is safe. publish-npm assembles the
+# per-triple npm platform packages from the SAME build archives (no second Rust
+# build) and is gated on NPM_TOKEN: absent the secret it is a clean no-op.
+# CycloneDX SBOM is deferred (Q7): low v1 value.
 
 on:
   push:
@@ -139,3 +142,86 @@ jobs:
             fi
             echo "::endgroup::"
           done
+
+  publish-npm:
+    name: publish to npm
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Gate on NPM_TOKEN: absent the secret, the whole job is a clean no-op (a
+      # skip, never a red X), the same posture as the crates.io token. The first
+      # publish, the NPM_TOKEN, and the one-time `@spec-spine` org creation are a
+      # human's job (see docs/releasing.md).
+      - name: Check for NPM_TOKEN
+        id: gate
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=npm publish skipped::NPM_TOKEN secret not set; skipping npm publish"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.present == 'true'
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      # The npm platform packages bundle the prebuilt binaries directly, so they
+      # are assembled from the build job's archives (no second Rust build).
+      - uses: actions/download-artifact@v4
+        if: steps.gate.outputs.present == 'true'
+        with:
+          path: dist/archives
+          pattern: archive-*
+          merge-multiple: true
+
+      - name: Assemble platform packages from the release archives
+        if: steps.gate.outputs.present == 'true'
+        working-directory: npm
+        run: |
+          set -euo pipefail
+          cp ../LICENSE LICENSE                         # ship the license in the main tarball
+          VERSION="${GITHUB_REF_NAME#v}"                # tag v0.1.0 -> 0.1.0
+          # --write-main locks the main package version + optionalDependencies to
+          # the tag; the generator fails loudly if the tag and committed version
+          # disagree on a non-write run, so the lock can never drift silently.
+          node scripts/generate-platform-packages.js \
+            --version "$VERSION" --archives ../dist/archives --out dist/packages --write-main
+          ls -la dist/packages/@spec-spine
+
+      - name: Publish (idempotent; skip versions already on npm)
+        if: steps.gate.outputs.present == 'true'
+        working-directory: npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # No -e: we inspect each publish so an already-published version is a
+          # skip, not a failure (re-running a tag is then idempotent). `npm view`
+          # is the precheck: it 404s (non-zero) for an unpublished version.
+          set -uo pipefail
+          publish_if_absent() {
+            local dir="$1" name version
+            name="$(node -p "require('./${dir}/package.json').name")"
+            version="$(node -p "require('./${dir}/package.json').version")"
+            echo "::group::publish ${name}@${version}"
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo ">> ${name}@${version} already on npm, skipping"
+            else
+              # --access public: scoped packages default to restricted.
+              npm publish "${dir}" --access public
+              echo ">> published ${name}@${version}"
+            fi
+            echo "::endgroup::"
+          }
+          # Platform packages first, then the main package, so there is never a
+          # window where `spec-spine` is live without its binaries.
+          for d in dist/packages/@spec-spine/*; do
+            publish_if_absent "$d"
+          done
+          publish_if_absent "."
