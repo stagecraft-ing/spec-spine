@@ -1,14 +1,20 @@
 name: determinism
 
 # Cross-triple determinism GOLDEN. spec-spine's central claim is that every
-# artifact-producing step is a pure function of (config, file contents) — so the
+# artifact-producing step is a pure function of (config, file contents): so the
 # emitted registry.json and index.json (including tree-sitter symbol line-spans)
 # are byte-identical on every platform. This workflow PROVES that empirically
-# across all five release triples instead of merely asserting it from the
-# exact-pinned grammars: each leg compiles + indexes this repo's own corpus and
-# publishes the digests; the gather job fails if any digest differs.
+# instead of merely asserting it from the exact-pinned grammars: each leg
+# compiles + indexes this repo's own corpus and publishes the digests; the gather
+# job fails if any digest differs.
 #
-# build-meta.json is excluded — it carries a wall-clock `builtAt`, the sole
+# Coverage spans both CPU arches and three OSes: x86_64 (Linux + Windows) and
+# aarch64 (Linux + macOS). x86_64-apple-darwin is intentionally omitted: its two
+# dimensions are each already proven, and the deprecated Intel macos-13 runner
+# queues badly. Its binary is still built and shipped by release.yml
+# (cross-compiled on Apple Silicon).
+#
+# build-meta.json is excluded: it carries a wall-clock `builtAt`, the sole
 # non-deterministic artifact (see docs/design/00-architecture.md §10.1).
 
 on:
@@ -31,7 +37,6 @@ jobs:
         include:
           - { os: ubuntu-latest,    triple: x86_64-unknown-linux-gnu }
           - { os: ubuntu-24.04-arm, triple: aarch64-unknown-linux-gnu }
-          - { os: macos-13,         triple: x86_64-apple-darwin }
           - { os: macos-latest,     triple: aarch64-apple-darwin }
           - { os: windows-latest,   triple: x86_64-pc-windows-msvc }
     runs-on: ${{ matrix.os }}
@@ -89,8 +94,8 @@ jobs:
           for kind in registry index; do
             n=$(awk -v k="$kind" '$2==k {print $3}' digests/*.txt | sort -u | wc -l | tr -d ' ')
             count=$(awk -v k="$kind" '$2==k {print $3}' digests/*.txt | wc -l | tr -d ' ')
-            if [ "$count" -lt 5 ]; then
-              echo "FAIL: $kind reported by only $count/5 triples (a leg failed to emit)"; fail=1
+            if [ "$count" -lt 4 ]; then
+              echo "FAIL: $kind reported by only $count/4 triples (a leg failed to emit)"; fail=1
             elif [ "$n" -ne 1 ]; then
               echo "FAIL: $kind.json differs across triples ($n distinct digests)"; fail=1
             else

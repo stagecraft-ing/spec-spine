@@ -1,15 +1,17 @@
 name: release
 
 # Tag-gated prebuilt-binary release. Pushing a `v*` tag builds a per-triple
-# archive (with a .sha256 sidecar) for each of the five supported targets and
-# attaches them to the GitHub Release. install.sh (curl | sh) consumes these.
+# archive (with a .sha256 sidecar) for each of the five supported targets,
+# attaches them to the GitHub Release, and publishes the crates to crates.io.
+# install.sh (curl | sh) consumes the archives.
 #
-# Every triple builds NATIVELY on a GitHub-hosted runner of the matching arch —
-# no cross-toolchain — so the binaries are exactly what the determinism workflow
-# proves emit byte-identical artifacts.
+# Four triples build natively on a matching-arch GitHub runner; x86_64-apple-darwin
+# cross-compiles on the Apple Silicon runner, because the Intel macos-13 runner is
+# deprecated and queues badly. The crate source is identical, so the binary matches
+# what the determinism workflow proves byte-identical.
 #
-# Per-archive CycloneDX SBOM is deferred (see docs/design/00-architecture.md §11,
-# Q7): it adds nontrivial per-leg tooling for low v1 value. Add on request.
+# publish-crates is idempotent: it skips any crate version already on crates.io, so
+# re-running a tag is safe. CycloneDX SBOM is deferred (Q7): low v1 value.
 
 on:
   push:
@@ -30,7 +32,9 @@ jobs:
         include:
           - { os: ubuntu-latest,    triple: x86_64-unknown-linux-gnu }
           - { os: ubuntu-24.04-arm, triple: aarch64-unknown-linux-gnu }
-          - { os: macos-13,         triple: x86_64-apple-darwin }
+          # x86_64-apple-darwin cross-compiles on the Apple Silicon runner (Xcode
+          # ships the x86_64 SDK); avoids the deprecated, slow-to-queue macos-13.
+          - { os: macos-latest,     triple: x86_64-apple-darwin }
           - { os: macos-latest,     triple: aarch64-apple-darwin }
           - { os: windows-latest,   triple: x86_64-pc-windows-msvc }
     runs-on: ${{ matrix.os }}
@@ -51,7 +55,7 @@ jobs:
           cp LICENSE README.md staging/
           echo "ARCHIVE_BASE=spec-spine-${GITHUB_REF_NAME}-${{ matrix.triple }}" >> "$GITHUB_ENV"
 
-      - name: Package (tar.gz + sha256) — Unix
+      - name: Package (tar.gz + sha256) for Unix
         if: runner.os != 'Windows'
         shell: bash
         run: |
@@ -64,7 +68,7 @@ jobs:
           fi
           cat "${ARCHIVE_BASE}.tar.gz.sha256"
 
-      - name: Package (zip + sha256) — Windows
+      - name: Package (zip + sha256) for Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -104,3 +108,31 @@ jobs:
           files: dist/*
           fail_on_unmatched_files: true
           generate_release_notes: true
+
+  publish-crates:
+    name: publish to crates.io
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish types, core, cli (skip versions already live)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(grep -m1 '^version' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')"
+          echo "workspace version: $version"
+          for crate in spec-spine-types spec-spine-core spec-spine-cli; do
+            code="$(curl -fsS -o /dev/null -w '%{http_code}' "https://crates.io/api/v1/crates/$crate/$version" || echo 000)"
+            if [ "$code" = "200" ]; then
+              echo "$crate $version already on crates.io, skipping"
+              continue
+            fi
+            echo "publishing $crate $version"
+            cargo publish -p "$crate" --locked
+            # cargo waits for availability post-publish; re-confirm before the next dependent crate
+            for _ in $(seq 1 30); do
+              c="$(curl -fsS -o /dev/null -w '%{http_code}' "https://crates.io/api/v1/crates/$crate/$version" || echo 000)"
+              [ "$c" = "200" ] && break || sleep 5
+            done
+          done
