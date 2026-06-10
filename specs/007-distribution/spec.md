@@ -159,7 +159,10 @@ stamps every platform package with the release version and fails on a mismatch.
   never a failure;
 - the platform packages are generated from the same per-triple archives the build
   matrix already produced (no second Rust build), then published, then the main
-  package.
+  package. The generator extracts each binary tolerant of archive member layout:
+  the release tarballs store members `./`-prefixed, which a strict `tar` (GNU tar
+  on the Linux runner) will not match by bare name, so it extracts the whole
+  archive and reads the binary by its known path rather than selecting a member.
 
 The first npm publish and the `NPM_TOKEN` (and the one-time creation of the
 `@spec-spine` org) are left to a human, the same posture as the crates.io token.
