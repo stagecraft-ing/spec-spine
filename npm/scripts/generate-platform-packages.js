@@ -149,6 +149,10 @@ function platformPackageJson(target, version) {
     os: [t.os],
     cpu: [t.cpu],
     files: ['bin/'],
+    // Scoped packages default to restricted on npm; publishConfig.access is the
+    // reliable way to publish them publicly (the `npm publish --access public`
+    // flag alone proved insufficient). See specs/007-distribution/spec.md sec 3.6.
+    publishConfig: { access: 'public' },
   };
 }
 
