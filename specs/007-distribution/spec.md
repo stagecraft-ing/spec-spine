@@ -156,7 +156,11 @@ stamps every platform package with the release version and fails on a mismatch.
 - it is **idempotent** (a version already live on npm is skipped, matching the
   crates.io job), so re-running a tag is safe;
 - it is **gated on an `NPM_TOKEN` secret**: absent the token the job is a no-op,
-  never a failure;
+  never a failure. The token must be an npm **automation** token (it bypasses the
+  2FA one-time-password that CI cannot supply);
+- scoped packages default to **restricted** on npm, so each platform package
+  carries `publishConfig.access: public` (and the job also passes
+  `--access public`) to publish publicly;
 - the platform packages are generated from the same per-triple archives the build
   matrix already produced (no second Rust build), then published, then the main
   package. The generator extracts each binary tolerant of archive member layout:
