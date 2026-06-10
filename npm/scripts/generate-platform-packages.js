@@ -117,10 +117,16 @@ function extractBinary(target, archivesDir, tag, binFile) {
     die(`archive not found for ${target}: ${archive}`);
   }
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'spec-spine-extract-'));
+  // Extract the whole archive rather than selecting one member: the release tar
+  // is built with `tar -C staging .`, so members are stored "./"-prefixed
+  // (./spec-spine). GNU tar (the Linux runner) will not match a bare
+  // `spec-spine` against `./spec-spine` and errors "Not found in archive";
+  // macOS bsdtar matches leniently, which masked this locally. Extracting all
+  // members lands the binary at <tmp>/<binFile> on every tar/unzip flavor.
   if (isWin) {
-    execFileSync('unzip', ['-o', '-q', archive, binFile, '-d', tmp], { stdio: 'inherit' });
+    execFileSync('unzip', ['-o', '-q', archive, '-d', tmp], { stdio: 'inherit' });
   } else {
-    execFileSync('tar', ['-C', tmp, '-xzf', archive, binFile], { stdio: 'inherit' });
+    execFileSync('tar', ['-C', tmp, '-xzf', archive], { stdio: 'inherit' });
   }
   const extracted = path.join(tmp, binFile);
   if (!fs.existsSync(extracted)) {
