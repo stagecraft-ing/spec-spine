@@ -115,6 +115,20 @@ committed `index.json`'s own `resolvedUnits`, and compares it to the committed
 hash; a mismatch is `Stale` (exit 2). Resolver hard-error diagnostics
 (`I-003`..`I-009`) also fail `check`.
 
+**npm manifests fold as their governance projection** (amendment 2026-06-11,
+paired with spec 005's dependency-only auto-waiver). A `package.json` enters
+the hash not as raw bytes but as the canonical JSON of exactly the fields
+discovery consumes — `name`, `version`, `workspaces`, and the
+`manifest.metadata_namespace` object (`manifest.rs::npm_hash_projection`).
+Rationale: dependency tables are not a governed input — the indexer never
+reads them — so a dependabot-class version bump must not stale the committed
+index (the bot can neither re-index nor edit a PR body), while a change to
+any field the indexer *does* read still does. An unparseable manifest falls
+back to raw bytes: over-hashing is the fail-closed direction. Cargo and pnpm
+manifests still fold as raw bytes. Upgrading across this amendment changes
+every npm-bearing repo's computed hash once — re-run `spec-spine index` when
+bumping the dependency.
+
 ### 3.6 Traceability and diagnostics
 
 `traceability` carries `mappings` (per spec: implementing paths + resolved

@@ -183,3 +183,12 @@ The runbook step lives in `docs/releasing.md`.
 - **Windows-on-ARM, musl, and 32-bit** prebuilt binaries: out of the v1 triple
   set; those hosts use `cargo install` (§3.4). Adding a triple is an additive
   change to the §3.2 map and the release matrix together.
+
+## Release log
+
+- **0.2.0 (2026-06-11).** First post-bootstrap feature release: the specs
+  004/005 dependency-only cutover (governance-projection hashing of npm
+  manifests + the opt-in `auto_waive_dependency_only` coupling waiver).
+  Hash-fold semantics change re-baselines npm-bearing adopters — one
+  `spec-spine index` re-run on upgrade. Same five-triple matrix, same
+  launcher shim; no distribution-mechanics change.
