@@ -55,6 +55,15 @@ pub fn list<'a>(registry: &'a Registry, filter: &ListFilter) -> Vec<&'a SpecReco
         .collect()
 }
 
+/// The `--ids-only` projection of [`list`] (spec 010 §3.1): the same filter and
+/// order, reduced to bare spec ids.
+pub fn list_ids<'a>(registry: &'a Registry, filter: &ListFilter) -> Vec<&'a str> {
+    list(registry, filter)
+        .iter()
+        .map(|s| s.id.as_str())
+        .collect()
+}
+
 /// One spec by id, or [`Error::NotFound`].
 pub fn show<'a>(registry: &'a Registry, id: &str) -> Result<&'a SpecRecord, Error> {
     registry
@@ -73,6 +82,37 @@ pub struct StatusReport {
     pub approved: usize,
     pub superseded: usize,
     pub retired: usize,
+}
+
+/// The `--nonzero-only` projection of a [`StatusReport`] (spec 010 §3.2):
+/// zero-count statuses are omitted from serialization; `total` always
+/// serializes and still reflects the whole corpus.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatusReportNonzero {
+    pub total: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub draft: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approved: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub superseded: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retired: Option<usize>,
+}
+
+impl StatusReport {
+    /// Project to the `--nonzero-only` form.
+    pub fn nonzero_only(&self) -> StatusReportNonzero {
+        let keep = |n: usize| (n > 0).then_some(n);
+        StatusReportNonzero {
+            total: self.total,
+            draft: keep(self.draft),
+            approved: keep(self.approved),
+            superseded: keep(self.superseded),
+            retired: keep(self.retired),
+        }
+    }
 }
 
 /// Tally specs by status.

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "16f0a7151f17219f533789bc6bf5546543a18163eb154644fa160bfd5c47b7ca",
+    "contentHash": "d501504087fb0aefee71e3cb5bead96b038e8fd8f85c65779d9d2d9cc0143563",
     "indexerId": "spec-spine",
     "indexerVersion": "0.2.0",
     "repoRoot": "."
@@ -834,6 +834,85 @@
         ],
         "specId": "008-python-distribution",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "002-registry-query"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-cli/src/cmd_registry.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-cli/tests/cli.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/lib.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/query.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/cmd_registry.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/cmd_registry.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/tests/cli.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/tests/cli.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/lib.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/query.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/query.rs"
+            }
+          }
+        ],
+        "specId": "010-registry-query-projection-flags",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [],

@@ -61,6 +61,139 @@ fn compile_ok_then_queries() {
 }
 
 #[test]
+fn registry_list_ids_only_projection() {
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(tmp.path(), "001-a", "001-a", "approved");
+    write_spec(tmp.path(), "002-b", "002-b", "approved");
+    write_spec(tmp.path(), "003-c", "003-c", "draft");
+    let compiled = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .arg("compile")
+        .output()
+        .unwrap();
+    assert_eq!(code(&compiled), 0);
+
+    // Text form: newline-delimited ids in id order, nothing else.
+    let text = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["registry", "list", "--ids-only"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&text), 0);
+    assert_eq!(
+        String::from_utf8_lossy(&text.stdout),
+        "001-a\n002-b\n003-c\n"
+    );
+
+    // JSON form: an array of id strings, same order.
+    let json = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["registry", "list", "--ids-only", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&json), 0);
+    let ids: Vec<String> = serde_json::from_slice(&json.stdout).unwrap();
+    assert_eq!(ids, ["001-a", "002-b", "003-c"]);
+
+    // --status filters first, then the projection applies.
+    let filtered = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["registry", "list", "--ids-only", "--status", "approved"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&filtered), 0);
+    assert_eq!(String::from_utf8_lossy(&filtered.stdout), "001-a\n002-b\n");
+
+    let filtered_json = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args([
+            "registry",
+            "list",
+            "--ids-only",
+            "--status",
+            "retired",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(code(&filtered_json), 0);
+    let none: Vec<String> = serde_json::from_slice(&filtered_json.stdout).unwrap();
+    assert!(none.is_empty());
+
+    // Empty projection in text mode: empty output (no "(no specs)"), exit 0.
+    let empty = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["registry", "list", "--ids-only", "--status", "retired"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&empty), 0);
+    assert!(empty.stdout.is_empty());
+}
+
+#[test]
+fn registry_status_report_nonzero_only_projection() {
+    let tmp = tempfile::tempdir().unwrap();
+    // approved + draft present; superseded + retired are the zero-count rows.
+    write_spec(tmp.path(), "001-a", "001-a", "approved");
+    write_spec(tmp.path(), "002-b", "002-b", "approved");
+    write_spec(tmp.path(), "003-c", "003-c", "draft");
+    let compiled = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .arg("compile")
+        .output()
+        .unwrap();
+    assert_eq!(code(&compiled), 0);
+
+    // Without the flag, output is byte-identical to pre-010 behavior.
+    let plain = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["registry", "status-report"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&plain), 0);
+    assert_eq!(
+        String::from_utf8_lossy(&plain.stdout),
+        "total:      3\ndraft:      1\napproved:   2\nsuperseded: 0\nretired:    0\n"
+    );
+
+    // Human form: zero-count rows omitted, total unaffected.
+    let human = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["registry", "status-report", "--nonzero-only"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&human), 0);
+    assert_eq!(
+        String::from_utf8_lossy(&human.stdout),
+        "total:      3\ndraft:      1\napproved:   2\n"
+    );
+
+    // JSON form: zero-count keys absent, total present.
+    let json = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["registry", "status-report", "--nonzero-only", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&json), 0);
+    let report: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    assert_eq!(report["total"], 3);
+    assert_eq!(report["draft"], 1);
+    assert_eq!(report["approved"], 2);
+    assert!(report.get("superseded").is_none());
+    assert!(report.get("retired").is_none());
+}
+
+#[test]
 fn compile_validation_failure_exits_1() {
     let tmp = tempfile::tempdir().unwrap();
     // Directory name != id -> V-001 (error tier).

@@ -209,7 +209,8 @@ pub fn scaffold_init_json  (config_json: &str)                  -> Result<String
 - `config_json` is a JSON object matching `Config`; `"{}"` ⇒ `Config::default()`.
 - `query_json` request: `{ "registry": "<registry.json text>", "op":
   "list" | "show" | "status-report" | "relationships", "id"?: string,
-  "status"?: string }`.
+  "status"?: string, "idsOnly"?: bool, "nonzeroOnly"?: bool }` (the projection
+  fields, spec 010, default to `false`).
 - `couple_json` request: `{ "config"?: Config, "repoRoot": string, "diff":
   DiffInput, "waiver"?: { "reason": string } }`.
 - `check_freshness_json` returns `{ "fresh": bool, "expected"?, "actual"? }`.

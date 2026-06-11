@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.2.0",
-    "contentHash": "d42a13ac66d7ff227170d3e4bbaa8d0838a5f57e85b02645db19a60ec86e111c",
+    "contentHash": "94be63edc2cdd5380a98427fc863eb21bca987437b8b4be1bc04e2cac48d6534",
     "inputRoot": "."
   },
   "specVersion": "0.1.0",
@@ -458,6 +458,65 @@
       "status": "approved",
       "summary": "The Python parallel of 007's npm shim: a uvx/PyPI channel so a Python or polyglot team can `uvx spec-spine ...` (or `uv tool install spec-spine`) and get the CLI with no Rust toolchain. Where npm uses a main launcher package + five os/cpu-gated platform packages, Python collapses the same idea into one PyPI project + five per-platform wheels (+ one sdist): the wheel platform tag IS the selector, and the prebuilt binary ships in the wheel's data/scripts dir so pip/uv place it directly on PATH. There is no Python in the run path, no postinstall, no network at install, and no archive extraction at install: it works offline and under --no-build-isolation. Unsupported hosts (musl/Alpine, win-arm64, 32-bit) match no wheel and fall to the sdist, whose only artifact is a `spec-spine` console entry point that names the host and points at `cargo install spec-spine-cli` -- exact parity with 007 §3.4. Wheels are assembled from the same release archives the build job already produces (no second Rust build), are byte-reproducible, and are version-locked to the tag.\n",
       "title": "Distribution: uvx/PyPI wheel shim"
+    },
+    {
+      "created": "2026-06-11",
+      "dependsOn": [
+        "002-registry-query"
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "002-registry-query",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/query.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "002-registry-query",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-cli/src/cmd_registry.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/lib.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-cli/tests/cli.rs"
+          }
+        }
+      ],
+      "id": "010-registry-query-projection-flags",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "010: Query projection flags",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 `registry list --ids-only`",
+        "3.2 `registry status-report --nonzero-only`",
+        "3.3 Contract",
+        "3.4 Tests (minimum)",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/010-registry-query-projection-flags/spec.md",
+      "status": "draft",
+      "summary": "Two additive projection flags on the spec 002 query verbs: `registry list --ids-only` (newline-delimited spec ids; a JSON string array under --json) and `registry status-report --nonzero-only` (omit zero-count statuses). Both are load-bearing in adopter session-init protocols (OAP's /init and /setup read exactly these projections); neither changes any existing output shape when absent.\n",
+      "title": "Registry query: --ids-only and --nonzero-only projection flags"
     }
   ],
   "validation": {

@@ -48,8 +48,8 @@ pub use dep_only::{
 pub use index::{Freshness, IndexOutcome, authorities, check_index_freshness, index};
 pub use lint::{LintReport, lint};
 pub use query::{
-    ListFilter, RelationshipView, StatusReport, list, load_index, load_registry, relationships,
-    show, status_report,
+    ListFilter, RelationshipView, StatusReport, StatusReportNonzero, list, list_ids, load_index,
+    load_registry, relationships, show, status_report,
 };
 pub use scaffold::{Scaffold, ScaffoldFile, scaffold_init};
 
@@ -69,7 +69,9 @@ pub fn compile_json(config_json: &str, repo_root: &str) -> Result<String, Error>
 /// Run a read-only query described by `request_json`.
 ///
 /// Request shape: `{ "registry": "<registry.json text>", "op": "list" |
-/// "show" | "status-report" | "relationships", "id"?: string, "status"?: string }`.
+/// "show" | "status-report" | "relationships", "id"?: string, "status"?: string,
+/// "idsOnly"?: bool, "nonzeroOnly"?: bool }`. The projection fields (spec 010)
+/// default to `false`, so pre-010 requests behave identically.
 pub fn query_json(request_json: &str) -> Result<String, Error> {
     #[derive(Deserialize)]
     #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -80,6 +82,10 @@ pub fn query_json(request_json: &str) -> Result<String, Error> {
         id: Option<String>,
         #[serde(default)]
         status: Option<Status>,
+        #[serde(default)]
+        ids_only: bool,
+        #[serde(default)]
+        nonzero_only: bool,
     }
     #[derive(Deserialize)]
     #[serde(rename_all = "kebab-case")]
@@ -99,7 +105,11 @@ pub fn query_json(request_json: &str) -> Result<String, Error> {
             let filter = ListFilter {
                 status: request.status,
             };
-            to_json(&list(&registry, &filter))?
+            if request.ids_only {
+                to_json(&query::list_ids(&registry, &filter))?
+            } else {
+                to_json(&list(&registry, &filter))?
+            }
         }
         Op::Show => {
             let id = request
@@ -107,7 +117,14 @@ pub fn query_json(request_json: &str) -> Result<String, Error> {
                 .ok_or_else(|| Error::NotFound("missing 'id' for show".into()))?;
             to_json(show(&registry, &id)?)?
         }
-        Op::StatusReport => to_json(&status_report(&registry))?,
+        Op::StatusReport => {
+            let report = status_report(&registry);
+            if request.nonzero_only {
+                to_json(&report.nonzero_only())?
+            } else {
+                to_json(&report)?
+            }
+        }
         Op::Relationships => {
             let id = request
                 .id
