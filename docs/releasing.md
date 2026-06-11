@@ -1,10 +1,12 @@
 # Releasing spec-spine (maintainers)
 
-> Three distribution paths ship together: **crates.io** (the library + CLI, and
+> Four distribution paths ship together: **crates.io** (the library + CLI, and
 > the path that unblocks bindings), **prebuilt binaries** (the `curl | sh` install
-> path), and **npm** (the same prebuilt binaries, repackaged so a TS/JS repo can
-> `npm i -D spec-spine`; spec 007). This is the maintainer runbook. Adopters do
-> not read this; they read [adoption-guide.md](adoption-guide.md).
+> path), **npm** (the same prebuilt binaries, repackaged so a TS/JS repo can
+> `npm i -D spec-spine`; spec 007), and **PyPI** (the same binaries again, as
+> platform wheels so a Python team can `uvx spec-spine`; spec 008). This is the
+> maintainer runbook. Adopters do not read this; they read
+> [adoption-guide.md](adoption-guide.md).
 
 ## Pre-flight
 
@@ -14,6 +16,8 @@
 - [ ] Versions bumped consistently (workspace `version` in the root `Cargo.toml`;
       `version` in `npm/package.json` and its `optionalDependencies` pins, which
       the release workflow re-locks to the tag but should match in source;
+      `version` in `py/pyproject.toml`, which the release workflow verifies
+      against the tag and fails loudly on a mismatch;
       schema-version constants in `spec-spine-types` per
       [schema-versioning.md](schema-versioning.md) if the schema changed).
 - [ ] `cargo package --workspace --locked` succeeds (it cross-verifies every
@@ -107,7 +111,60 @@ Local dry-run before tagging (no publish, no network): from `npm/`, run
 binary, packs + installs both packages into a throwaway project, and runs
 `spec-spine --version` through the launcher).
 
-## 4. Determinism gate
+## 4. PyPI: the wheel shim (spec 008)
+
+The same `v*` tag drives the `publish-pypi` job. Like npm, it does **not**
+rebuild Rust: it downloads the build matrix's archives and repackages them, here
+as **five platform wheels + one sdist** under a single `spec-spine` PyPI
+project. The wheel platform tag is the selector (the Python analogue of npm's
+`os`/`cpu` fields): pip/uv install only the wheel matching the host, and each
+wheel carries its prebuilt binary in the `*.data/scripts/` directory so the
+binary lands directly on `PATH` as the `spec-spine` command. There is no Python
+in the run path, no postinstall, and no network at install. Unsupported hosts
+(musl/Alpine, win-arm64, 32-bit) match no wheel and fall to the sdist, whose
+`spec-spine` entry point refuses clearly and points at
+`cargo install spec-spine-cli`.
+
+The `py/scripts/generate_wheels.py` generator assembles the wheels from the
+archives at publish time; binaries, wheels, and the sdist are never committed.
+
+The job is **idempotent** (`skip-existing: true` makes re-running a tag skip
+artifacts already on PyPI) and **gated on the repository variable
+`PYPI_TRUSTED_PUBLISHING`** (a variable, not a secret: Trusted Publishing has no
+token to detect). Absent or not `'true'`, the job is a clean no-op, the same
+posture as `NPM_TOKEN`. **First-time human setup (once):**
+
+```sh
+# 1. On PyPI, register this repo as a Trusted Publisher for the `spec-spine`
+#    project (for the not-yet-existing project: Account → Publishing → "Add a
+#    new pending publisher"): owner bartekus, repo spec-spine, workflow
+#    release.yml, environment pypi. The first publish then creates the project.
+# 2. Create the matching `pypi` environment in this repo
+#    (Settings → Environments → New environment).
+# 3. Set the repository variable PYPI_TRUSTED_PUBLISHING=true
+#    (Settings → Secrets and variables → Actions → Variables).
+```
+
+Publishing uses OIDC Trusted Publishing with PEP 740 attestations, so no
+long-lived token lives in the repo. If OIDC is ever unavailable, the documented
+fallback is a `PYPI_API_TOKEN` secret + `twine upload --skip-existing`; see the
+comment block at the bottom of `release.yml`.
+
+Once the variable is set, every `v*` tag publishes PyPI alongside npm, crates.io,
+and the GitHub Release. Verify a release with:
+
+```sh
+pip index versions spec-spine            # versions live on PyPI
+uvx spec-spine@<version> --version       # end-to-end smoke through a wheel
+```
+
+Local dry-run before tagging (no publish): from `py/`, run
+`PYTHONPATH=src python3 -m unittest discover -s test` (the platform-mapping unit
+test) and `./scripts/smoke_test.sh` (builds the host binary, generates the host
+platform wheel, installs it into a throwaway env with uv or pip, and runs
+`spec-spine --version` through the installed binary).
+
+## 5. Determinism gate
 
 `.github/workflows/determinism.yml` proves the emitted `registry.json` and
 `index.json` (including tree-sitter symbol line-spans) are **byte-identical

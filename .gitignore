@@ -11,6 +11,14 @@
 /npm/LICENSE
 node_modules/
 
+# Python binary-distribution shim (spec 008): wheels/sdist are assembled from
+# release artifacts at publish time, never committed; ditto the publish-time
+# LICENSE copy and local build/test residue.
+/py/dist/
+/py/LICENSE
+/py/src/spec_spine.egg-info/
+__pycache__/
+
 # NOTE: .derived/ (compiler/indexer output) is intentionally NOT ignored — it is
 # committed so the coupling gate and content-hash staleness check can compare the
 # committed registry/index against current inputs. Determinism makes this sane.
