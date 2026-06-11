@@ -1,8 +1,8 @@
 {
   "build": {
     "compilerId": "spec-spine",
-    "compilerVersion": "0.1.0",
-    "contentHash": "32c9164a496e850edb60309e43f8a0b8a7a1ea7f7acb2f9d6bfd32e7fef0c3ae",
+    "compilerVersion": "0.2.0",
+    "contentHash": "cc520eb79a79de23aaf0deac328b9719a928d17c998c35c5f0f00522f623d5b8",
     "inputRoot": "."
   },
   "specVersion": "0.1.0",
@@ -30,7 +30,8 @@
         "6. Determinism",
         "7. The guardrails",
         "8. Bootstrap order",
-        "9. Status"
+        "9. Status",
+        "Amendments received"
       ],
       "specPath": "specs/000-spec-spine-bootstrap/spec.md",
       "status": "approved",
@@ -247,6 +248,10 @@
         },
         {
           "kind": "file",
+          "path": "crates/spec-spine-core/src/dep_only.rs"
+        },
+        {
+          "kind": "file",
           "path": "crates/spec-spine-cli/src/cmd_couple.rs"
         },
         {
@@ -399,7 +404,8 @@
         "3.4 Unsupported hosts fail clearly",
         "3.5 Version lock",
         "3.6 Release integration",
-        "4. Out of scope"
+        "4. Out of scope",
+        "Release log"
       ],
       "specPath": "specs/007-distribution/spec.md",
       "status": "approved",

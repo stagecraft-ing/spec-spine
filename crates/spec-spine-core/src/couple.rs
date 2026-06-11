@@ -166,6 +166,14 @@ pub fn couple_with(
     })
 }
 
+/// The effective bypass verdict for one path: hardcoded floor ∪ adopter list
+/// (additive), exactly as [`couple_with`] applies it. Public so the CLI's
+/// dependency-only auto-waiver pre-filter (spec 005 §3.5) examines the same
+/// non-bypassed path set the gate itself will check.
+pub fn is_bypassed_path(cfg: &Config, path: &str) -> bool {
+    is_bypass(path, DEFAULT_BYPASS_PREFIXES) || is_bypass(path, &cfg.coupling.bypass_prefixes)
+}
+
 /// Parse a waiver from the PR body using the configured keyword. Returns the
 /// first line's trimmed reason (ported from OAP `parse_waiver`).
 pub fn parse_waiver(cfg: &Config, body: &str) -> Option<Waiver> {

@@ -172,6 +172,16 @@ pub struct CouplingConfig {
     pub bypass_prefixes: Vec<String>,
     /// The PR-body waiver keyword; the free-text reason follows the colon.
     pub waiver_keyword: String,
+    /// Opt-in mechanical auto-waiver for dependency-only diffs (spec 005
+    /// §3.5). When `true` and no PR-body waiver is present, the CLI compares
+    /// the parsed base/head JSON of every non-bypassed changed path: if all
+    /// are `package.json` manifests whose only differences are version
+    /// strings inside the standard dependency tables (same package keys),
+    /// the gate self-waives — the path dependabot-class PRs cannot take
+    /// (they can edit neither specs nor PR bodies). Anything beyond a
+    /// version string — a new package, a `scripts` edit, spec-binding
+    /// metadata — refuses the auto-waiver, fail-closed. Default `false`.
+    pub auto_waive_dependency_only: bool,
 }
 
 impl Default for CouplingConfig {
@@ -182,6 +192,7 @@ impl Default for CouplingConfig {
             // implied it was overridable.
             bypass_prefixes: Vec::new(),
             waiver_keyword: "Spec-Drift-Waiver:".to_string(),
+            auto_waive_dependency_only: false,
         }
     }
 }

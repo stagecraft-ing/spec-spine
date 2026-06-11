@@ -266,6 +266,30 @@ fn npm_record(repo_root: &Path, manifest: &Path, namespace: &str) -> Option<Pack
     })
 }
 
+/// The governance projection of an npm manifest — exactly the fields
+/// discovery consumes (`npm_record` + workspace-glob extraction): `name`,
+/// `version`, `workspaces`, and the adopter's metadata-namespace object.
+/// The index content hash folds this INSTEAD of the raw bytes (spec 004
+/// §3.5 amendment, 2026-06-11): a dependency-table version bump
+/// (dependabot-class) is not a governed input and must not stale the
+/// committed index, while any change to a field the indexer actually reads
+/// still does. `None` (unparseable / non-object) tells the caller to fall
+/// back to raw bytes — over-hashing is the fail-closed direction.
+pub fn npm_hash_projection(content: &str, namespace: &str) -> Option<String> {
+    let doc: serde_json::Value = serde_json::from_str(content).ok()?;
+    let obj = doc.as_object()?;
+    let mut proj = serde_json::Map::new();
+    for key in ["name", "version", "workspaces"] {
+        if let Some(v) = obj.get(key) {
+            proj.insert(key.to_string(), v.clone());
+        }
+    }
+    if let Some(v) = obj.get(namespace) {
+        proj.insert(namespace.to_string(), v.clone());
+    }
+    serde_json::to_string(&serde_json::Value::Object(proj)).ok()
+}
+
 // ===== shared =====
 
 /// Expand `<member>/<manifest_file>` under `repo_root` (member may contain glob

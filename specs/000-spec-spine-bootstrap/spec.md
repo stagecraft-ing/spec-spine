@@ -196,3 +196,12 @@ This is a `constitutional-bootstrap` spec. Its `unamendable` anchors
 (§frontmatter) are frozen: no amendment may alter the authoring/derived boundary,
 the identity rule, the typed-authority-graph principle, the determinism
 requirement, or the refusal rule. Amendments may add surface elsewhere.
+
+## Amendments received
+
+**Amendment 2026-06-11 (record: specs 004/005 dependency-only cutover).**
+The `[coupling]` config table this spec's types crate carries gains one
+additive key: `auto_waive_dependency_only` (bool, default `false`) — the
+opt-in switch for spec 005 §3.5's mechanical dependency-only auto-waiver.
+No unamendable anchor is touched; `deny_unknown_fields` keeps a misspelled
+knob a loud config error.
