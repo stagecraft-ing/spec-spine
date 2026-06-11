@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "cb0bc1a4dc5419e07f123ca67ddc38904bde575b91b863ac75fe4ef901c2c5a3",
+    "contentHash": "16f0a7151f17219f533789bc6bf5546543a18163eb154644fa160bfd5c47b7ca",
     "indexerId": "spec-spine",
     "indexerVersion": "0.2.0",
     "repoRoot": "."
@@ -833,7 +833,7 @@
           }
         ],
         "specId": "008-python-distribution",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [],
