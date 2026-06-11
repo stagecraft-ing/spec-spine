@@ -143,7 +143,9 @@ mod tests {
 
     #[test]
     fn version_bump_is_dependency_only() {
-        let head = BASE.replace("3.22.0", "3.23.1").replace("1.0.0\" }", "1.2.0\" }");
+        let head = BASE
+            .replace("3.22.0", "3.23.1")
+            .replace("1.0.0\" }", "1.2.0\" }");
         assert!(dependency_only_change(BASE, &head));
     }
 
@@ -191,10 +193,9 @@ mod tests {
 
     #[test]
     fn reformat_only_is_dependency_only() {
-        let head = serde_json::to_string_pretty(
-            &serde_json::from_str::<serde_json::Value>(BASE).unwrap(),
-        )
-        .unwrap();
+        let head =
+            serde_json::to_string_pretty(&serde_json::from_str::<serde_json::Value>(BASE).unwrap())
+                .unwrap();
         assert!(dependency_only_change(BASE, &head));
     }
 
