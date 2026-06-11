@@ -29,13 +29,16 @@ cargo install spec-spine-cli                                           # from cr
 curl -fsSL https://raw.githubusercontent.com/bartekus/spec-spine/main/install.sh | sh
 # or, in a TS/JS repo (prebuilt binary, no Rust toolchain):
 npm i -D spec-spine
+# or, in a Python repo (prebuilt wheel, no Rust toolchain):
+uvx spec-spine                 # or: pip install spec-spine
 # or, from this checkout:
 cargo install --path crates/spec-spine-cli
 ```
 
 Each yields a `spec-spine` binary (on your `PATH`, or via `npx spec-spine` for the
-npm install). The npm package ships the prebuilt binary per platform; its Linux
-binaries are glibc (Alpine/musl use `cargo install`). See [npm/](npm/).
+npm install). The npm and PyPI packages ship the prebuilt binary per platform;
+their Linux binaries are glibc (Alpine/musl use `cargo install`). See
+[npm/](npm/) and [py/](py/).
 
 ## Quickstart
 

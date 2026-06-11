@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.1.0",
-    "contentHash": "1c7d248cdbfabb6c4e99700737763834fb5d3c09e1965a9c81ab5b505dd62e02",
+    "contentHash": "32c9164a496e850edb60309e43f8a0b8a7a1ea7f7acb2f9d6bfd32e7fef0c3ae",
     "inputRoot": "."
   },
   "specVersion": "0.1.0",
@@ -405,6 +405,53 @@
       "status": "approved",
       "summary": "How the spec-spine CLI reaches users who do not have a Rust toolchain. Two channels already existed but were unspecced: the tag-gated GitHub release pipeline (release.yml) that builds the five per-triple archives, and install.sh (curl | sh) that consumes them. This spec adopts both as governed territory and adds a third channel: an npm binary-distribution shim under npm/ so a TS/JS repo can `npm i -D spec-spine` and get the CLI with no Rust. The shim is a launcher, not a native addon: the main package's bin resolves a per-triple platform package (optionalDependencies, os/cpu-gated) and exec's the prebuilt binary, forwarding argv and exit code. No postinstall, no network at install, no archive extraction; it works under `npm ci --ignore-scripts` and offline. Version-locked to the binary release tag (npm 0.1.0 ships the v0.1.0 assets).\n",
       "title": "Distribution: npm binary shim + the release pipeline"
+    },
+    {
+      "created": "2026-06-11",
+      "dependsOn": [
+        "007-distribution"
+      ],
+      "establishes": [
+        {
+          "kind": "file",
+          "path": "py/"
+        },
+        {
+          "kind": "file",
+          "path": "py/scripts/generate_wheels.py"
+        }
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "007-distribution",
+          "unit": {
+            "kind": "file",
+            "path": ".github/workflows/release.yml"
+          }
+        }
+      ],
+      "id": "008-python-distribution",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "008: Distribution — uvx/PyPI wheel shim",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 The pattern: per-platform wheels, not download-on-first-use",
+        "3.2 Platform map (the same five triples)",
+        "3.3 The launcher (there isn't one)",
+        "3.4 Unsupported hosts fail clearly",
+        "3.5 Version lock",
+        "3.6 Release integration",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/008-python-distribution/spec.md",
+      "status": "draft",
+      "summary": "The Python parallel of 007's npm shim: a uvx/PyPI channel so a Python or polyglot team can `uvx spec-spine ...` (or `uv tool install spec-spine`) and get the CLI with no Rust toolchain. Where npm uses a main launcher package + five os/cpu-gated platform packages, Python collapses the same idea into one PyPI project + five per-platform wheels (+ one sdist): the wheel platform tag IS the selector, and the prebuilt binary ships in the wheel's data/scripts dir so pip/uv place it directly on PATH. There is no Python in the run path, no postinstall, no network at install, and no archive extraction at install: it works offline and under --no-build-isolation. Unsupported hosts (musl/Alpine, win-arm64, 32-bit) match no wheel and fall to the sdist, whose only artifact is a `spec-spine` console entry point that names the host and points at `cargo install spec-spine-cli` -- exact parity with 007 §3.4. Wheels are assembled from the same release archives the build job already produces (no second Rust build), are byte-reproducible, and are version-locked to the tag.\n",
+      "title": "Distribution: uvx/PyPI wheel shim"
     }
   ],
   "validation": {

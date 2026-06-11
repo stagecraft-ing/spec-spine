@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d7fe4a2b6db49db4ef3eb66a109fe44c49aa756d0fb6219bcd2f53bcbce4dcb5",
+    "contentHash": "8e7e041d9cbfd8ba31d523c4f36fe3f89b8737fa9f279de39180acddea7355d7",
     "indexerId": "spec-spine",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -755,6 +755,68 @@
         ],
         "specId": "007-distribution",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "007-distribution"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/release.yml",
+            "source": "spec-edge"
+          },
+          {
+            "path": "py/",
+            "source": "spec-edge"
+          },
+          {
+            "path": "py/scripts/generate_wheels.py",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "py/"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "py/"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "py/scripts/generate_wheels.py"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "py/scripts/generate_wheels.py"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": ".github/workflows/release.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/release.yml"
+            }
+          }
+        ],
+        "specId": "008-python-distribution",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [],

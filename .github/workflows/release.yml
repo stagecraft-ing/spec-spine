@@ -10,11 +10,12 @@ name: release
 # deprecated and queues badly. The crate source is identical, so the binary matches
 # what the determinism workflow proves byte-identical.
 #
-# publish-crates and publish-npm are idempotent: each skips any version already
-# live (crates.io / npm), so re-running a tag is safe. publish-npm assembles the
-# per-triple npm platform packages from the SAME build archives (no second Rust
-# build) and is gated on NPM_TOKEN: absent the secret it is a clean no-op.
-# CycloneDX SBOM is deferred (Q7): low v1 value.
+# publish-crates, publish-npm, and publish-pypi are idempotent: each skips any
+# version already live (crates.io / npm / PyPI), so re-running a tag is safe.
+# publish-npm and publish-pypi assemble their packages/wheels from the SAME build
+# archives (no second Rust build); publish-npm is gated on NPM_TOKEN and
+# publish-pypi on vars.PYPI_TRUSTED_PUBLISHING: absent the one-time setup each
+# is a clean no-op. CycloneDX SBOM is deferred (Q7): low v1 value.
 
 on:
   push:
@@ -225,3 +226,117 @@ jobs:
             publish_if_absent "$d"
           done
           publish_if_absent "."
+
+  publish-pypi:
+    name: publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # OIDC Trusted Publishing needs an id-token; nothing here writes repo contents.
+    permissions:
+      id-token: write
+    # A dedicated environment is the recommended scope for the Trusted Publisher
+    # (configure the same name on PyPI). Harmless if the environment is absent.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/spec-spine
+    steps:
+      - uses: actions/checkout@v4
+
+      # Gate on a repository variable, not a secret: Trusted Publishing has no
+      # token to detect. Absent/false => clean skip (a notice, never a red X),
+      # the same posture as publish-npm's NPM_TOKEN gate. A human flips this on
+      # after the one-time PyPI project + Trusted Publisher setup (docs/releasing.md).
+      - name: Check Trusted Publishing is enabled
+        id: gate
+        env:
+          ENABLED: ${{ vars.PYPI_TRUSTED_PUBLISHING }}
+        run: |
+          if [ "${ENABLED:-false}" = "true" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=PyPI publish skipped::vars.PYPI_TRUSTED_PUBLISHING is not 'true'; skipping PyPI publish"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.present == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install the build frontend
+        if: steps.gate.outputs.present == 'true'
+        run: python -m pip install --upgrade build
+
+      # The wheels bundle the prebuilt binaries directly, so they are assembled
+      # from the build job's archives (no second Rust build) -- exactly the
+      # publish-npm pattern.
+      - uses: actions/download-artifact@v4
+        if: steps.gate.outputs.present == 'true'
+        with:
+          path: dist/archives
+          pattern: archive-*
+          merge-multiple: true
+
+      - name: Assemble wheels + sdist from the release archives
+        if: steps.gate.outputs.present == 'true'
+        working-directory: py
+        run: |
+          set -euo pipefail
+          cp ../LICENSE LICENSE                         # ship the license in the sdist + wheels
+          VERSION="${GITHUB_REF_NAME#v}"                # tag v0.1.0 -> 0.1.0
+          # generate_wheels.py verifies the tag matches the committed project
+          # version and fails loudly on a mismatch, so the lock cannot drift
+          # silently (parity with the npm generator's --write-main check).
+          python scripts/generate_wheels.py \
+            --version "$VERSION" --archives ../dist/archives --out dist/pypi --build-sdist
+          ls -la dist/pypi
+
+      # Trusted Publishing + PEP 740 attestations. `skip-existing: true` makes a
+      # re-run of the same tag idempotent (already-uploaded artifacts are a skip,
+      # not a failure) -- the property publish-npm gets from its `npm view`
+      # precheck. The action mints the OIDC token and signs each artifact; no
+      # token is stored in the repo.
+      - name: Publish to PyPI (idempotent; signed)
+        if: steps.gate.outputs.present == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: py/dist/pypi
+          skip-existing: true
+          attestations: true
+
+# -----------------------------------------------------------------------------
+# publish-pypi token fallback (only if OIDC Trusted Publishing is not available)
+#
+# Replace the job's `permissions`/`environment` blocks and the gate + publish
+# steps with a PYPI_API_TOKEN secret gate that mirrors publish-npm's NPM_TOKEN
+# gate one-for-one (absent secret => clean no-op), and publish with twine:
+#
+#   permissions:
+#     contents: read
+#   ...
+#   - name: Check for PYPI_API_TOKEN
+#     id: gate
+#     env:
+#       PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+#     run: |
+#       if [ -n "${PYPI_API_TOKEN:-}" ]; then
+#         echo "present=true" >> "$GITHUB_OUTPUT"
+#       else
+#         echo "present=false" >> "$GITHUB_OUTPUT"
+#         echo "::notice title=PyPI publish skipped::PYPI_API_TOKEN secret not set; skipping PyPI publish"
+#       fi
+#   ...
+#   - name: Publish (idempotent)
+#     if: steps.gate.outputs.present == 'true'
+#     working-directory: py
+#     env:
+#       TWINE_USERNAME: __token__
+#       TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+#     run: |
+#       python -m pip install --upgrade twine
+#       # --skip-existing: re-running a tag is idempotent.
+#       twine upload --skip-existing dist/pypi/*
+#
+# The OIDC path is preferred: no long-lived token in the repo and PEP 740
+# attestations come for free.
+# -----------------------------------------------------------------------------
