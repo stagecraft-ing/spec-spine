@@ -1,7 +1,7 @@
 ---
 id: "008-python-distribution"
 title: "Distribution: uvx/PyPI wheel shim"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-11"
 implementation: complete
