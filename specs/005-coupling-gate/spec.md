@@ -12,6 +12,7 @@ depends_on:
   - "004-codebase-index"
 establishes:
   - "crates/spec-spine-core/src/couple.rs"
+  - "crates/spec-spine-core/src/dep_only.rs"
   - "crates/spec-spine-cli/src/cmd_couple.rs"
   - "crates/spec-spine-core/tests/couple.rs"
   - "crates/spec-spine-cli/tests/couple.rs"
@@ -134,6 +135,26 @@ either the predecessor or the successor clears the path.
   `config.coupling.waiver_keyword` (default `Spec-Drift-Waiver:`); the trimmed
   remainder is the reason. A present waiver suppresses the failure exit but the
   violations are **retained** in the report for review-time visibility.
+- **Dependency-only auto-waiver** (amendment 2026-06-11; opt-in via
+  `config.coupling.auto_waive_dependency_only`, default `false`): dependabot-class
+  PRs bump version strings inside `package.json` dependency tables but can edit
+  neither specs nor PR bodies, so an owned manifest fires `C-001` with no waiver
+  path available. When opted in and **no explicit PR-body waiver is present**,
+  the CLI compares the parsed base/head JSON of every non-bypassed changed path
+  (contents fetched at the **merge base** and head — the diff is three-dot): if
+  all are `package.json` manifests that are semantically identical except
+  version strings inside `dependencies`/`devDependencies`/
+  `optionalDependencies`/`peerDependencies` (same package keys; values may
+  differ only where both sides are strings), the gate synthesizes a waiver
+  (`core::dep_only`, reason marks it mechanical) and reports the violations as
+  auto-waived. Anything else — a new or removed package, a `scripts` edit,
+  spec-binding metadata, an added table, an unparseable or created/deleted
+  manifest — refuses the auto-waiver fail-closed and the gate drifts normally.
+  Path-level bypass is deliberately NOT the mechanism: it would exempt the whole
+  manifest including the spec-binding metadata the gate exists to protect.
+  Git-diff mode only (`--paths-from` carries no content). The freshness
+  half of the dependabot story is spec 004 §3.5's governance-projection
+  hashing, which keeps a dep-only bump from staling the committed index.
 
 ### 3.6 Granularity reconciliation (the crate-spec vs file-establishes question)
 

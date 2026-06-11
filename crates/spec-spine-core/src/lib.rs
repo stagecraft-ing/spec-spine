@@ -15,6 +15,7 @@
 mod canonical_json;
 pub mod compile;
 pub mod couple;
+pub mod dep_only;
 mod hash;
 pub mod index;
 pub mod lint;
@@ -38,7 +39,11 @@ pub use spec_spine_types::{
 pub use compile::{CompileOutcome, MAX_UNDECLARED_EXTRA_FRONTMATTER, compile};
 pub use couple::{
     CoupleReport, DEFAULT_BYPASS_PREFIXES, DiffFile, DiffInput, Waiver, couple, couple_with,
-    parse_waiver,
+    is_bypassed_path, parse_waiver,
+};
+pub use dep_only::{
+    DEPENDENCY_TABLES, FileContents, dependency_only_change, dependency_only_waiver,
+    is_package_json,
 };
 pub use index::{Freshness, IndexOutcome, authorities, check_index_freshness, index};
 pub use lint::{LintReport, lint};

@@ -10,8 +10,11 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use spec_spine_core::{DiffFile, DiffInput, couple, parse_waiver};
-use spec_spine_types::{Error, LineSpan};
+use spec_spine_core::{
+    DiffFile, DiffInput, FileContents, couple, dependency_only_waiver, is_bypassed_path,
+    parse_waiver,
+};
+use spec_spine_types::{Config, Error, LineSpan};
 
 use crate::load_repo_config;
 
@@ -28,7 +31,16 @@ pub fn run(repo: &Path, args: &CoupleArgs) -> Result<u8, Error> {
 
     let diff = build_diff_input(repo, args)?;
     let body = read_pr_body(args)?;
-    let waiver = parse_waiver(&cfg, &body);
+    let mut waiver = parse_waiver(&cfg, &body);
+    let mut auto_waived = false;
+
+    // Spec 005 §3.5 — mechanical dependency-only auto-waiver. Opt-in,
+    // git-diff mode only (`--paths-from` has no content to compare), and
+    // never overrides an explicit PR-body waiver.
+    if waiver.is_none() && cfg.coupling.auto_waive_dependency_only && args.paths_from.is_none() {
+        waiver = try_dependency_only_waiver(repo, &cfg, args, &diff)?;
+        auto_waived = waiver.is_some();
+    }
 
     let report = couple(&cfg, repo, &diff, waiver.as_ref())?;
 
@@ -46,8 +58,9 @@ pub fn run(repo: &Path, args: &CoupleArgs) -> Result<u8, Error> {
         );
     } else if let Some(reason) = &report.waiver {
         println!(
-            "spec-spine couple: {} violation(s) waived — reason: {reason}",
-            report.violations.len()
+            "spec-spine couple: {} violation(s) {} — reason: {reason}",
+            report.violations.len(),
+            if auto_waived { "auto-waived" } else { "waived" }
         );
         for v in &report.violations {
             println!("  {} (waived)", v.message);
@@ -82,6 +95,75 @@ fn build_diff_input(repo: &Path, args: &CoupleArgs) -> Result<DiffInput, Error> 
 
     let raw = run_git_diff(repo, &args.base, &args.head)?;
     Ok(parse_unified_diff(&raw))
+}
+
+/// Attempt the spec 005 §3.5 mechanical auto-waiver: every non-bypassed
+/// changed path must be a `package.json` whose base→head change is
+/// dependency-only. Contents come from `git show` at the **merge base** (the
+/// diff is three-dot, so the base side is `merge-base(base, head)`, not the
+/// base branch tip) and at `head`. Any git failure refuses the auto-waiver
+/// fail-closed rather than erroring the gate.
+fn try_dependency_only_waiver(
+    repo: &Path,
+    cfg: &Config,
+    args: &CoupleArgs,
+    diff: &DiffInput,
+) -> Result<Option<spec_spine_core::Waiver>, Error> {
+    let candidates: Vec<&DiffFile> = diff
+        .files
+        .iter()
+        .filter(|f| !is_bypassed_path(cfg, &f.path))
+        .collect();
+    // Cheap pre-filter before any git spawn: the waiver can only ever apply
+    // when every non-bypassed path is a package.json manifest.
+    if candidates.is_empty()
+        || !candidates
+            .iter()
+            .all(|f| spec_spine_core::is_package_json(&f.path))
+    {
+        return Ok(None);
+    }
+
+    let Some(merge_base) = git_merge_base(repo, &args.base, &args.head) else {
+        return Ok(None);
+    };
+
+    let mut files: Vec<FileContents> = Vec::with_capacity(candidates.len());
+    for f in &candidates {
+        files.push(FileContents {
+            path: f.path.clone(),
+            base: git_show(repo, &merge_base, &f.path),
+            head: git_show(repo, &args.head, &f.path),
+        });
+    }
+    Ok(dependency_only_waiver(&files))
+}
+
+fn git_merge_base(repo: &Path, base: &str, head: &str) -> Option<String> {
+    let out = Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(["merge-base", base, head])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let rev = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if rev.is_empty() { None } else { Some(rev) }
+}
+
+fn git_show(repo: &Path, rev: &str, path: &str) -> Option<String> {
+    let out = Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(["show", &format!("{rev}:{path}")])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None; // absent at this rev (created/deleted) — fail closed upstream
+    }
+    Some(String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
 fn run_git_diff(repo: &Path, base: &str, head: &str) -> Result<String, Error> {

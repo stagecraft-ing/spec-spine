@@ -1,8 +1,8 @@
 {
   "build": {
-    "contentHash": "d1820b6e7f3721316247a2180f79c212e7e59668ffc2a11c30f5ee6398dd9f72",
+    "contentHash": "d501504087fb0aefee71e3cb5bead96b038e8fd8f85c65779d9d2d9cc0143563",
     "indexerId": "spec-spine",
-    "indexerVersion": "0.1.0",
+    "indexerVersion": "0.2.0",
     "repoRoot": "."
   },
   "diagnostics": {
@@ -33,7 +33,7 @@
       "name": "spec-spine",
       "path": "npm",
       "specRef": "007-distribution",
-      "version": "0.1.0"
+      "version": "0.2.0"
     }
   ],
   "schemaVersion": "0.1.0",
@@ -449,6 +449,10 @@
             "source": "spec-edge"
           },
           {
+            "path": "crates/spec-spine-core/src/dep_only.rs",
+            "source": "spec-edge"
+          },
+          {
             "path": "crates/spec-spine-core/src/lib.rs",
             "source": "spec-edge"
           },
@@ -495,6 +499,19 @@
             "unit": {
               "kind": "file",
               "path": "crates/spec-spine-core/src/couple.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/dep_only.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/dep_only.rs"
             }
           },
           {
