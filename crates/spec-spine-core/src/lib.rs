@@ -23,6 +23,7 @@ pub mod manifest;
 mod markdown;
 pub mod pathutil;
 pub mod query;
+pub mod render;
 pub mod scaffold;
 pub mod sections;
 pub mod symbols;
@@ -51,6 +52,7 @@ pub use query::{
     ListFilter, RelationshipView, StatusReport, StatusReportNonzero, list, list_ids, load_index,
     load_registry, relationships, show, status_report,
 };
+pub use render::{orphans, render_markdown};
 pub use scaffold::{Scaffold, ScaffoldFile, scaffold_init};
 
 // ===== JSON-in / JSON-out facade (the FFI seam) =====
@@ -158,6 +160,22 @@ pub fn check_freshness_json(config_json: &str, repo_root: &str) -> Result<String
         }
     };
     Ok(value.to_string())
+}
+
+/// Render the committed index as markdown (spec 011). `index_json` is the
+/// `index.json` text; the returned string is the markdown projection,
+/// JSON-encoded (a JSON string literal).
+pub fn render_json(config_json: &str, index_json: &str) -> Result<String, Error> {
+    let config = config_from_json(config_json)?;
+    let index = load_index(index_json.as_bytes())?;
+    to_json(&render::render_markdown(&config, &index))
+}
+
+/// List the committed index's orphaned specs as a JSON array of id strings
+/// (spec 011). `index_json` is the `index.json` text.
+pub fn orphans_json(index_json: &str) -> Result<String, Error> {
+    let index = load_index(index_json.as_bytes())?;
+    to_json(&render::orphans(&index))
 }
 
 /// Parse a `spec-spine.toml` and return the normalized [`Config`] as JSON.

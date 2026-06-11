@@ -202,6 +202,8 @@ pub fn lint_json           (config_json: &str, repo_root: &str) -> Result<String
 pub fn check_freshness_json(config_json: &str, repo_root: &str) -> Result<String, Error>;
 pub fn couple_json         (request_json: &str)                 -> Result<String, Error>;
 pub fn query_json          (request_json: &str)                 -> Result<String, Error>;
+pub fn render_json         (config_json: &str, index_json: &str) -> Result<String, Error>;
+pub fn orphans_json        (index_json: &str)                    -> Result<String, Error>;
 pub fn load_config_json    (toml_src: &str)                     -> Result<String, Error>;
 pub fn scaffold_init_json  (config_json: &str)                  -> Result<String, Error>;
 ```
@@ -214,6 +216,9 @@ pub fn scaffold_init_json  (config_json: &str)                  -> Result<String
 - `couple_json` request: `{ "config"?: Config, "repoRoot": string, "diff":
   DiffInput, "waiver"?: { "reason": string } }`.
 - `check_freshness_json` returns `{ "fresh": bool, "expected"?, "actual"? }`.
+- `render_json` / `orphans_json` (spec 011) take the committed `index.json`
+  text and return the markdown projection (a JSON-encoded string) and the
+  orphaned-spec ids (a JSON array) respectively.
 
 All emitted JSON is **pretty-printed with sorted keys, LF line endings, and a
 trailing newline** (diffability over compactness; see

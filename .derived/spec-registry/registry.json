@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.2.0",
-    "contentHash": "94be63edc2cdd5380a98427fc863eb21bca987437b8b4be1bc04e2cac48d6534",
+    "contentHash": "12206dab05175cc88634065ded1f8d3dabab78939bb461c6abd8158f975fa921",
     "inputRoot": "."
   },
   "specVersion": "0.1.0",
@@ -517,6 +517,67 @@
       "status": "draft",
       "summary": "Two additive projection flags on the spec 002 query verbs: `registry list --ids-only` (newline-delimited spec ids; a JSON string array under --json) and `registry status-report --nonzero-only` (omit zero-count statuses). Both are load-bearing in adopter session-init protocols (OAP's /init and /setup read exactly these projections); neither changes any existing output shape when absent.\n",
       "title": "Registry query: --ids-only and --nonzero-only projection flags"
+    },
+    {
+      "created": "2026-06-11",
+      "dependsOn": [
+        "004-codebase-index"
+      ],
+      "establishes": [
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/render.rs"
+        },
+        {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/render.rs"
+        }
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-cli/src/cmd_index.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/lib.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-cli/tests/cli.rs"
+          }
+        }
+      ],
+      "id": "011-index-render-orphans",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "011: `index render` and `index orphans`",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 Common contract",
+        "3.2 `index render` -- the markdown projection",
+        "3.3 `index orphans`",
+        "3.4 Tests (minimum)",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/011-index-render-orphans/spec.md",
+      "status": "draft",
+      "summary": "Implements the two subcommands spec 004's CLI reserved but stubbed: `spec-spine index render` (a deterministic human-shaped markdown projection of the committed index.json -- package inventory, traceability, diagnostics) and `spec-spine index orphans` (the orphanedSpecs list, newline ids or a --json array). Both are pure read-side projections of the committed artifact; neither recomputes the index. Establishes the render module; extends the index CLI dispatch.\n",
+      "title": "Index: implement the reserved render and orphans subcommands"
     }
   ],
   "validation": {

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d501504087fb0aefee71e3cb5bead96b038e8fd8f85c65779d9d2d9cc0143563",
+    "contentHash": "b46eef307d927c10909686cf437219833b5c1d20ae32cf9405edb3f3e173857a",
     "indexerId": "spec-spine",
     "indexerVersion": "0.2.0",
     "repoRoot": "."
@@ -912,6 +912,102 @@
           }
         ],
         "specId": "010-registry-query-projection-flags",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "004-codebase-index"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-cli/src/cmd_index.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-cli/tests/cli.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/lib.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/render.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/tests/render.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/render.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/render.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/tests/render.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/tests/render.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/cmd_index.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/cmd_index.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/tests/cli.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/tests/cli.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/lib.rs"
+            }
+          }
+        ],
+        "specId": "011-index-render-orphans",
         "specStatus": "draft"
       }
     ],

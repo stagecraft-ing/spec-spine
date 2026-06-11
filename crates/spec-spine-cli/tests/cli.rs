@@ -272,6 +272,113 @@ fn index_then_check_fresh_then_stale() {
 }
 
 #[test]
+fn index_render_and_orphans_projections() {
+    let tmp = tempfile::tempdir().unwrap();
+    let write_claiming_spec = |id: &str, target: &str| {
+        let dir = tmp.path().join("specs").join(id);
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(
+            dir.join("spec.md"),
+            format!(
+                "---\nid: \"{id}\"\ntitle: \"T\"\nstatus: approved\ncreated: \"2026-06-08\"\nsummary: \"s\"\nestablishes:\n  - \"{target}\"\n---\n# {id}\n"
+            ),
+        )
+        .unwrap();
+    };
+    // 001-a claims a path that resolves -> mapped; 002-b claims a path that
+    // resolves nowhere -> orphaned.
+    fs::create_dir_all(tmp.path().join("src")).unwrap();
+    fs::write(tmp.path().join("src/lib.rs"), "// Spec: 001-a\n").unwrap();
+    write_claiming_spec("001-a", "src/lib.rs");
+    write_claiming_spec("002-b", "src/missing.rs");
+
+    // Projections before `index` has run: exit 3 (missing artifact).
+    let early_render = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["index", "render"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&early_render), 3, "render without index -> 3");
+    let early_orphans = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["index", "orphans"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&early_orphans), 3, "orphans without index -> 3");
+
+    let built = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .arg("index")
+        .output()
+        .unwrap();
+    assert_eq!(code(&built), 0);
+
+    // Orphans, text and JSON forms.
+    let orphans_text = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["index", "orphans"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&orphans_text), 0, "orphans is a query, not a gate");
+    assert_eq!(String::from_utf8_lossy(&orphans_text.stdout), "002-b\n");
+
+    let orphans_json = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["index", "orphans", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&orphans_json), 0);
+    let ids: Vec<String> = serde_json::from_slice(&orphans_json.stdout).unwrap();
+    assert_eq!(ids, ["002-b"]);
+
+    // Render: exit 0 even with diagnostics in the artifact; contractual
+    // sections present in order.
+    let render = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["index", "render"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&render), 0, "diagnostics do not fail a render");
+    let md = String::from_utf8_lossy(&render.stdout);
+    let positions: Vec<usize> = [
+        "# spec-spine codebase index",
+        "## Packages",
+        "## Traceability",
+    ]
+    .iter()
+    .map(|s| md.find(s).unwrap_or_else(|| panic!("missing section {s}")))
+    .collect();
+    assert!(positions.windows(2).all(|w| w[0] < w[1]), "section order");
+    assert!(md.contains("### Orphaned specs"));
+    assert!(md.contains("- 002-b"));
+    assert!(md.ends_with('\n'));
+
+    // Empty orphans list -> empty output, still exit 0.
+    fs::remove_dir_all(tmp.path().join("specs/002-b")).unwrap();
+    let rebuilt = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .arg("index")
+        .output()
+        .unwrap();
+    assert_eq!(code(&rebuilt), 0);
+    let none = bin()
+        .arg("--repo")
+        .arg(tmp.path())
+        .args(["index", "orphans"])
+        .output()
+        .unwrap();
+    assert_eq!(code(&none), 0);
+    assert!(none.stdout.is_empty());
+}
+
+#[test]
 fn lint_fail_on_warn_gating() {
     let tmp = tempfile::tempdir().unwrap();
     // An ordinary spec with no ownership edge -> L-001 (warning).
