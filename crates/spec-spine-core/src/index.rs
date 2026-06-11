@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use spec_spine_types::{
     CodebaseIndex, Diagnostic, Diagnostics, Error, INDEX_SCHEMA_VERSION, ImplementingPath,
     IndexBuild, ResolvedLocation, ResolvedUnit, SourceField, TraceMapping, TraceSource,
-    Traceability, Unit, parse_frontmatter,
+    Traceability, Unit, parse_frontmatter_with,
 };
 
 use crate::manifest;
@@ -374,8 +374,10 @@ fn discover_specs(
         let Ok(raw) = fs::read_to_string(&spec_md) else {
             continue;
         };
-        let Ok(fm) = parse_frontmatter(&raw) else {
-            continue; // compile reports the V-002; the index skips it
+        // Declared-key awareness (spec 013): a nested value under a declared
+        // extra key must not knock the spec out of the index.
+        let Ok(fm) = parse_frontmatter_with(&raw, &cfg.frontmatter.extra_known_keys) else {
+            continue; // compile reports the V-002/V-013; the index skips it
         };
         let mut units: Vec<(SourceField, Unit, bool)> = Vec::new();
         for u in &fm.establishes {

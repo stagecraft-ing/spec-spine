@@ -8,12 +8,23 @@
 
 ## The versioned artifacts
 
-| Artifact | Field | v1 value | Owner |
+| Artifact | Field | Current | Owner |
 |---|---|---|---|
-| `registry.json` | `specVersion` | `0.1.0` | library |
-| `index.json` | `schemaVersion` | `0.1.0` | library |
+| `registry.json` | `specVersion` | `0.2.0` | library |
+| `index.json` | `schemaVersion` | `0.2.0` | library |
 | `build-meta.json` | `schemaVersion` | `0.1.0` | library (non-deterministic; excluded from goldens) |
 | `spec-spine.toml` | `config_version` (optional) | `0.1.0` | library |
+
+MINOR history:
+
+- `index.json` `0.2.0` (spec 012): additive `build.sliceHashes` -- per-slice
+  content hashes for `index check --slice <name>`.
+- `registry.json` `0.2.0` (spec 013): `extraFrontmatter` values under
+  **declared** keys (`frontmatter.extra_known_keys`) widen from
+  `string | string[]` + scalars to arbitrary JSON. Generic readers
+  (`serde_json::Value`) are untouched; readers that assumed the narrow shape
+  were depending on an undocumented restriction. Undeclared keys keep the
+  narrow shape.
 
 Each is a **compile-time `const`** in `spec-spine-types`
 (`REGISTRY_SCHEMA_VERSION`, `INDEX_SCHEMA_VERSION`, `BUILD_META_SCHEMA_VERSION`,

@@ -2,10 +2,10 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.2.0",
-    "contentHash": "30c652918abc589c763a2b4d3eb05441f1b663fd845a00e0b11315a69d93a3d8",
+    "contentHash": "0680d4d3508e790e1d569e4b25bdcd80b509e6c5dcb53a11b1eb58e6e48f1bd4",
     "inputRoot": "."
   },
-  "specVersion": "0.1.0",
+  "specVersion": "0.2.0",
   "specs": [
     {
       "authors": [
@@ -678,6 +678,114 @@
       "status": "draft",
       "summary": "Named sub-hashes of the index's input set: an adopter declares glob groups under `[index.slices]`, the indexer emits a per-slice content hash into `build.sliceHashes` (additive index-schema MINOR), and `spec-spine index check --slice <name>` gates on exactly that slice -- fresh (0), stale (2), config/IO error (3). Generalizes the narrow high-value staleness gate OAP runs over its agent-config files (settings/MCP JSON) without hardcoding any adopter's file list into the core.\n",
       "title": "Index: named hash slices and `index check --slice <name>`"
+    },
+    {
+      "created": "2026-06-11",
+      "dependsOn": [
+        "001-compile-registry"
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/frontmatter.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/registry.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/compile.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/index.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/lib.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/version.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/schemas/registry.schema.json"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/tests/dtos.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/tests/frontmatter.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/tests/compile.rs"
+          }
+        }
+      ],
+      "id": "013-declared-extra-frontmatter-passthrough",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "013: Declared extra-frontmatter passthrough",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 The declared/undeclared split",
+        "3.2 Normalization (determinism)",
+        "3.3 Unrepresentable values: `V-013`",
+        "3.4 Schema impact",
+        "3.5 Tests (minimum)",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/013-declared-extra-frontmatter-passthrough/spec.md",
+      "status": "draft",
+      "summary": "Widens the value domain of DECLARED extra-frontmatter keys (`config.frontmatter.extra_known_keys`) from scalars + string-lists to any JSON-representable YAML value (nested maps, mixed lists), carried verbatim into SpecRecord.extra_frontmatter under canonical-JSON normalization. Undeclared keys keep the existing scalar/string-list restriction and the V-007 cap -- the anti-bulk-YAML guard is untouched. Registry schema MINOR. This is the load-bearing half of the overlay contract: overlays cannot consume domain frontmatter the compiler drops.\n",
+      "title": "Frontmatter: declared extra keys carry arbitrary YAML, verbatim"
     }
   ],
   "validation": {
