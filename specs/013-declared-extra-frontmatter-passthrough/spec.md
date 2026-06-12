@@ -1,7 +1,7 @@
 ---
 id: "013-declared-extra-frontmatter-passthrough"
 title: "Frontmatter: declared extra keys carry arbitrary YAML, verbatim"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-11"
 implementation: complete

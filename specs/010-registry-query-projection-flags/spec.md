@@ -1,7 +1,7 @@
 ---
 id: "010-registry-query-projection-flags"
 title: "Registry query: --ids-only and --nonzero-only projection flags"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-11"
 implementation: complete

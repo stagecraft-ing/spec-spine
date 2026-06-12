@@ -1,7 +1,7 @@
 ---
 id: "014-edge-paths-grammar-sugar"
 title: "Edge grammar: `paths:` list sugar on extends/refines items"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-11"
 implementation: complete

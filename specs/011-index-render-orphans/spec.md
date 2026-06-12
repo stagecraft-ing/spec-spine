@@ -1,7 +1,7 @@
 ---
 id: "011-index-render-orphans"
 title: "Index: implement the reserved render and orphans subcommands"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-11"
 implementation: complete
