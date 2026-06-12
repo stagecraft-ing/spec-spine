@@ -1,7 +1,7 @@
 ---
 id: "009-coupling-floor-claim-precedence"
 title: "Coupling gate: explicit unit claims take precedence over the bypass floor"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-11"
 implementation: complete

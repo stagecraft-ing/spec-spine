@@ -1,7 +1,7 @@
 ---
 id: "012-index-hash-slices"
 title: "Index: named hash slices and `index check --slice <name>`"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-11"
 implementation: complete

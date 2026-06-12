@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.2.0",
-    "contentHash": "13e773e6aaee7c1b0aff3f88096223dade5812b542fbd193bd1e6f1817235153",
+    "contentHash": "310703fd8da32d4466a5c783f911c2792ac353c4591c84e73b3fac63a54c7e1e",
     "inputRoot": "."
   },
   "specVersion": "0.2.0",
@@ -519,7 +519,7 @@
         "4. Out of scope"
       ],
       "specPath": "specs/009-coupling-floor-claim-precedence/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Amends 005 §3.5: a path covered by an explicit unit claim (a file, section, or symbol declared in some spec's ownership-bearing edge and resolved into the index) is NEVER bypassed, even when it matches the hardcoded floor or an adopter's additive bypass list. Implicit path-level ownership (manifest floors, comment headers) keeps deferring to bypass. Closes the silent- weakening hole where an adopter who governs workflow YAML or specific docs by explicit claim would have those claims ignored because `.github/` and `docs/` sit on the immutable floor.\n",
       "title": "Coupling gate: explicit unit claims take precedence over the bypass floor"
     },
@@ -578,7 +578,7 @@
         "4. Out of scope"
       ],
       "specPath": "specs/010-registry-query-projection-flags/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Two additive projection flags on the spec 002 query verbs: `registry list --ids-only` (newline-delimited spec ids; a JSON string array under --json) and `registry status-report --nonzero-only` (omit zero-count statuses). Both are load-bearing in adopter session-init protocols (OAP's /init and /setup read exactly these projections); neither changes any existing output shape when absent.\n",
       "title": "Registry query: --ids-only and --nonzero-only projection flags"
     },
@@ -639,7 +639,7 @@
         "4. Out of scope"
       ],
       "specPath": "specs/011-index-render-orphans/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Implements the two subcommands spec 004's CLI reserved but stubbed: `spec-spine index render` (a deterministic human-shaped markdown projection of the committed index.json -- package inventory, traceability, diagnostics) and `spec-spine index orphans` (the orphanedSpecs list, newline ids or a --json array). Both are pure read-side projections of the committed artifact; neither recomputes the index. Establishes the render module; extends the index CLI dispatch.\n",
       "title": "Index: implement the reserved render and orphans subcommands"
     },
@@ -739,7 +739,7 @@
         "4. Out of scope"
       ],
       "specPath": "specs/012-index-hash-slices/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Named sub-hashes of the index's input set: an adopter declares glob groups under `[index.slices]`, the indexer emits a per-slice content hash into `build.sliceHashes` (additive index-schema MINOR), and `spec-spine index check --slice <name>` gates on exactly that slice -- fresh (0), stale (2), config/IO error (3). Generalizes the narrow high-value staleness gate OAP runs over its agent-config files (settings/MCP JSON) without hardcoding any adopter's file list into the core.\n",
       "title": "Index: named hash slices and `index check --slice <name>`"
     },
@@ -847,7 +847,7 @@
         "4. Out of scope"
       ],
       "specPath": "specs/013-declared-extra-frontmatter-passthrough/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Widens the value domain of DECLARED extra-frontmatter keys (`config.frontmatter.extra_known_keys`) from scalars + string-lists to any JSON-representable YAML value (nested maps, mixed lists), carried verbatim into SpecRecord.extra_frontmatter under canonical-JSON normalization. Undeclared keys keep the existing scalar/string-list restriction and the V-007 cap -- the anti-bulk-YAML guard is untouched. Registry schema MINOR. This is the load-bearing half of the overlay contract: overlays cannot consume domain frontmatter the compiler drops.\n",
       "title": "Frontmatter: declared extra keys carry arbitrary YAML, verbatim"
     },
@@ -914,7 +914,7 @@
         "4. Out of scope"
       ],
       "specPath": "specs/014-edge-paths-grammar-sugar/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Authoring sugar for the predecessor dialect: an `extends:` or `refines:` item may declare `paths: [<file>, ...]` instead of a single `unit:`; the compiler expands each path to a file unit at parse time, emitting N normalized single-unit edges into the registry. Consumers see exactly one edge shape -- `paths:` never reaches registry.json. `unit:` and `paths:` on the same item is malformed (V-002). Unblocks adopting a corpus authored in the OAP dialect (140+ extends-bearing specs) without a mass frontmatter migration.\n",
       "title": "Edge grammar: `paths:` list sugar on extends/refines items"
     }
