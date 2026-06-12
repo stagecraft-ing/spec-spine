@@ -18,8 +18,9 @@ name = "spec-spine"
 # Single source of truth at publish time is the git tag; generate_wheels.py and
 # the sdist build are both invoked with --version / SETUPTOOLS_SCM-free explicit
 # version by release.yml, and the lock check fails on a tag/version mismatch
-# (§3.5 parity). 0.1.0 here tracks the workspace version.
-version = "0.1.0"
+# (§3.5 parity). Tracks the workspace version; bumped in lockstep with
+# Cargo.toml and npm/package.json by scripts/bump_version.py.
+version = "0.2.0"
 description = "The spec-spine CLI: compile a markdown spec corpus into a deterministic authority ledger and refuse code that drifts from its owning spec. Ships the prebuilt binary; no Rust toolchain required."
 readme = "README.md"
 license = "Apache-2.0"
