@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::edges::{CoAuthorityItem, ConstrainItem, ExtendItem, Origin, ReferenceItem, RefineItem};
-use crate::frontmatter::{ExtraValue, Implementation, Risk, Status};
+use crate::frontmatter::{Implementation, Risk, Status};
 use crate::unit::Unit;
 
 /// The compiled registry: `registry.json`.
@@ -111,8 +111,10 @@ pub struct SpecRecord {
     pub origin: Option<Origin>,
 
     // --- overflow ---
+    /// Declared keys carry any JSON value (spec 013); undeclared keys are
+    /// scalars or string arrays.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub extra_frontmatter: BTreeMap<String, ExtraValue>,
+    pub extra_frontmatter: BTreeMap<String, serde_json::Value>,
 }
 
 /// Non-deterministic build metadata sidecar (`build-meta.json`). The wall-clock

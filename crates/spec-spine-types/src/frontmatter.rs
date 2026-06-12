@@ -1,13 +1,16 @@
 //! The spec frontmatter grammar: the typed `Frontmatter` struct, the value
 //! enums, the `extra_frontmatter` overflow, and the parse entry points.
 //!
-//! Parsing is config-free and pure. The `---`-delimited block is split out
+//! Parsing is pure. The `---`-delimited block is split out
 //! ([`split_frontmatter`]), the known keys are deserialized into [`Frontmatter`],
 //! and every key not in [`KNOWN_KEYS`] overflows into `extra_frontmatter` as a
-//! scalar or string-list (ported from OAP/aide `spec-types`). Whether an extra
-//! key is *warned about* is a lint concern driven by
-//! `config.frontmatter.extra_known_keys`, not a parse concern — so this module
-//! needs no `Config`.
+//! `serde_json::Value`. The value domain splits on declaration (spec 013):
+//! a key listed in `config.frontmatter.extra_known_keys` (passed to
+//! [`parse_frontmatter_with`]) carries **any JSON-representable YAML value**,
+//! transported verbatim under canonical-JSON normalization; an undeclared key
+//! keeps the original scalar / string-list restriction (the anti-bulk-YAML
+//! guard, ported from OAP/aide `spec-types`). [`parse_frontmatter`] is the
+//! declared-nothing form, byte-compatible with pre-013 behavior.
 
 use std::collections::BTreeMap;
 
@@ -49,18 +52,26 @@ pub enum Implementation {
     Deferred,
 }
 
-/// A scalar or string-list value carried in `extra_frontmatter`.
-///
-/// The grammar caps extra frontmatter to scalars and string lists; a complex
-/// (nested map / mixed list) value under an unknown key is a parse error.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum ExtraValue {
-    Bool(bool),
-    Int(i64),
-    Float(f64),
-    Str(String),
-    List(Vec<String>),
+/// A failed frontmatter parse, classified for the compiler's V-code mapping
+/// (spec 013 §3.3).
+#[derive(Clone, Debug)]
+pub enum FrontmatterIssue {
+    /// Malformed YAML or a grammar violation — the V-002 class.
+    Malformed(String),
+    /// A DECLARED extra key whose value JSON cannot represent (non-string
+    /// mapping key, YAML tag, non-finite number) — the V-013 class.
+    UnrepresentableDeclared { key: String, detail: String },
+}
+
+impl From<FrontmatterIssue> for Error {
+    fn from(issue: FrontmatterIssue) -> Self {
+        match issue {
+            FrontmatterIssue::Malformed(m) => Error::Parse(m),
+            FrontmatterIssue::UnrepresentableDeclared { key, detail } => Error::Parse(format!(
+                "declared extra-frontmatter key '{key}' carries an unrepresentable YAML value: {detail}"
+            )),
+        }
+    }
 }
 
 /// Every frontmatter key modeled as a struct field. Keys outside this set
@@ -170,7 +181,7 @@ pub struct Frontmatter {
 
     // --- overflow (populated by parse_frontmatter, never by serde) ---
     #[serde(skip)]
-    pub extra_frontmatter: BTreeMap<String, ExtraValue>,
+    pub extra_frontmatter: BTreeMap<String, serde_json::Value>,
 }
 
 /// Split a `spec.md` source into its `(frontmatter_yaml, body)` halves.
@@ -216,79 +227,150 @@ pub fn split_frontmatter(src: &str) -> Result<(String, String)> {
     Ok((frontmatter, body))
 }
 
-/// Parse the frontmatter block of a `spec.md` into a typed [`Frontmatter`].
+/// Parse the frontmatter block of a `spec.md` into a typed [`Frontmatter`],
+/// treating every extra key as undeclared (pre-013 behavior, kept for
+/// config-free callers).
 ///
-/// Pure and config-free. Returns [`Error::Parse`] for a malformed block, a
-/// missing required key, an invalid enum value, or a non-scalar value under an
-/// unknown (overflow) key.
+/// Returns [`Error::Parse`] for a malformed block, a missing required key, an
+/// invalid enum value, or a non-scalar value under an unknown (overflow) key.
 pub fn parse_frontmatter(src: &str) -> Result<Frontmatter> {
-    let (yaml, _body) = split_frontmatter(src)?;
+    parse_frontmatter_with(src, &[]).map_err(Into::into)
+}
+
+/// Parse with declared-key awareness (spec 013): a key listed in `declared`
+/// (the adopter's `frontmatter.extra_known_keys`) carries any
+/// JSON-representable YAML value, transported verbatim; an undeclared key
+/// keeps the scalar / string-list restriction. A top-level `null` value drops
+/// the key on either path.
+pub fn parse_frontmatter_with(
+    src: &str,
+    declared: &[String],
+) -> std::result::Result<Frontmatter, FrontmatterIssue> {
+    let malformed = |m: String| FrontmatterIssue::Malformed(m);
+    let (yaml, _body) = split_frontmatter(src).map_err(|e| {
+        malformed(match e {
+            Error::Parse(m) => m,
+            other => other.to_string(),
+        })
+    })?;
 
     let value: serde_yaml::Value = serde_yaml::from_str(&yaml)
-        .map_err(|e| Error::Parse(format!("invalid YAML frontmatter: {e}")))?;
+        .map_err(|e| malformed(format!("invalid YAML frontmatter: {e}")))?;
 
     let mapping = value
         .as_mapping()
-        .ok_or_else(|| Error::Parse("frontmatter must be a YAML mapping".into()))?;
+        .ok_or_else(|| malformed("frontmatter must be a YAML mapping".into()))?;
 
     // Known keys (unknown keys are ignored here; collected below).
     let mut frontmatter: Frontmatter = serde_yaml::from_value(value.clone())
-        .map_err(|e| Error::Parse(format!("invalid frontmatter: {e}")))?;
+        .map_err(|e| malformed(format!("invalid frontmatter: {e}")))?;
 
     // Overflow: every key not in KNOWN_KEYS becomes an extra_frontmatter entry.
     for (k, v) in mapping {
         let key = match k.as_str() {
             Some(s) => s,
-            None => return Err(Error::Parse("frontmatter keys must be strings".into())),
+            None => return Err(malformed("frontmatter keys must be strings".into())),
         };
         if KNOWN_KEYS.contains(&key) {
             continue;
         }
-        if let Some(extra) = yaml_to_extra(v)? {
-            frontmatter.extra_frontmatter.insert(key.to_string(), extra);
+        let json = if declared.iter().any(|d| d == key) {
+            yaml_to_json(v).map_err(|detail| FrontmatterIssue::UnrepresentableDeclared {
+                key: key.to_string(),
+                detail,
+            })?
+        } else {
+            yaml_to_extra(v).map_err(malformed)?
+        };
+        if json.is_null() {
+            continue;
         }
+        frontmatter.extra_frontmatter.insert(key.to_string(), json);
     }
 
     Ok(frontmatter)
 }
 
-/// Convert a YAML scalar / string-list into an [`ExtraValue`]. `Null` yields
-/// `None` (the key is dropped); a nested map or mixed list is a parse error.
-fn yaml_to_extra(v: &serde_yaml::Value) -> Result<Option<ExtraValue>> {
+/// The UNDECLARED-key path: scalars and string lists only (`Null` drops the
+/// key); a nested map, mixed list, or tag is a grammar violation — exactly
+/// the pre-013 guard.
+fn yaml_to_extra(v: &serde_yaml::Value) -> std::result::Result<serde_json::Value, String> {
     use serde_yaml::Value;
-    Ok(match v {
-        Value::Null => None,
-        Value::Bool(b) => Some(ExtraValue::Bool(*b)),
+    match v {
+        Value::Null => Ok(serde_json::Value::Null),
+        Value::Bool(b) => Ok(serde_json::Value::Bool(*b)),
         Value::Number(n) => {
             if let Some(i) = n.as_i64() {
-                Some(ExtraValue::Int(i))
+                Ok(serde_json::Value::from(i))
             } else if let Some(f) = n.as_f64() {
-                Some(ExtraValue::Float(f))
+                serde_json::Number::from_f64(f)
+                    .map(serde_json::Value::Number)
+                    .ok_or_else(|| "unsupported numeric extra-frontmatter value".to_string())
             } else {
-                return Err(Error::Parse(
-                    "unsupported numeric extra-frontmatter value".into(),
-                ));
+                Err("unsupported numeric extra-frontmatter value".to_string())
             }
         }
-        Value::String(s) => Some(ExtraValue::Str(s.clone())),
+        Value::String(s) => Ok(serde_json::Value::String(s.clone())),
         Value::Sequence(seq) => {
             let mut list = Vec::with_capacity(seq.len());
             for item in seq {
                 match item.as_str() {
-                    Some(s) => list.push(s.to_string()),
+                    Some(s) => list.push(serde_json::Value::String(s.to_string())),
                     None => {
-                        return Err(Error::Parse(
-                            "extra-frontmatter lists must contain only strings".into(),
-                        ));
+                        return Err("extra-frontmatter lists must contain only strings".to_string());
                     }
                 }
             }
-            Some(ExtraValue::List(list))
+            Ok(serde_json::Value::Array(list))
         }
-        Value::Mapping(_) | Value::Tagged(_) => {
-            return Err(Error::Parse(
-                "extra-frontmatter values must be scalars or string lists, not nested maps".into(),
-            ));
+        Value::Mapping(_) | Value::Tagged(_) => Err(
+            "extra-frontmatter values must be scalars or string lists, not nested maps".to_string(),
+        ),
+    }
+}
+
+/// The DECLARED-key path (spec 013 §3.2): full YAML → JSON conversion.
+/// Mappings require string keys; tags and non-finite numbers are
+/// unrepresentable. Map key order is canonicalized by the sorted
+/// `serde_json::Map` (authoring order is not preserved — the price of
+/// byte-identical registries).
+fn yaml_to_json(v: &serde_yaml::Value) -> std::result::Result<serde_json::Value, String> {
+    use serde_yaml::Value;
+    match v {
+        Value::Null => Ok(serde_json::Value::Null),
+        Value::Bool(b) => Ok(serde_json::Value::Bool(*b)),
+        Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Ok(serde_json::Value::from(i))
+            } else if let Some(u) = n.as_u64() {
+                Ok(serde_json::Value::from(u))
+            } else if let Some(f) = n.as_f64() {
+                serde_json::Number::from_f64(f)
+                    .map(serde_json::Value::Number)
+                    .ok_or_else(|| format!("non-finite number {f} is not JSON-representable"))
+            } else {
+                Err("unsupported YAML number".to_string())
+            }
         }
-    })
+        Value::String(s) => Ok(serde_json::Value::String(s.clone())),
+        Value::Sequence(seq) => seq
+            .iter()
+            .map(yaml_to_json)
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map(serde_json::Value::Array),
+        Value::Mapping(map) => {
+            let mut out = serde_json::Map::new();
+            for (mk, mv) in map {
+                let Some(key) = mk.as_str() else {
+                    return Err("non-string mapping key is not JSON-representable".to_string());
+                };
+                out.insert(key.to_string(), yaml_to_json(mv)?);
+            }
+            Ok(serde_json::Value::Object(out))
+        }
+        Value::Tagged(tagged) => Err(format!(
+            "YAML tag '{}' is not JSON-representable",
+            tagged.tag
+        )),
+    }
 }

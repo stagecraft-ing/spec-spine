@@ -11,7 +11,8 @@
 //! loaders reject an unknown MAJOR. Under `0.x`, MINOR may break (SemVer `0.x`).
 
 /// `specVersion` emitted in `registry.json`.
-pub const REGISTRY_SCHEMA_VERSION: &str = "0.1.0";
+/// `0.2.0`: declared extra-frontmatter values widen to arbitrary JSON (spec 013).
+pub const REGISTRY_SCHEMA_VERSION: &str = "0.2.0";
 
 /// `schemaVersion` emitted in `index.json`. (Index DTOs land in Phase 3.)
 /// `0.2.0`: additive `build.sliceHashes` (spec 012).

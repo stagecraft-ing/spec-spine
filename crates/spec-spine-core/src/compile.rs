@@ -10,8 +10,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use spec_spine_types::{
-    Build, Config, Error, Frontmatter, REGISTRY_SCHEMA_VERSION, Registry, Severity, SpecRecord,
-    Status, ValidationReport, Violation, parse_frontmatter, split_frontmatter,
+    Build, Config, Error, Frontmatter, FrontmatterIssue, REGISTRY_SCHEMA_VERSION, Registry,
+    Severity, SpecRecord, Status, ValidationReport, Violation, parse_frontmatter_with,
+    split_frontmatter,
 };
 
 use crate::{canonical_json, hash, markdown};
@@ -75,7 +76,7 @@ pub fn compile(cfg: &Config, repo_root: &Path) -> Result<CompileOutcome, Error> 
         let spec_path = rel_posix(repo_root, spec_md);
         hash_pieces.push((spec_path.clone(), raw.clone()));
 
-        match parse_frontmatter(&raw) {
+        match parse_frontmatter_with(&raw, &cfg.frontmatter.extra_known_keys) {
             Ok(fm) => {
                 let body = split_frontmatter(&raw).map(|(_, b)| b).unwrap_or_default();
                 parsed.push(Parsed {
@@ -85,9 +86,21 @@ pub fn compile(cfg: &Config, repo_root: &Path) -> Result<CompileOutcome, Error> 
                     body,
                 });
             }
-            Err(e) => violations.push(error(
+            // V-013 (spec 013 §3.3): a DECLARED extra key carrying a value
+            // JSON cannot represent. Same skip-and-continue semantics as
+            // V-002 (001 §3.1).
+            Err(FrontmatterIssue::UnrepresentableDeclared { key, detail }) => {
+                violations.push(error(
+                    "V-013",
+                    format!(
+                        "declared extra-frontmatter key '{key}' carries an unrepresentable YAML value: {detail}"
+                    ),
+                    Some(spec_path),
+                ));
+            }
+            Err(FrontmatterIssue::Malformed(m)) => violations.push(error(
                 "V-002",
-                format!("malformed frontmatter: {e}"),
+                format!("malformed frontmatter: {m}"),
                 Some(spec_path),
             )),
         }
@@ -140,7 +153,8 @@ pub fn compile(cfg: &Config, repo_root: &Path) -> Result<CompileOutcome, Error> 
     })
 }
 
-/// Per-spec validation codes V-001/005/006/007/008/009/010/012.
+/// Per-spec validation codes V-001/005/006/007/008/009/010/012 (V-013 is
+/// emitted at the parse stage above).
 fn validate_spec(
     cfg: &Config,
     dirname: &str,

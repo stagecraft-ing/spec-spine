@@ -53,6 +53,10 @@
         "risk": { "enum": ["low", "medium", "high", "critical"] },
         "implementation": {
           "enum": ["pending", "in-progress", "complete", "n-a", "deferred"]
+        },
+        "extraFrontmatter": {
+          "type": "object",
+          "description": "Adopter frontmatter transported by the compiler. Declared keys (frontmatter.extra_known_keys) carry any JSON value (spec 013, specVersion 0.2.0); undeclared keys are scalars or string arrays."
         }
       }
     },

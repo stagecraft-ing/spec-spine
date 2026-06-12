@@ -1,6 +1,10 @@
-//! Frontmatter tests: split, required keys, enums, extra-frontmatter overflow.
+//! Frontmatter tests: split, required keys, enums, extra-frontmatter overflow,
+//! and the declared-key passthrough (spec 013).
 
-use spec_spine_types::{Error, ExtraValue, Status, parse_frontmatter, split_frontmatter};
+use serde_json::json;
+use spec_spine_types::{
+    Error, FrontmatterIssue, Status, parse_frontmatter, parse_frontmatter_with, split_frontmatter,
+};
 
 const MINIMAL: &str = "---\n\
 id: \"001-thing\"\n\
@@ -76,22 +80,57 @@ custom_tags: [\"a\", \"b\"]\n\
 custom_note: \"hello\"\n\
 ---\n";
     let fm = parse_frontmatter(src).unwrap();
-    assert_eq!(
-        fm.extra_frontmatter.get("custom_flag"),
-        Some(&ExtraValue::Bool(true))
-    );
-    assert_eq!(
-        fm.extra_frontmatter.get("custom_count"),
-        Some(&ExtraValue::Int(7))
-    );
+    assert_eq!(fm.extra_frontmatter.get("custom_flag"), Some(&json!(true)));
+    assert_eq!(fm.extra_frontmatter.get("custom_count"), Some(&json!(7)));
     assert_eq!(
         fm.extra_frontmatter.get("custom_tags"),
-        Some(&ExtraValue::List(vec!["a".into(), "b".into()]))
+        Some(&json!(["a", "b"]))
     );
     assert_eq!(
         fm.extra_frontmatter.get("custom_note"),
-        Some(&ExtraValue::Str("hello".into()))
+        Some(&json!("hello"))
     );
+}
+
+#[test]
+fn declared_key_carries_nested_yaml_verbatim() {
+    // Modeled on OAP's `compliance:` shape (spec 013 §3.5).
+    let src = "---\n\
+id: x\ntitle: t\nstatus: draft\ncreated: \"2026-06-08\"\nsummary: s\n\
+compliance:\n  reviewed: true\n  owasp:\n    - \"A01\"\n    - { control: \"A03\", note: 7 }\n\
+---\n";
+    let declared = vec!["compliance".to_string()];
+    let fm = parse_frontmatter_with(src, &declared).unwrap();
+    assert_eq!(
+        fm.extra_frontmatter.get("compliance"),
+        Some(&json!({
+            "reviewed": true,
+            "owasp": ["A01", { "control": "A03", "note": 7 }],
+        }))
+    );
+
+    // The same source without the declaration keeps the pre-013 guard.
+    assert!(matches!(
+        parse_frontmatter(src).unwrap_err(),
+        Error::Parse(_)
+    ));
+}
+
+#[test]
+fn declared_key_with_non_string_map_key_is_unrepresentable() {
+    let src = "---\n\
+id: x\ntitle: t\nstatus: draft\ncreated: \"2026-06-08\"\nsummary: s\n\
+compliance:\n  1: \"x\"\n\
+---\n";
+    let declared = vec!["compliance".to_string()];
+    let err = parse_frontmatter_with(src, &declared).unwrap_err();
+    match err {
+        FrontmatterIssue::UnrepresentableDeclared { key, detail } => {
+            assert_eq!(key, "compliance");
+            assert!(detail.contains("non-string mapping key"));
+        }
+        other => panic!("expected UnrepresentableDeclared, got {other:?}"),
+    }
 }
 
 #[test]

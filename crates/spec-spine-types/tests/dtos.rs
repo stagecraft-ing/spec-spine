@@ -69,7 +69,8 @@ fn validation_passed_follows_error_tier() {
 
 #[test]
 fn schema_versions_are_pinned() {
-    assert_eq!(REGISTRY_SCHEMA_VERSION, "0.1.0");
+    // 0.2.0: declared extra-frontmatter widens to arbitrary JSON (spec 013).
+    assert_eq!(REGISTRY_SCHEMA_VERSION, "0.2.0");
     // 0.2.0: additive `build.sliceHashes` (spec 012).
     assert_eq!(INDEX_SCHEMA_VERSION, "0.2.0");
     assert_eq!(BUILD_META_SCHEMA_VERSION, "0.1.0");

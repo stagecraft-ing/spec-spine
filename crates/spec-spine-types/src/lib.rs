@@ -45,8 +45,8 @@ pub use edges::{
 };
 pub use error::{Error, Result};
 pub use frontmatter::{
-    ExtraValue, Frontmatter, Implementation, KNOWN_KEYS, Risk, Status, parse_frontmatter,
-    split_frontmatter,
+    Frontmatter, FrontmatterIssue, Implementation, KNOWN_KEYS, Risk, Status, parse_frontmatter,
+    parse_frontmatter_with, split_frontmatter,
 };
 pub use registry::{Build, BuildMeta, Registry, Severity, SpecRecord, ValidationReport, Violation};
 pub use schema::{BUILD_META_SCHEMA, INDEX_SCHEMA, REGISTRY_SCHEMA};

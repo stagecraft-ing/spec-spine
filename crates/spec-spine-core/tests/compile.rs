@@ -176,6 +176,105 @@ fn v007_extra_frontmatter_count_cap_with_exemption() {
 }
 
 #[test]
+fn declared_nested_extra_roundtrips_deterministically() {
+    // Spec 013 §3.5: a compliance-shaped declared key survives compile ->
+    // registry byte-identically across two runs.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(
+        tmp.path(),
+        "001-a",
+        "001-a",
+        "compliance:\n  reviewed: true\n  owasp:\n    - \"A01\"\n    - \"A03\"\n",
+    );
+    let mut cfg = Config::default();
+    cfg.frontmatter.extra_known_keys = vec!["compliance".into()];
+
+    let first = compile(&cfg, tmp.path()).unwrap();
+    let second = compile(&cfg, tmp.path()).unwrap();
+    assert!(first.validation_passed);
+    assert_eq!(first.json, second.json, "byte-identical across two runs");
+    assert_eq!(
+        first.registry.specs[0].extra_frontmatter.get("compliance"),
+        Some(&serde_json::json!({"owasp": ["A01", "A03"], "reviewed": true}))
+    );
+}
+
+#[test]
+fn declared_map_key_order_is_canonicalized() {
+    // Spec 013 §3.2/§3.5: two authoring orders, one registry value.
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cfg = Config::default();
+    cfg.frontmatter.extra_known_keys = vec!["compliance".into()];
+
+    write_spec(
+        tmp.path(),
+        "001-a",
+        "001-a",
+        "compliance:\n  zz: 1\n  aa: 2\n",
+    );
+    let one = compile(&cfg, tmp.path()).unwrap().registry.specs[0]
+        .extra_frontmatter
+        .clone();
+    write_spec(
+        tmp.path(),
+        "001-a",
+        "001-a",
+        "compliance:\n  aa: 2\n  zz: 1\n",
+    );
+    let two = compile(&cfg, tmp.path()).unwrap().registry.specs[0]
+        .extra_frontmatter
+        .clone();
+    assert_eq!(one, two);
+}
+
+#[test]
+fn undeclared_nested_extra_keeps_pre013_guard() {
+    // Guard regression (spec 013 §3.5): an UNDECLARED nested map is rejected
+    // exactly as pre-013 (V-002, spec skipped).
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(tmp.path(), "001-a", "001-a", "custom_obj:\n  nested: 1\n");
+    let outcome = compile(&Config::default(), tmp.path()).unwrap();
+    assert!(codes(&outcome).contains(&"V-002".to_string()));
+    assert!(!outcome.validation_passed);
+    assert!(outcome.registry.specs.is_empty(), "the spec is skipped");
+}
+
+#[test]
+fn v013_unrepresentable_declared_value() {
+    // A non-string map key under a DECLARED key -> V-013, skip-and-continue.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(tmp.path(), "001-a", "001-a", "compliance:\n  1: \"x\"\n");
+    write_spec(tmp.path(), "002-ok", "002-ok", "");
+    let mut cfg = Config::default();
+    cfg.frontmatter.extra_known_keys = vec!["compliance".into()];
+    let outcome = compile(&cfg, tmp.path()).unwrap();
+    assert!(codes(&outcome).contains(&"V-013".to_string()));
+    assert!(!outcome.validation_passed);
+    assert!(outcome.registry.specs.iter().any(|s| s.id == "002-ok"));
+    assert!(!outcome.registry.specs.iter().any(|s| s.id == "001-a"));
+}
+
+#[test]
+fn v007_cap_unchanged_in_presence_of_declared_keys() {
+    // Spec 013 §3.5: the undeclared cap is counted and enforced exactly as
+    // before, with declared keys present and exempt.
+    let tmp = tempfile::tempdir().unwrap();
+    let n = MAX_UNDECLARED_EXTRA_FRONTMATTER + 1;
+    let mut extra = String::from("compliance:\n  reviewed: true\n");
+    for i in 0..n {
+        extra.push_str(&format!("x_key_{i}: {i}\n"));
+    }
+    write_spec(tmp.path(), "001-a", "001-a", &extra);
+    let mut cfg = Config::default();
+    cfg.frontmatter.extra_known_keys = vec!["compliance".into()];
+    let outcome = compile(&cfg, tmp.path()).unwrap();
+    assert!(
+        codes(&outcome).contains(&"V-007".to_string()),
+        "undeclared cap still fires"
+    );
+}
+
+#[test]
 fn v005_domain_allowlist_when_enabled() {
     let tmp = tempfile::tempdir().unwrap();
     write_spec(tmp.path(), "001-a", "001-a", "domain: \"galaxy\"\n");
