@@ -52,16 +52,20 @@ jobs:
         run: ./target/debug/spec-spine index check
       - name: Conformance lint (fail on warn)
         run: ./target/debug/spec-spine lint --fail-on-warn
+      # The coupling gate is a PR-time gate (spec 005 §1): it joins the spec and
+      # code views and refuses the *merge* when code drifts from its owning spec.
+      # It runs on pull_request only. A push to main has already merged (nothing
+      # left to refuse) and carries no PR body, so the Spec-Drift-Waiver line is
+      # unrecoverable: it lives in the PR description, not the squash commit
+      # message. A legitimately waived PR would otherwise resurface as a false
+      # drift failure on the post-merge main push.
       - name: Coupling gate (spec/code drift)
+        if: github.event_name == 'pull_request'
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
-          else
-            BASE="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
-          fi
+          BASE="${{ github.event.pull_request.base.sha }}"
           echo "coupling base: $BASE → HEAD"
           printf '%s' "${PR_BODY:-}" > /tmp/pr-body.txt
           ./target/debug/spec-spine couple --base "$BASE" --head HEAD --pr-body /tmp/pr-body.txt
