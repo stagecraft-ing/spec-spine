@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.2.0",
-    "contentHash": "74db4d970d9838accc015217f05f163d06fe1f1199aa0959c30809ebbe236c87",
+    "contentHash": "c31f6bfe16eb42af2e874c30db0a088062f1ce29d5b2edf1421027541e4ce110",
     "inputRoot": "."
   },
   "specVersion": "0.2.0",
@@ -976,6 +976,49 @@
       "status": "draft",
       "summary": "Two pieces of authoring sugar for the predecessor dialect, both normalized away at parse so nothing new reaches registry.json. (1) An authority unit may be written as a single-key `{ unit: <unit> }` wrapper -- a third 1:1 representation alongside the existing bare-string and tagged-map forms -- which the Unit deserializer unwraps to its inner unit. The corpus uses this on `establishes` items (one wrapper per item, `unit` the only field). (2) `implementation: n/a` is accepted as a deserialize-only alias for the canonical `n-a`, which stays the only spelling ever emitted. Neither changes the registry schema or any consumer; both unblock adopting a corpus authored in the OAP dialect (389 wrapped establishes items across ~97 specs; 5 specs using `n/a`) without a mass frontmatter migration.\n",
       "title": "Frontmatter sugar: `unit:`-wrapped establishes items and the `n/a` implementation alias"
+    },
+    {
+      "created": "2026-06-11",
+      "dependsOn": [
+        "001-compile-registry"
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/compile.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/tests/compile.rs"
+          }
+        }
+      ],
+      "id": "016-short-id-resolution",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "016: resolve short spec ids on `depends_on` and `superseded_by`",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 Resolution policy",
+        "3.2 Scope: which references resolve",
+        "3.3 Ordering, determinism, and the canonical no-op",
+        "3.4 Tests (minimum)",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/016-short-id-resolution/spec.md",
+      "status": "draft",
+      "summary": "Lets a `depends_on` or `superseded_by` reference name its target by the leading spec number alone (`109`) and have the compiler resolve it to the full id (`109-slug`) when exactly one spec matches that number, rewriting the reference before validation and emission. An exact id, an ambiguous number, or a number matching nothing is left unchanged, so V-008 (superseded_by must resolve) and V-010 (dangling depends_on) still fire on a genuinely broken reference. The resolution policy is the indexer's existing `resolve_id` (spec 004), applied at compile time so the registry and the index agree. Unblocks adopting a corpus that references specs by number (106 specs in the OAP dry-run) without a mass frontmatter migration; a no-op on any corpus that already uses full ids (such as this repo's own).\n",
+      "title": "Compile: resolve short spec ids on `depends_on` and `superseded_by`"
     }
   ],
   "validation": {
