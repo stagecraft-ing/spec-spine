@@ -371,3 +371,212 @@ fn supersedes_transfers_authority_additively() {
     );
     assert!(!via_succ.has_blocking_drift(), "{:?}", via_succ.violations);
 }
+
+// ── spec 009: explicit claims take precedence over bypass ─────────────────
+
+#[test]
+fn explicit_claim_overrides_the_floor() {
+    // .github/ sits on the hardcoded floor, but 007-d claims the workflow
+    // file explicitly -> evaluated: drifts alone, clears with the owner.
+    let index = index_from(json!([{
+        "specId": "007-d",
+        "implementingPaths": [],
+        "resolvedUnits": [{
+            "unit": { "kind": "file", "path": ".github/workflows/release.yml" },
+            "sourceField": "establishes", "ownership": true,
+            "locations": [{ "file": ".github/workflows/release.yml" }]
+        }]
+    }]));
+    let reg = empty_registry();
+
+    let drift = run(
+        &index,
+        &reg,
+        &diff(vec![file(".github/workflows/release.yml", &[])]),
+    );
+    assert!(drift.has_blocking_drift());
+    assert_eq!(drift.checked_paths, 1);
+    assert!(drift.violations[0].message.contains("007-d"));
+
+    let cleared = run(
+        &index,
+        &reg,
+        &diff(vec![
+            file(".github/workflows/release.yml", &[]),
+            file("specs/007-d/spec.md", &[]),
+        ]),
+    );
+    assert!(!cleared.has_blocking_drift(), "{:?}", cleared.violations);
+
+    // A sibling workflow nobody claims stays floor-bypassed.
+    let sibling = run(
+        &index,
+        &reg,
+        &diff(vec![file(".github/workflows/ci.yml", &[])]),
+    );
+    assert!(!sibling.has_blocking_drift());
+    assert_eq!(sibling.checked_paths, 0);
+}
+
+#[test]
+fn implicit_ownership_does_not_override_bypass() {
+    // Spec 009 §3.2: manifest-floor / comment-header ownership (the
+    // implementingPaths sources) keeps deferring to bypass.
+    let index = index_from(json!([{
+        "specId": "001-a",
+        "implementingPaths": [
+            { "path": ".github", "source": "manifest-metadata" },
+            { "path": "docs/guide.md", "source": "comment-header" }
+        ],
+        "resolvedUnits": []
+    }]));
+    let reg = empty_registry();
+    let report = run(
+        &index,
+        &reg,
+        &diff(vec![
+            file(".github/workflows/ci.yml", &[]),
+            file("docs/guide.md", &[]),
+        ]),
+    );
+    assert!(!report.has_blocking_drift());
+    assert_eq!(report.checked_paths, 0, "implicit ownership stays bypassed");
+}
+
+#[test]
+fn claim_overrides_adopter_bypass_for_exactly_the_claimed_file() {
+    // Spec 009 §3.3: the rule overrides config additions too; the specific
+    // intent (the claim) beats the broad one (the bypass pattern).
+    let index = index_from(json!([{
+        "specId": "002-docs",
+        "implementingPaths": [],
+        "resolvedUnits": [{
+            "unit": { "kind": "file", "path": "crates/x/README.md" },
+            "sourceField": "constrains", "ownership": true,
+            "locations": [{ "file": "crates/x/README.md" }]
+        }]
+    }]));
+    let reg = empty_registry();
+    let mut cfg = Config::default();
+    cfg.coupling
+        .bypass_prefixes
+        .push("**/README.md".to_string());
+
+    let claimed = couple_with(
+        &cfg,
+        &reg,
+        &index,
+        &diff(vec![file("crates/x/README.md", &[])]),
+        None,
+    )
+    .unwrap();
+    assert!(claimed.has_blocking_drift());
+    assert!(claimed.violations[0].message.contains("002-docs"));
+
+    let sibling = couple_with(
+        &cfg,
+        &reg,
+        &index,
+        &diff(vec![file("crates/y/README.md", &[])]),
+        None,
+    )
+    .unwrap();
+    assert!(!sibling.has_blocking_drift());
+    assert_eq!(sibling.checked_paths, 0, "unclaimed siblings stay bypassed");
+}
+
+#[test]
+fn directory_form_claim_overrides_for_the_subtree() {
+    let index = index_from(json!([{
+        "specId": "008-py",
+        "implementingPaths": [],
+        "resolvedUnits": [{
+            "unit": { "kind": "file", "path": "docs/runbooks/" },
+            "sourceField": "establishes", "ownership": true,
+            "locations": [{ "file": "docs/runbooks/" }]
+        }]
+    }]));
+    let reg = empty_registry();
+
+    let inside = run(
+        &index,
+        &reg,
+        &diff(vec![file("docs/runbooks/restore.md", &[])]),
+    );
+    assert!(inside.has_blocking_drift());
+    assert_eq!(inside.checked_paths, 1);
+
+    let outside = run(&index, &reg, &diff(vec![file("docs/guide.md", &[])]));
+    assert!(!outside.has_blocking_drift());
+    assert_eq!(outside.checked_paths, 0);
+}
+
+#[test]
+fn section_claim_under_floor_is_evaluated_with_span_semantics() {
+    // A co_authority section unit on jobs.<name> of a floored workflow: the
+    // path is evaluated; span overlap then decides ownership as usual.
+    let index = index_from(json!([{
+        "specId": "118-wf",
+        "implementingPaths": [],
+        "resolvedUnits": [{
+            "unit": { "kind": "section", "file": ".github/workflows/release.yml", "anchor": "publish" },
+            "sourceField": "co_authority", "ownership": true,
+            "locations": [{ "file": ".github/workflows/release.yml", "span": { "startLine": 10, "endLine": 20 } }]
+        }]
+    }]));
+    let reg = empty_registry();
+
+    let inside = run(
+        &index,
+        &reg,
+        &diff(vec![file(
+            ".github/workflows/release.yml",
+            &[LineSpan::new(12, 14)],
+        )]),
+    );
+    assert!(inside.has_blocking_drift());
+    assert!(inside.violations[0].message.contains("118-wf"));
+
+    // A hunk outside the span: evaluated (not bypassed) but unowned -> clean.
+    let outside = run(
+        &index,
+        &reg,
+        &diff(vec![file(
+            ".github/workflows/release.yml",
+            &[LineSpan::new(30, 31)],
+        )]),
+    );
+    assert!(!outside.has_blocking_drift(), "{:?}", outside.violations);
+    assert_eq!(outside.checked_paths, 1, "evaluated, not bypassed");
+}
+
+#[test]
+fn is_bypassed_path_is_claim_aware() {
+    // The CLI's auto-waiver pre-filter must see the same path set the gate
+    // checks (spec 005 §3.5 x spec 009).
+    let index = index_from(json!([{
+        "specId": "007-d",
+        "implementingPaths": [],
+        "resolvedUnits": [{
+            "unit": { "kind": "file", "path": ".github/workflows/release.yml" },
+            "sourceField": "establishes", "ownership": true,
+            "locations": [{ "file": ".github/workflows/release.yml" }]
+        }]
+    }]));
+    let cfg = Config::default();
+    assert!(!spec_spine_core::is_bypassed_path(
+        &cfg,
+        &index,
+        ".github/workflows/release.yml"
+    ));
+    assert!(spec_spine_core::is_bypassed_path(
+        &cfg,
+        &index,
+        ".github/workflows/ci.yml"
+    ));
+    assert!(!spec_spine_core::is_bypassed_path(
+        &cfg,
+        &index,
+        "src/lib.rs"
+    ));
+}

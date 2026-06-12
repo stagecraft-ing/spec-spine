@@ -12,7 +12,7 @@ use std::process::Command;
 
 use spec_spine_core::{
     DiffFile, DiffInput, FileContents, couple, dependency_only_waiver, is_bypassed_path,
-    parse_waiver,
+    load_index, parse_waiver,
 };
 use spec_spine_types::{Config, Error, LineSpan};
 
@@ -103,16 +103,32 @@ fn build_diff_input(repo: &Path, args: &CoupleArgs) -> Result<DiffInput, Error> 
 /// diff is three-dot, so the base side is `merge-base(base, head)`, not the
 /// base branch tip) and at `head`. Any git failure refuses the auto-waiver
 /// fail-closed rather than erroring the gate.
+///
+/// The bypass verdict is claim-aware (spec 009): it reads the committed
+/// index so a claim-overridden floor path counts as a candidate and refuses
+/// the waiver, matching exactly the path set the gate evaluates. An
+/// unreadable index refuses fail-closed (the gate itself will report the
+/// real error).
 fn try_dependency_only_waiver(
     repo: &Path,
     cfg: &Config,
     args: &CoupleArgs,
     diff: &DiffInput,
 ) -> Result<Option<spec_spine_core::Waiver>, Error> {
+    let index_path = repo
+        .join(&cfg.layout.derived_dir)
+        .join("codebase-index")
+        .join("index.json");
+    let Some(index) = std::fs::read(&index_path)
+        .ok()
+        .and_then(|bytes| load_index(&bytes).ok())
+    else {
+        return Ok(None);
+    };
     let candidates: Vec<&DiffFile> = diff
         .files
         .iter()
-        .filter(|f| !is_bypassed_path(cfg, &f.path))
+        .filter(|f| !is_bypassed_path(cfg, &index, &f.path))
         .collect();
     // Cheap pre-filter before any git spawn: the waiver can only ever apply
     // when every non-bypassed path is a package.json manifest.

@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.2.0",
-    "contentHash": "351f33e0a59799d43e73a5f875bcb65a7a38a5dc0be6faa874d774380cc2280a",
+    "contentHash": "13e773e6aaee7c1b0aff3f88096223dade5812b542fbd193bd1e6f1817235153",
     "inputRoot": "."
   },
   "specVersion": "0.2.0",
@@ -458,6 +458,70 @@
       "status": "approved",
       "summary": "The Python parallel of 007's npm shim: a uvx/PyPI channel so a Python or polyglot team can `uvx spec-spine ...` (or `uv tool install spec-spine`) and get the CLI with no Rust toolchain. Where npm uses a main launcher package + five os/cpu-gated platform packages, Python collapses the same idea into one PyPI project + five per-platform wheels (+ one sdist): the wheel platform tag IS the selector, and the prebuilt binary ships in the wheel's data/scripts dir so pip/uv place it directly on PATH. There is no Python in the run path, no postinstall, no network at install, and no archive extraction at install: it works offline and under --no-build-isolation. Unsupported hosts (musl/Alpine, win-arm64, 32-bit) match no wheel and fall to the sdist, whose only artifact is a `spec-spine` console entry point that names the host and points at `cargo install spec-spine-cli` -- exact parity with 007 §3.4. Wheels are assembled from the same release archives the build job already produces (no second Rust build), are byte-reproducible, and are version-locked to the tag.\n",
       "title": "Distribution: uvx/PyPI wheel shim"
+    },
+    {
+      "amends": [
+        "005-coupling-gate"
+      ],
+      "created": "2026-06-11",
+      "dependsOn": [
+        "005-coupling-gate"
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "005-coupling-gate",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/couple.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "005-coupling-gate",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/tests/couple.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "005-coupling-gate",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-cli/src/cmd_couple.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "005-coupling-gate",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-cli/tests/couple.rs"
+          }
+        }
+      ],
+      "id": "009-coupling-floor-claim-precedence",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "009: Explicit unit claims take precedence over the bypass floor",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 The precedence rule",
+        "3.2 What does NOT override bypass",
+        "3.3 Precedence over adopter additions too",
+        "3.4 Effect on this repo's own corpus",
+        "3.5 Determinism and report shape",
+        "3.6 Tests (minimum)",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/009-coupling-floor-claim-precedence/spec.md",
+      "status": "draft",
+      "summary": "Amends 005 §3.5: a path covered by an explicit unit claim (a file, section, or symbol declared in some spec's ownership-bearing edge and resolved into the index) is NEVER bypassed, even when it matches the hardcoded floor or an adopter's additive bypass list. Implicit path-level ownership (manifest floors, comment headers) keeps deferring to bypass. Closes the silent- weakening hole where an adopter who governs workflow YAML or specific docs by explicit claim would have those claims ignored because `.github/` and `docs/` sit on the immutable floor.\n",
+      "title": "Coupling gate: explicit unit claims take precedence over the bypass floor"
     },
     {
       "created": "2026-06-11",

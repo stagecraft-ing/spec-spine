@@ -129,9 +129,14 @@ pub fn couple_with(
 
     for file in &diff.files {
         let path = &file.path;
-        // Effective bypass = hardcoded floor ∪ adopter list (additive).
-        if is_bypass(path, DEFAULT_BYPASS_PREFIXES)
-            || is_bypass(path, &cfg.coupling.bypass_prefixes)
+        // Effective bypass = hardcoded floor ∪ adopter list (additive) —
+        // UNLESS an explicit, resolved unit claim covers the path, which
+        // takes precedence over the entire bypass set (spec 009, amending
+        // 005 §3.5). The corpus saying "this surface is governed" beats the
+        // blanket scaffolding exemption.
+        if !explicitly_claimed(path, index)
+            && (is_bypass(path, DEFAULT_BYPASS_PREFIXES)
+                || is_bypass(path, &cfg.coupling.bypass_prefixes))
         {
             continue;
         }
@@ -167,11 +172,33 @@ pub fn couple_with(
 }
 
 /// The effective bypass verdict for one path: hardcoded floor ∪ adopter list
-/// (additive), exactly as [`couple_with`] applies it. Public so the CLI's
+/// (additive), with explicit unit claims taking precedence (spec 009) —
+/// exactly as [`couple_with`] applies it. Public so the CLI's
 /// dependency-only auto-waiver pre-filter (spec 005 §3.5) examines the same
-/// non-bypassed path set the gate itself will check.
-pub fn is_bypassed_path(cfg: &Config, path: &str) -> bool {
-    is_bypass(path, DEFAULT_BYPASS_PREFIXES) || is_bypass(path, &cfg.coupling.bypass_prefixes)
+/// non-bypassed path set the gate itself will check; the claim-awareness is
+/// what keeps a claim-overridden floor path from slipping past that
+/// pre-filter into a mechanical waiver.
+pub fn is_bypassed_path(cfg: &Config, index: &CodebaseIndex, path: &str) -> bool {
+    !explicitly_claimed(path, index)
+        && (is_bypass(path, DEFAULT_BYPASS_PREFIXES)
+            || is_bypass(path, &cfg.coupling.bypass_prefixes))
+}
+
+/// Spec 009 §3.1: true iff at least one **resolved, ownership-bearing unit
+/// claim** covers `path` — a location file matching exactly, or by directory
+/// prefix for a directory-form file unit (004 §3.3). Implicit path-level
+/// ownership (manifest metadata, comment headers → `implementingPaths`)
+/// deliberately does NOT count (§3.2): an explicit unit in spec frontmatter
+/// is an author saying *this exact surface is governed*; a crate floor is a
+/// blanket safety net that keeps deferring to bypass.
+fn explicitly_claimed(path: &str, index: &CodebaseIndex) -> bool {
+    index.traceability.mappings.iter().any(|m| {
+        m.resolved_units.iter().filter(|ru| ru.ownership).any(|ru| {
+            ru.locations
+                .iter()
+                .any(|loc| claim_matches(&loc.file, path))
+        })
+    })
 }
 
 /// Parse a waiver from the PR body using the configured keyword. Returns the

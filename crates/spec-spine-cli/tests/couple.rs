@@ -344,3 +344,59 @@ fn script_edit_refuses_the_auto_waiver() {
         String::from_utf8_lossy(&out.stdout)
     );
 }
+
+#[test]
+fn claimed_floor_path_refuses_the_auto_waiver() {
+    // Spec 009 x 005 §3.5 interplay: a dependency-only bump PLUS an edit to a
+    // floor path that a spec explicitly claims must NOT be mechanically
+    // waived. With a claim-unaware pre-filter the workflow edit would hide
+    // behind the floor, every remaining candidate would be a manifest, and
+    // the dep-only waiver would excuse the workflow's C-001 -- fail-open.
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    setup_npm(root, true);
+    write(root, ".github/workflows/release.yml", "name: release\n");
+    write(
+        root,
+        "specs/002-wf/spec.md",
+        "---\nid: \"002-wf\"\ntitle: \"W\"\nstatus: approved\ncreated: \"2026-06-09\"\n\
+         summary: \"s\"\nestablishes:\n  - \".github/workflows/release.yml\"\n---\n# 002-wf\n## body\n",
+    );
+    git_in(root, &["init", "-q"]);
+    refresh(root);
+    git_in(root, &["add", "-A"]);
+    git_in(root, &["commit", "-q", "-m", "base"]);
+
+    // The PR: a dep bump AND a workflow edit, index refreshed (the workflow
+    // is a hashed input), no spec edit, no PR body.
+    write(
+        root,
+        "pkg-a/package.json",
+        "{ \"name\": \"pkg-a\", \"version\": \"1.0.0\",\n  \
+         \"spec-spine\": { \"spec\": \"001-a\" },\n  \
+         \"scripts\": { \"build\": \"tsc\" },\n  \
+         \"dependencies\": { \"zod\": \"3.23.1\" } }\n",
+    );
+    write(
+        root,
+        ".github/workflows/release.yml",
+        "name: release\non: push\n",
+    );
+    refresh(root);
+    git_in(root, &["add", "-A"]);
+    git_in(root, &["commit", "-q", "-m", "bump+workflow"]);
+
+    let out = couple_git(root);
+    assert_eq!(
+        code(&out),
+        1,
+        "a claimed floor path must refuse the auto-waiver and drift: {}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("002-wf"),
+        "the workflow's owner must be named: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
