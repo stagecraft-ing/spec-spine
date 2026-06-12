@@ -310,3 +310,90 @@ fn v008_superseded_requires_resolvable_superseded_by() {
         .expect("V-008 expected");
     assert_eq!(v.severity, Severity::Error);
 }
+
+#[test]
+fn paths_sugar_is_byte_equivalent_to_single_unit_items() {
+    // Spec 014 §3.3, the acceptance test: the same corpus authored with
+    // `paths: [a, b]` and as N single-`unit` items compiles to identical
+    // registries. Only `build.contentHash` may differ (it hashes the authored
+    // spec bytes, which differ by construction); every emitted record and the
+    // validation report must match byte-for-byte.
+    let sugar = tempfile::tempdir().unwrap();
+    write_spec(
+        sugar.path(),
+        "001-a",
+        "001-a",
+        "extends:\n  - { spec: \"000-x\", paths: [\"a.rs\", \"b.rs\"], nature: additive }\nrefines:\n  - { aspect: \"det\", paths: [\"c.rs\", \"d/\"] }\n",
+    );
+    let desugared = tempfile::tempdir().unwrap();
+    write_spec(
+        desugared.path(),
+        "001-a",
+        "001-a",
+        "extends:\n  - { spec: \"000-x\", unit: \"a.rs\", nature: additive }\n  - { spec: \"000-x\", unit: \"b.rs\", nature: additive }\nrefines:\n  - { aspect: \"det\", unit: \"c.rs\" }\n  - { aspect: \"det\", unit: \"d/\" }\n",
+    );
+
+    let cfg = Config::default();
+    let a = compile(&cfg, sugar.path()).unwrap();
+    let b = compile(&cfg, desugared.path()).unwrap();
+    assert_eq!(
+        serde_json::to_string(&a.registry.specs).unwrap(),
+        serde_json::to_string(&b.registry.specs).unwrap(),
+        "expanded records must be byte-identical"
+    );
+    assert_eq!(a.registry.validation, b.registry.validation);
+}
+
+#[test]
+fn paths_sugar_grammar_violations_are_v002() {
+    // unit: + paths: on one item.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(
+        tmp.path(),
+        "001-a",
+        "001-a",
+        "extends:\n  - { spec: \"000-x\", unit: \"a.rs\", paths: [\"b.rs\"] }\n",
+    );
+    let outcome = compile(&Config::default(), tmp.path()).unwrap();
+    assert!(codes(&outcome).contains(&"V-002".to_string()));
+    assert!(outcome.registry.specs.is_empty(), "the spec is skipped");
+
+    // Empty paths: list.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(
+        tmp.path(),
+        "001-a",
+        "001-a",
+        "refines:\n  - { aspect: \"a\", paths: [] }\n",
+    );
+    let outcome = compile(&Config::default(), tmp.path()).unwrap();
+    assert!(codes(&outcome).contains(&"V-002".to_string()));
+}
+
+#[test]
+fn oap_dialect_refines_fixture_compiles_clean() {
+    // Spec 014 §3.4: a fixture modeled on the real OAP shape -- `refines`
+    // with an aspect, refines_specs, and two paths -- compiles clean.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(tmp.path(), "001-base", "001-base", "");
+    write_spec(
+        tmp.path(),
+        "002-tighten",
+        "002-tighten",
+        "refines:\n  - aspect: \"hash-determinism\"\n    refines_specs: [\"001-base\"]\n    paths: [\"src/hash.rs\", \"src/canonical_json.rs\"]\n",
+    );
+    let outcome = compile(&Config::default(), tmp.path()).unwrap();
+    assert!(outcome.validation_passed, "{:?}", codes(&outcome));
+    let spec = outcome
+        .registry
+        .specs
+        .iter()
+        .find(|s| s.id == "002-tighten")
+        .unwrap();
+    assert_eq!(spec.refines.len(), 2, "expanded to one item per path");
+    assert!(
+        spec.refines
+            .iter()
+            .all(|r| r.unit.is_some() && r.paths.is_none())
+    );
+}

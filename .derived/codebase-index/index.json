@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "7329f79dd935383da0416f962ace3c1d570375250e88993433b4d90cab609b04",
+    "contentHash": "d8e816a14bde66dd963bc19a7c021ac884d23c07c7f35ee89e3d82d936289b2f",
     "indexerId": "spec-spine",
     "indexerVersion": "0.2.0",
     "repoRoot": "."
@@ -1353,6 +1353,102 @@
           }
         ],
         "specId": "013-declared-extra-frontmatter-passthrough",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "001-compile-registry"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-core/src/compile.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/tests/compile.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/edges.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/frontmatter.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/tests/grammar.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/compile.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/compile.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/tests/compile.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/tests/compile.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/edges.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/edges.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/frontmatter.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/frontmatter.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/tests/grammar.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/tests/grammar.rs"
+            }
+          }
+        ],
+        "specId": "014-edge-paths-grammar-sugar",
         "specStatus": "draft"
       }
     ],
