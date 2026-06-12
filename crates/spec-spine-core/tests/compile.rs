@@ -432,3 +432,68 @@ fn establishes_wrapper_and_na_alias_are_byte_equivalent() {
     );
     assert_eq!(a.registry.validation, b.registry.validation);
 }
+
+#[test]
+fn short_id_depends_on_resolves_to_full_id() {
+    // Spec 016: a depends_on naming a spec by its leading number resolves to
+    // the full id; the record carries the resolved id and no V-010 fires.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(tmp.path(), "001-base", "001-base", "");
+    write_spec(tmp.path(), "002-a", "002-a", "depends_on: [\"001\"]\n");
+    let outcome = compile(&Config::default(), tmp.path()).unwrap();
+    assert!(
+        !codes(&outcome).contains(&"V-010".to_string()),
+        "a resolvable short id must not warn"
+    );
+    let rec = outcome
+        .registry
+        .specs
+        .iter()
+        .find(|s| s.id == "002-a")
+        .unwrap();
+    assert_eq!(rec.depends_on, vec!["001-base".to_string()]);
+}
+
+#[test]
+fn short_id_superseded_by_resolves() {
+    // Spec 016: superseded_by accepts the short form; resolution clears V-008
+    // and the record carries the full id.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(tmp.path(), "002-new", "002-new", "");
+    let spec_dir = tmp.path().join("specs").join("001-old");
+    fs::create_dir_all(&spec_dir).unwrap();
+    fs::write(
+        spec_dir.join("spec.md"),
+        "---\nid: \"001-old\"\ntitle: t\nstatus: superseded\ncreated: \"2026-06-08\"\nsummary: s\nsuperseded_by: \"002\"\n---\n",
+    )
+    .unwrap();
+    let outcome = compile(&Config::default(), tmp.path()).unwrap();
+    assert!(
+        !codes(&outcome).contains(&"V-008".to_string()),
+        "a resolvable short superseded_by must not error"
+    );
+    let rec = outcome
+        .registry
+        .specs
+        .iter()
+        .find(|s| s.id == "001-old")
+        .unwrap();
+    assert_eq!(rec.superseded_by, Some("002-new".to_string()));
+}
+
+#[test]
+fn dangling_short_id_is_left_unchanged_and_still_warns() {
+    // Spec 016: a reference that matches no spec resolves to itself, so the
+    // existing dangling-reference V-code still fires.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(tmp.path(), "001-a", "001-a", "depends_on: [\"999\"]\n");
+    let outcome = compile(&Config::default(), tmp.path()).unwrap();
+    assert!(codes(&outcome).contains(&"V-010".to_string()));
+    let rec = outcome
+        .registry
+        .specs
+        .iter()
+        .find(|s| s.id == "001-a")
+        .unwrap();
+    assert_eq!(rec.depends_on, vec!["999".to_string()]);
+}

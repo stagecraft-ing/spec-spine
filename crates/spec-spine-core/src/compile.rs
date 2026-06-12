@@ -115,6 +115,21 @@ pub fn compile(cfg: &Config, repo_root: &Path) -> Result<CompileOutcome, Error> 
         .collect();
     detect_duplicates(&id_paths, &mut violations);
 
+    // --- short-id resolution (spec 016): rewrite a depends_on / superseded_by
+    // reference that names a spec by its leading number (`109`) to the full id
+    // (`109-slug`), before validation (V-008/V-010) and record construction see
+    // it. A genuinely dangling or ambiguous reference is left unchanged, so its
+    // V-code still fires. Resolution is a pure function of the id set, so the
+    // registry stays deterministic.
+    for p in &mut parsed {
+        for dep in &mut p.fm.depends_on {
+            *dep = resolve_spec_ref(dep, &all_ids);
+        }
+        if let Some(by) = p.fm.superseded_by.as_mut() {
+            *by = resolve_spec_ref(by, &all_ids);
+        }
+    }
+
     // --- per-spec validation + record construction ---
     let mut records: Vec<SpecRecord> = Vec::new();
     for p in parsed {
@@ -319,6 +334,26 @@ fn build_record(fm: Frontmatter, spec_path: String, body: &str) -> SpecRecord {
         amendment_record: fm.amendment_record,
         origin: fm.origin,
         extra_frontmatter: fm.extra_frontmatter,
+    }
+}
+
+/// Resolve a short spec reference (`109`) to the full id (`109-slug`) by its
+/// leading numeric segment, when exactly one spec matches. An exact id, an
+/// ambiguous prefix, or no match returns the input unchanged (so V-008/V-010
+/// still fire on a genuinely dangling reference). Mirrors the indexer's
+/// `resolve_id` (spec 004) so compile-time and index-time resolution agree;
+/// kept local to avoid coupling the compile gate (001) to the indexer's file.
+fn resolve_spec_ref(short: &str, all_ids: &std::collections::BTreeSet<String>) -> String {
+    if all_ids.contains(short) {
+        return short.to_string();
+    }
+    let matches: Vec<&String> = all_ids
+        .iter()
+        .filter(|id| id.split('-').next() == Some(short))
+        .collect();
+    match matches.as_slice() {
+        [only] => (*only).clone(),
+        _ => short.to_string(),
     }
 }
 

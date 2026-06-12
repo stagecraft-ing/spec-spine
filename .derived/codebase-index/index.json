@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "bc3bfc8472dd56a49b87bb19549f741f17d3270dcc6e0decae576b706be3fe32",
+    "contentHash": "2fcc2d3e8d01987f71f9236c3fe00e71e40c2161deb5f965ef8d209244ea7cbc",
     "indexerId": "spec-spine",
     "indexerVersion": "0.2.0",
     "repoRoot": "."
@@ -1610,6 +1610,51 @@
           }
         ],
         "specId": "015-establishes-wrapper-na-alias",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "001-compile-registry"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-core/src/compile.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/tests/compile.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/compile.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/compile.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/tests/compile.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/tests/compile.rs"
+            }
+          }
+        ],
+        "specId": "016-short-id-resolution",
         "specStatus": "draft"
       }
     ],
