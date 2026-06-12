@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.2.0",
-    "contentHash": "0680d4d3508e790e1d569e4b25bdcd80b509e6c5dcb53a11b1eb58e6e48f1bd4",
+    "contentHash": "351f33e0a59799d43e73a5f875bcb65a7a38a5dc0be6faa874d774380cc2280a",
     "inputRoot": "."
   },
   "specVersion": "0.2.0",
@@ -786,6 +786,73 @@
       "status": "draft",
       "summary": "Widens the value domain of DECLARED extra-frontmatter keys (`config.frontmatter.extra_known_keys`) from scalars + string-lists to any JSON-representable YAML value (nested maps, mixed lists), carried verbatim into SpecRecord.extra_frontmatter under canonical-JSON normalization. Undeclared keys keep the existing scalar/string-list restriction and the V-007 cap -- the anti-bulk-YAML guard is untouched. Registry schema MINOR. This is the load-bearing half of the overlay contract: overlays cannot consume domain frontmatter the compiler drops.\n",
       "title": "Frontmatter: declared extra keys carry arbitrary YAML, verbatim"
+    },
+    {
+      "created": "2026-06-11",
+      "dependsOn": [
+        "001-compile-registry"
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/edges.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/compile.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/frontmatter.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/tests/grammar.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/tests/compile.rs"
+          }
+        }
+      ],
+      "id": "014-edge-paths-grammar-sugar",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "014: `paths:` list sugar on extends/refines items",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 Accepted forms",
+        "3.2 Normalization (the sugar never escapes)",
+        "3.3 Equivalence guarantee",
+        "3.4 Tests (minimum)",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/014-edge-paths-grammar-sugar/spec.md",
+      "status": "draft",
+      "summary": "Authoring sugar for the predecessor dialect: an `extends:` or `refines:` item may declare `paths: [<file>, ...]` instead of a single `unit:`; the compiler expands each path to a file unit at parse time, emitting N normalized single-unit edges into the registry. Consumers see exactly one edge shape -- `paths:` never reaches registry.json. `unit:` and `paths:` on the same item is malformed (V-002). Unblocks adopting a corpus authored in the OAP dialect (140+ extends-bearing specs) without a mass frontmatter migration.\n",
+      "title": "Edge grammar: `paths:` list sugar on extends/refines items"
     }
   ],
   "validation": {

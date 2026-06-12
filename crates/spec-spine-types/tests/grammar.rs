@@ -95,10 +95,64 @@ fn extends_item_parses() {
 }
 
 #[test]
-fn legacy_paths_field_on_edge_is_rejected() {
-    // deny_unknown_fields on edge items: the retired `paths:` form fails loudly.
+fn extends_paths_sugar_expands_to_file_units() {
+    // Spec 014 §3.1/§3.2: the predecessor dialect's `paths:` list is sugar
+    // for N single-unit items, expanded at parse time in authored order.
+    let fm = fm_with_edges(
+        "extends:\n  - { spec: \"000-x\", paths: [\"a.rs\", \"src/api/\"], nature: additive }\n",
+    );
+    assert_eq!(fm.extends.len(), 2);
+    assert_eq!(
+        fm.extends[0].unit,
+        Some(Unit::File {
+            path: "a.rs".into()
+        })
+    );
+    assert_eq!(fm.extends[0].nature.as_deref(), Some("additive"));
+    // Directory form (trailing slash) is plain file-unit semantics.
+    assert_eq!(
+        fm.extends[1].unit,
+        Some(Unit::File {
+            path: "src/api/".into()
+        })
+    );
+    assert!(
+        fm.extends.iter().all(|e| e.paths.is_none()),
+        "the sugar never escapes the parser"
+    );
+}
+
+#[test]
+fn refines_paths_sugar_expands_symmetrically() {
+    let fm = fm_with_edges(
+        "refines:\n  - { aspect: \"determinism\", refines_specs: [\"001-a\"], paths: [\"a.rs\", \"b.rs\"] }\n",
+    );
+    assert_eq!(fm.refines.len(), 2);
+    for r in &fm.refines {
+        assert_eq!(r.aspect, "determinism");
+        assert_eq!(r.refines_specs, vec!["001-a".to_string()]);
+        assert!(r.paths.is_none());
+    }
+}
+
+#[test]
+fn unit_and_paths_together_is_rejected() {
     let src = "---\nid: x\ntitle: t\nstatus: draft\ncreated: \"2026-06-08\"\nsummary: s\n\
-extends:\n  - { spec: \"000\", paths: [\"a.rs\"] }\n---\n";
+extends:\n  - { spec: \"000-x\", unit: \"a.rs\", paths: [\"b.rs\"] }\n---\n";
+    assert!(parse_frontmatter(src).is_err());
+}
+
+#[test]
+fn empty_paths_list_is_rejected() {
+    let src = "---\nid: x\ntitle: t\nstatus: draft\ncreated: \"2026-06-08\"\nsummary: s\n\
+refines:\n  - { aspect: \"a\", paths: [] }\n---\n";
+    assert!(parse_frontmatter(src).is_err());
+}
+
+#[test]
+fn non_string_paths_entry_is_rejected() {
+    let src = "---\nid: x\ntitle: t\nstatus: draft\ncreated: \"2026-06-08\"\nsummary: s\n\
+extends:\n  - { spec: \"000-x\", paths: [{ kind: file, path: \"a.rs\" }] }\n---\n";
     assert!(parse_frontmatter(src).is_err());
 }
 

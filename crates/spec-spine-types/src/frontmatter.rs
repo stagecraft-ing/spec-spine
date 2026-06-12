@@ -288,6 +288,16 @@ pub fn parse_frontmatter_with(
         frontmatter.extra_frontmatter.insert(key.to_string(), json);
     }
 
+    // `paths:` sugar on extends/refines items (spec 014): expanded here, in
+    // the shared parse path, so every consumer (compile, index, lint, couple)
+    // sees only single-unit edges.
+    frontmatter.extends =
+        crate::edges::expand_extend_paths(std::mem::take(&mut frontmatter.extends))
+            .map_err(malformed)?;
+    frontmatter.refines =
+        crate::edges::expand_refine_paths(std::mem::take(&mut frontmatter.refines))
+            .map_err(malformed)?;
+
     Ok(frontmatter)
 }
 
