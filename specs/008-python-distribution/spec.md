@@ -36,7 +36,7 @@ summary: >
   second Rust build), are byte-reproducible, and are version-locked to the tag.
 ---
 
-# 008: Distribution — uvx/PyPI wheel shim
+# 008: Distribution, uvx/PyPI wheel shim
 
 ## 1. Purpose
 
@@ -116,7 +116,7 @@ JS `bin` resolves the platform package and exec's the binary. A Python wheel can
 put a binary on PATH directly (the `*.data/scripts/` convention), so the launcher
 disappears: the binary IS the installed `spec-spine` command. The launcher
 contract from 007 §3.3 (forward argv, forward exit code, surface signals, nothing
-on the success path) is satisfied trivially because nothing intermediates — the
+on the success path) is satisfied trivially because nothing intermediates: the
 process the user invokes is the binary.
 
 ### 3.4 Unsupported hosts fail clearly
@@ -130,7 +130,7 @@ prebuilt binary for it, and points at the source build:
     cargo install spec-spine-cli
 
 This is the exact posture of 007 §3.4 / npm's unsupported-host message. The
-sdist is reached two ways — no matching wheel, or an explicit `--no-binary` — and
+sdist is reached two ways (no matching wheel, or an explicit `--no-binary`) and
 the message covers both (musl gets an extra Alpine hint; an explicit `--no-binary`
 on a supported host gets a "reinstall allowing wheels" hint). It exits non-zero.
 
@@ -148,7 +148,7 @@ installed metadata, and the sdist's pyproject is the only declared copy.
 `release.yml` gains a `publish-pypi` job parallel to `publish-npm` (007 §3.6):
 
 - It **reuses the build job's archives** (`download-artifact` of `archive-*`),
-  exactly like publish-npm — there is no second Rust build for Python.
+  exactly like publish-npm; there is no second Rust build for Python.
 - It runs `generate_wheels.py --archives <dist> --build-sdist` to assemble the
   five wheels and the sdist, then uploads them.
 - It is **idempotent**: re-running a tag skips artifacts already on PyPI
@@ -180,3 +180,9 @@ installed metadata, and the sdist's pyproject is the only declared copy.
   for that reason. Recorded here so the choice is not relitigated silently.
 - **An enterprise/private index.** The channel targets public PyPI; a private
   index is a deployment concern, not a property of this shim.
+
+## Release log
+
+- **0.3.0 (2026-06-12).** Version-lock bump in step with 007's 0.3.0
+  grammar-completion release (specs 017–019). The wheels and sdist track the
+  0.3.0 tag per §3.5; no PyPI-shim mechanics change.

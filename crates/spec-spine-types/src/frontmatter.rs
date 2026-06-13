@@ -16,7 +16,9 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::edges::{CoAuthorityItem, ConstrainItem, ExtendItem, Origin, ReferenceItem, RefineItem};
+use crate::edges::{
+    CoAuthorityItem, ConstrainItem, ExtendItem, Origin, ReferenceItem, RefineItem, SupersedeItem,
+};
 use crate::error::{Error, Result};
 use crate::unit::Unit;
 
@@ -60,10 +62,10 @@ pub enum Implementation {
 /// (spec 013 §3.3).
 #[derive(Clone, Debug)]
 pub enum FrontmatterIssue {
-    /// Malformed YAML or a grammar violation — the V-002 class.
+    /// Malformed YAML or a grammar violation: the V-002 class.
     Malformed(String),
     /// A DECLARED extra key whose value JSON cannot represent (non-string
-    /// mapping key, YAML tag, non-finite number) — the V-013 class.
+    /// mapping key, YAML tag, non-finite number): the V-013 class.
     UnrepresentableDeclared { key: String, detail: String },
 }
 
@@ -157,7 +159,7 @@ pub struct Frontmatter {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub refines: Vec<RefineItem>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub supersedes: Vec<String>,
+    pub supersedes: Vec<SupersedeItem>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub amends: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -301,12 +303,17 @@ pub fn parse_frontmatter_with(
     frontmatter.refines =
         crate::edges::expand_refine_paths(std::mem::take(&mut frontmatter.refines))
             .map_err(malformed)?;
+    // Full-scope supersedes (`{ scope: full }` / bare id) collapse to the
+    // bare-string form so the wire stays byte-identical for full-only corpora
+    // (spec 019).
+    frontmatter.supersedes =
+        crate::edges::normalize_supersedes(std::mem::take(&mut frontmatter.supersedes));
 
     Ok(frontmatter)
 }
 
 /// The UNDECLARED-key path: scalars and string lists only (`Null` drops the
-/// key); a nested map, mixed list, or tag is a grammar violation — exactly
+/// key); a nested map, mixed list, or tag is a grammar violation, exactly
 /// the pre-013 guard.
 fn yaml_to_extra(v: &serde_yaml::Value) -> std::result::Result<serde_json::Value, String> {
     use serde_yaml::Value;
@@ -346,7 +353,7 @@ fn yaml_to_extra(v: &serde_yaml::Value) -> std::result::Result<serde_json::Value
 /// The DECLARED-key path (spec 013 §3.2): full YAML → JSON conversion.
 /// Mappings require string keys; tags and non-finite numbers are
 /// unrepresentable. Map key order is canonicalized by the sorted
-/// `serde_json::Map` (authoring order is not preserved — the price of
+/// `serde_json::Map` (authoring order is not preserved: the price of
 /// byte-identical registries).
 fn yaml_to_json(v: &serde_yaml::Value) -> std::result::Result<serde_json::Value, String> {
     use serde_yaml::Value;

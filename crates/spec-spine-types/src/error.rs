@@ -3,7 +3,7 @@
 //! Every variant maps to a stable CLI exit code (see [`Error::exit_code`]); the
 //! CLI is the only place that translates an `Error` into a process exit. Inside
 //! the library we never `panic!` on user input, never `process::exit`, and never
-//! `println!` data — those belong only in the CLI crate.
+//! `println!` data; those belong only in the CLI crate.
 //!
 //! Exit-code contract (see `docs/design/00-architecture.md` §6):
 //! `0` ok, `1` validation failure / not found, `2` stale,

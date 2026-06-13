@@ -55,7 +55,7 @@ fn adoption_loop_with_non_default_namespace_and_domains() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
 
-    // Non-default namespace + a custom domain allowlist — written before init so
+    // Non-default namespace + a custom domain allowlist, written before init so
     // the scaffolder and every command read them.
     write(
         root,

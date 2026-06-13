@@ -32,6 +32,108 @@ impl SymbolIndex {
     }
 }
 
+/// A resolved Rust module index (spec 017): `::`-qualified module path → physical
+/// locations. File-modules resolve whole-file (`span: None`); a top-level inline
+/// `mod X { ... }` block resolves to its block span. TypeScript carries no
+/// analogous module authority unit in the corpus, so this is Rust-only.
+#[derive(Debug, Default)]
+pub struct ModuleIndex {
+    map: BTreeMap<String, Vec<ResolvedLocation>>,
+}
+
+impl ModuleIndex {
+    /// Locations for module `id` (empty if unknown).
+    pub fn resolve(&self, id: &str) -> Vec<ResolvedLocation> {
+        self.map.get(id).cloned().unwrap_or_default()
+    }
+}
+
+/// Build the Rust module index across all Rust packages. Deterministic: packages
+/// and files are processed in sorted order and every id's locations are sorted.
+pub fn build_module_index(
+    repo_root: &Path,
+    packages: &[PackageRecord],
+    exclusions: &[String],
+) -> ModuleIndex {
+    let mut map: BTreeMap<String, Vec<ResolvedLocation>> = BTreeMap::new();
+    for pkg in packages {
+        if !matches!(
+            pkg.kind,
+            PackageKind::RustLib | PackageKind::RustBin | PackageKind::RustLibBin
+        ) {
+            continue;
+        }
+        let crate_name = pkg.name.replace('-', "_");
+        let src_dir = repo_root.join(&pkg.path).join("src");
+        for file in walk_files(&src_dir, &["rs"], repo_root, exclusions) {
+            let Ok(content) = fs::read_to_string(&file) else {
+                continue;
+            };
+            let module = rust_module_path(&src_dir, &file);
+            let rel = rel_posix(repo_root, &file);
+            // File-module: the file's own module path → whole file (the crate
+            // root, `lib.rs`/`main.rs`, resolves to the bare crate name).
+            let file_mod_id = qualify_module(&crate_name, &module);
+            map.entry(file_mod_id).or_default().push(ResolvedLocation {
+                file: rel.clone(),
+                span: None,
+            });
+            // Top-level inline `mod X { ... }` blocks → block span.
+            for (name, span) in extract_inline_mods(&content) {
+                let mut path = module.clone();
+                path.push(name);
+                let id = qualify_module(&crate_name, &path);
+                map.entry(id).or_default().push(ResolvedLocation {
+                    file: rel.clone(),
+                    span: Some(span),
+                });
+            }
+        }
+    }
+    for locs in map.values_mut() {
+        locs.sort_by(|a, b| {
+            (a.file.as_str(), a.span.map(|s| s.start_line))
+                .cmp(&(b.file.as_str(), b.span.map(|s| s.start_line)))
+        });
+        locs.dedup();
+    }
+    ModuleIndex { map }
+}
+
+/// `crate::seg::…::seg` for a module path; the crate root is the bare crate name.
+fn qualify_module(crate_name: &str, module: &[String]) -> String {
+    let mut parts = Vec::with_capacity(module.len() + 1);
+    parts.push(crate_name.to_string());
+    parts.extend(module.iter().cloned());
+    parts.join("::")
+}
+
+/// Top-level `mod X { ... }` blocks (those with a body) and their spans. A
+/// bodyless `mod X;` is skipped: the file-module entry for its file covers it.
+fn extract_inline_mods(src: &str) -> Vec<(String, LineSpan)> {
+    let mut parser = Parser::new();
+    if parser
+        .set_language(&tree_sitter_rust::LANGUAGE.into())
+        .is_err()
+    {
+        return Vec::new();
+    }
+    let Some(tree) = parser.parse(src, None) else {
+        return Vec::new();
+    };
+    let root = tree.root_node();
+    let mut out = Vec::new();
+    let mut cursor = root.walk();
+    for child in root.named_children(&mut cursor) {
+        if child.kind() == "mod_item" && child.child_by_field_name("body").is_some() {
+            if let Some(sym) = symbol_of(child, src) {
+                out.push(sym);
+            }
+        }
+    }
+    out
+}
+
 /// Build the symbol index across all packages. Deterministic: packages and
 /// files are processed in sorted order and every id's locations are sorted.
 pub fn build_symbol_index(

@@ -15,13 +15,13 @@ pip install spec-spine        # or into a project/venv
 This is a **binary distribution**, not a Python binding. There is no native
 extension and the engine is never called from Python. The project publishes:
 
-- **five platform wheels** — one per supported target, each carrying the prebuilt
+- **five platform wheels**, one per supported target, each carrying the prebuilt
   `spec-spine` binary in the wheel's scripts directory. pip/uv select the one
   matching your host by its platform tag and install the binary onto `PATH`. On a
   supported host there is **no Python in the run path and no network at install**
   beyond fetching the wheel itself; it works offline from a warm cache or a
   private mirror, and under `--no-binary`-free resolution.
-- **one sdist** — the unsupported-host fallback. It builds only when no wheel
+- **one sdist**, the unsupported-host fallback. It builds only when no wheel
   matches (musl/Alpine, win-arm64, 32-bit), and its `spec-spine` command prints a
   clear message pointing at `cargo install spec-spine-cli`.
 

@@ -1,4 +1,4 @@
-//! `spec-spine` — the multi-call CLI. A thin wrapper over `spec-spine-core`:
+//! `spec-spine`: the multi-call CLI. A thin wrapper over `spec-spine-core`:
 //! it parses args, loads config, calls the engine, prints results, and maps the
 //! typed `Error` to a stable process exit code. All `process::exit`, stdout, and
 //! `git`/clock side effects live here, never in the library.

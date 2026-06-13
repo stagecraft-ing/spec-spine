@@ -3,7 +3,7 @@
 //!
 //! `couple_with` is a pure function of `(config, registry, index, diff, waiver)`;
 //! `couple` is the freshness-guarded form that loads the committed artifacts.
-//! **`git` never runs here** — the CLI parses `git diff --no-color -U0
+//! **`git` never runs here**: the CLI parses `git diff --no-color -U0
 //! base...head` into a typed [`DiffInput`] and passes it in.
 //!
 //! The behavioral semantics are ported intact from OAP
@@ -23,9 +23,9 @@ use spec_spine_types::{CodebaseIndex, Config, Error, LineSpan, Registry, Severit
 use crate::index::{Freshness, check_index_freshness};
 use crate::query::{load_index, load_registry};
 
-/// The hardcoded generic bypass floor (spec 005 §3.5) — the **single built-in
+/// The hardcoded generic bypass floor (spec 005 §3.5): the **single built-in
 /// source** of bypass entries. The adopter's `config.coupling.bypass_prefixes`
-/// (default **empty**) is unioned with this — it is **additive and cannot remove
+/// (default **empty**) is unioned with this; it is **additive and cannot remove
 /// a floor entry** (ported from OAP `BYPASS_PREFIXES`, pruned to the generic
 /// subset). Match rules: trailing `/` ⇒ directory prefix; leading `**/` ⇒
 /// tail-suffix anywhere; else exact file.
@@ -53,7 +53,7 @@ pub struct DiffInput {
 }
 
 /// One changed file with its new-side hunk spans. **Empty `hunks`** denotes a
-/// whole-file change (a deletion, or `--paths-from` mode) — it overlaps every
+/// whole-file change (a deletion, or `--paths-from` mode): it overlaps every
 /// unit span.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -95,7 +95,7 @@ impl CoupleReport {
     }
 }
 
-/// Freshness-guarded coupling. Refuses a stale index (exit 2 — recompute first),
+/// Freshness-guarded coupling. Refuses a stale index (exit 2, recompute first),
 /// then loads the committed `registry.json` + `index.json` from `derived_dir`
 /// and delegates to [`couple_with`].
 pub fn couple(
@@ -129,7 +129,7 @@ pub fn couple_with(
 
     for file in &diff.files {
         let path = &file.path;
-        // Effective bypass = hardcoded floor ∪ adopter list (additive) —
+        // Effective bypass = hardcoded floor ∪ adopter list (additive),
         // UNLESS an explicit, resolved unit claim covers the path, which
         // takes precedence over the entire bypass set (spec 009, amending
         // 005 §3.5). The corpus saying "this surface is governed" beats the
@@ -144,7 +144,7 @@ pub fn couple_with(
 
         let owners = owners_for_path(path, &file.hunks, index, &superseders);
         if owners.is_empty() {
-            continue; // unclaimed path — not a coupling concern
+            continue; // unclaimed path, not a coupling concern
         }
         if any_owner_in_diff(&owners, &diff_paths) {
             continue; // primary-owner heuristic: any one owner's spec.md cleared it
@@ -172,7 +172,7 @@ pub fn couple_with(
 }
 
 /// The effective bypass verdict for one path: hardcoded floor ∪ adopter list
-/// (additive), with explicit unit claims taking precedence (spec 009) —
+/// (additive), with explicit unit claims taking precedence (spec 009),
 /// exactly as [`couple_with`] applies it. Public so the CLI's
 /// dependency-only auto-waiver pre-filter (spec 005 §3.5) examines the same
 /// non-bypassed path set the gate itself will check; the claim-awareness is
@@ -185,7 +185,7 @@ pub fn is_bypassed_path(cfg: &Config, index: &CodebaseIndex, path: &str) -> bool
 }
 
 /// Spec 009 §3.1: true iff at least one **resolved, ownership-bearing unit
-/// claim** covers `path` — a location file matching exactly, or by directory
+/// claim** covers `path`: a location file matching exactly, or by directory
 /// prefix for a directory-form file unit (004 §3.3). Implicit path-level
 /// ownership (manifest metadata, comment headers → `implementingPaths`)
 /// deliberately does NOT count (§3.2): an explicit unit in spec frontmatter
@@ -251,7 +251,7 @@ fn owners_for_path(
     }
 
     // 2. Supersedes transfer: a successor inherits its predecessor's authority
-    //    (with the same span). Additive — the predecessor is not removed.
+    //    (with the same span). Additive: the predecessor is not removed.
     let mut transferred: Vec<(String, Option<LineSpan>)> = Vec::new();
     for (owner, span) in &candidates {
         for succ in transitive_superseders(owner, superseders) {
@@ -270,7 +270,7 @@ fn owners_for_path(
         }
     }
 
-    // 4. Amends-awareness — only when the base owner set is non-empty (FR-005
+    // 4. Amends-awareness, only when the base owner set is non-empty (FR-005
     //    strict-expansion guard) and the path is `specs/<id>/spec.md`.
     if !owners.is_empty() {
         if let Some(amended_id) = spec_id_for_spec_md_path(path) {
@@ -291,7 +291,7 @@ fn owners_for_path(
 }
 
 /// True when at least one owner's `specs/<id>/spec.md` is in the diff (the
-/// primary-owner heuristic — ported from OAP `OwnerSet::any_owner_in_diff`).
+/// primary-owner heuristic, ported from OAP `OwnerSet::any_owner_in_diff`).
 fn any_owner_in_diff(owners: &BTreeSet<String>, diff_paths: &BTreeSet<String>) -> bool {
     owners
         .iter()
@@ -299,13 +299,22 @@ fn any_owner_in_diff(owners: &BTreeSet<String>, diff_paths: &BTreeSet<String>) -
 }
 
 /// Direct `predecessor → {superseders}` map from the registry's `supersedes`.
+///
+/// Only **full** supersession contributes a whole-spec authority transfer (spec
+/// 019). A **partial** item transfers authority over a single unit only: that
+/// is threaded through the index instead, as a `SourceField::Supersedes`
+/// resolved unit owned by the superseder, so it is already an owner of that
+/// unit's paths via `owners_for_path` step 1 and must NOT also inherit the
+/// predecessor's entire surface here.
 fn build_superseders(registry: &Registry) -> BTreeMap<String, BTreeSet<String>> {
     let mut map: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for spec in &registry.specs {
-        for predecessor in &spec.supersedes {
-            map.entry(predecessor.clone())
-                .or_default()
-                .insert(spec.id.clone());
+        for item in &spec.supersedes {
+            if item.is_full() {
+                map.entry(item.spec().to_string())
+                    .or_default()
+                    .insert(spec.id.clone());
+            }
         }
     }
     map

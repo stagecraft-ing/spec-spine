@@ -1,5 +1,5 @@
 //! The render capability (spec 011): deterministic, human-shaped projections
-//! of the **committed** `index.json`. Pure read-side — never recomputes the
+//! of the **committed** `index.json`. Pure read-side: never recomputes the
 //! index, never consults the working tree, never signals staleness
 //! (recomputation is `index`, freshness is `index check`; three verbs, three
 //! jobs). Output is a pure function of `(config, index)`: byte-identical
@@ -30,7 +30,7 @@ pub fn orphans(index: &CodebaseIndex) -> Vec<&str> {
 pub fn render_markdown(config: &Config, index: &CodebaseIndex) -> String {
     let mut out = String::new();
 
-    // 1. Header — traceable to the exact artifact that produced it.
+    // 1. Header, traceable to the exact artifact that produced it.
     let _ = writeln!(out, "# {} codebase index", config.branding.indexer_id);
     out.push('\n');
     let _ = writeln!(out, "- schemaVersion: {}", index.schema_version);

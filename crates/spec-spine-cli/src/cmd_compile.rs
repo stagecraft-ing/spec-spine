@@ -1,4 +1,4 @@
-//! `spec-spine compile` — write `registry.json` (deterministic) and
+//! `spec-spine compile`: write `registry.json` (deterministic) and
 //! `build-meta.json` (wall-clock sidecar) under `<derived_dir>/spec-registry/`.
 
 use std::fs;
@@ -23,7 +23,7 @@ pub fn run(repo: &Path) -> Result<u8, Error> {
     fs::write(&registry_path, &outcome.json)
         .map_err(|e| Error::Io(format!("write {}: {e}", registry_path.display())))?;
 
-    // build-meta.json carries the wall clock — the CLI owns it. Excluded from
+    // build-meta.json carries the wall clock; the CLI owns it. Excluded from
     // determinism/golden checks and from version control (see .gitignore).
     let meta = BuildMeta {
         schema_version: BUILD_META_SCHEMA_VERSION.to_string(),

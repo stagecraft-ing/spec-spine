@@ -1,4 +1,4 @@
-"""spec-spine — Python/uvx distribution.
+"""spec-spine: Python/uvx distribution.
 
 On a supported host you never import this package: pip/uv select a platform
 wheel whose only payload is the prebuilt `spec-spine` binary in the wheel's

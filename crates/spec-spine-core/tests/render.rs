@@ -1,5 +1,5 @@
 //! Golden tests for the spec 011 projections: the rendered markdown is a pure
-//! function of `(config, index.json bytes)` — byte-exact, LF endings, trailing
+//! function of `(config, index.json bytes)`: byte-exact, LF endings, trailing
 //! newline. Fixtures go through `load_index` so the wire shapes are exercised
 //! end to end.
 

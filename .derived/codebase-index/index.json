@@ -1,8 +1,8 @@
 {
   "build": {
-    "contentHash": "2fcc2d3e8d01987f71f9236c3fe00e71e40c2161deb5f965ef8d209244ea7cbc",
+    "contentHash": "195c70c153912314bab2b2d96a124d2242b54f08bf900a31417fa9d5b7a1d5d1",
     "indexerId": "spec-spine",
-    "indexerVersion": "0.2.0",
+    "indexerVersion": "0.3.0",
     "repoRoot": "."
   },
   "diagnostics": {
@@ -33,10 +33,10 @@
       "name": "spec-spine",
       "path": "npm",
       "specRef": "007-distribution",
-      "version": "0.2.0"
+      "version": "0.3.0"
     }
   ],
-  "schemaVersion": "0.2.0",
+  "schemaVersion": "0.3.0",
   "traceability": {
     "mappings": [
       {
@@ -1655,6 +1655,500 @@
           }
         ],
         "specId": "016-short-id-resolution",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "004-codebase-index"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-core/src/index.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/symbols.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/tests/index.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/unit.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/version.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/tests/dtos.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/tests/grammar.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/index.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/index.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/symbols.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/symbols.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/tests/index.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/tests/index.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/unit.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/unit.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/version.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/version.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/tests/dtos.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/tests/dtos.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/tests/grammar.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/tests/grammar.rs"
+            }
+          }
+        ],
+        "specId": "017-directory-crate-module-units",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "001-compile-registry",
+          "004-codebase-index"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-core/src/compile.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/index.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/tests/compile.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/tests/index.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/edges.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/tests/grammar.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/compile.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/compile.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/index.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/index.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/tests/compile.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/tests/compile.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/tests/index.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/tests/index.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/edges.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/edges.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/tests/grammar.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/tests/grammar.rs"
+            }
+          }
+        ],
+        "specId": "018-constrains-discriminator-optional-unit",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "001-compile-registry",
+          "005-coupling-gate"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-core/src/compile.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/couple.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/index.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/lint.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/query.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/tests/compile.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/tests/couple.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/edges.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/frontmatter.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/lib.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/registry.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/version.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/tests/dtos.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/tests/grammar.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/compile.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/compile.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/couple.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/couple.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/index.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/index.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/lint.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/lint.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/query.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/query.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/tests/compile.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/tests/compile.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/tests/couple.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/tests/couple.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/edges.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/edges.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/frontmatter.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/frontmatter.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/lib.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/registry.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/registry.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/version.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/version.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/tests/dtos.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/tests/dtos.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/tests/grammar.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/tests/grammar.rs"
+            }
+          }
+        ],
+        "specId": "019-structured-partial-supersedes",
         "specStatus": "draft"
       }
     ],

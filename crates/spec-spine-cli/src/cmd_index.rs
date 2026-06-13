@@ -1,5 +1,5 @@
-//! `spec-spine index` — write `index.json`; `spec-spine index check` — staleness;
-//! `spec-spine index render` / `index orphans` — read-side projections of the
+//! `spec-spine index`: write `index.json`; `spec-spine index check`: staleness;
+//! `spec-spine index render` / `index orphans`: read-side projections of the
 //! committed artifact (spec 011; never recompute, never check freshness).
 
 use std::fs;

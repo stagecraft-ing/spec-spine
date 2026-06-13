@@ -1,4 +1,4 @@
-//! Scaffold tests (spec 006): the generated corpus is well-formed — a scaffolded
+//! Scaffold tests (spec 006): the generated corpus is well-formed; a scaffolded
 //! repo compiles and lints clean, proving the adoption loop works with zero
 //! library edits.
 

@@ -10,8 +10,8 @@
 
 | Artifact | Field | Current | Owner |
 |---|---|---|---|
-| `registry.json` | `specVersion` | `0.2.0` | library |
-| `index.json` | `schemaVersion` | `0.2.0` | library |
+| `registry.json` | `specVersion` | `0.3.0` | library |
+| `index.json` | `schemaVersion` | `0.3.0` | library |
 | `build-meta.json` | `schemaVersion` | `0.1.0` | library (non-deterministic; excluded from goldens) |
 | `spec-spine.toml` | `config_version` (optional) | `0.1.0` | library |
 
@@ -25,6 +25,15 @@ MINOR history:
   (`serde_json::Value`) are untouched; readers that assumed the narrow shape
   were depending on an undocumented restriction. Undeclared keys keep the
   narrow shape.
+- `index.json` `0.3.0` (spec 017): additive `directory` / `crate` / `module`
+  resolved-unit kinds. The payload is schema-permissive, so the bump is the
+  version const alone; readers that handled only `file`/`section`/`symbol`
+  see new `kind` values in `resolvedUnits[].unit`.
+- `registry.json` `0.3.0` (spec 019): a `supersedes` item may be a structured
+  object (`{ spec, scope, unit? }`) as well as a bare id. Full supersession
+  still emits a bare string, so a full-only corpus is byte-identical; only a
+  `partial` item emits an object. Readers that assumed `supersedes: string[]`
+  must accept `string | object` entries.
 
 Each is a **compile-time `const`** in `spec-spine-types`
 (`REGISTRY_SCHEMA_VERSION`, `INDEX_SCHEMA_VERSION`, `BUILD_META_SCHEMA_VERSION`,

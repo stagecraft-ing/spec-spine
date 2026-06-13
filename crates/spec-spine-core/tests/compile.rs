@@ -131,6 +131,77 @@ fn v004_duplicate_prefix() {
 }
 
 #[test]
+fn supersedes_full_emits_bare_string_partial_emits_object() {
+    // Spec 019: a full supersedes (bare id or `{ scope: full }`) serializes as a
+    // bare predecessor id, byte-stable wire; a partial item serializes as an
+    // object carrying its scope and unit.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(tmp.path(), "001-old", "001-old", "");
+    write_spec(tmp.path(), "002-mid", "002-mid", "");
+    write_spec(
+        tmp.path(),
+        "003-new",
+        "003-new",
+        "supersedes:\n  - \"001-old\"\n  - { spec: \"002-mid\", scope: full }\n  - { spec: \"002-mid\", scope: partial, unit: \"src/x.rs\" }\n",
+    );
+    let outcome = compile(&Config::default(), tmp.path()).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&outcome.json).unwrap();
+    let three = v["specs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|s| s["id"] == "003-new")
+        .unwrap();
+    let sup = three["supersedes"].as_array().unwrap();
+    // Both full forms collapse to bare strings.
+    assert_eq!(sup[0], serde_json::json!("001-old"));
+    assert_eq!(sup[1], serde_json::json!("002-mid"));
+    // The partial form is an object carrying scope + unit.
+    assert_eq!(sup[2]["spec"], "002-mid");
+    assert_eq!(sup[2]["scope"], "partial");
+    assert_eq!(sup[2]["unit"]["path"], "src/x.rs");
+}
+
+#[test]
+fn v011_constrains_item_must_scope_unit_or_target_specs() {
+    // Spec 018: a constrains item with neither a unit nor target_specs scopes
+    // nothing: V-011.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(
+        tmp.path(),
+        "001-x",
+        "001-x",
+        "constrains:\n  - flavor: dangling\n",
+    );
+    let c = codes(&compile(&Config::default(), tmp.path()).unwrap());
+    assert!(c.contains(&"V-011".to_string()), "codes: {c:?}");
+}
+
+#[test]
+fn constrains_scoped_forms_compile_clean() {
+    // Spec 018: path-scoped (flavor + unit) and spec-scoped (kind + target_specs)
+    // both clear V-011. File-unit existence is the indexer's concern, not compile.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(
+        tmp.path(),
+        "001-fz",
+        "001-fz",
+        "constrains:\n  - { flavor: invariant-freeze, unit: \"src/x.rs\" }\n",
+    );
+    write_spec(
+        tmp.path(),
+        "002-sq",
+        "002-sq",
+        "constrains:\n  - { kind: sequencing-plan, target_specs: [\"001-fz\"] }\n",
+    );
+    let c = codes(&compile(&Config::default(), tmp.path()).unwrap());
+    assert!(
+        !c.contains(&"V-011".to_string()),
+        "no V-011 expected: {c:?}"
+    );
+}
+
+#[test]
 fn v002_malformed_frontmatter_is_recorded_not_fatal() {
     let tmp = tempfile::tempdir().unwrap();
     // Missing required `summary`.

@@ -1,11 +1,11 @@
 {
   "build": {
     "compilerId": "spec-spine",
-    "compilerVersion": "0.2.0",
-    "contentHash": "c31f6bfe16eb42af2e874c30db0a088062f1ce29d5b2edf1421027541e4ce110",
+    "compilerVersion": "0.3.0",
+    "contentHash": "1af1269ea00b9469bf66935cf41dd5411d4ccc336d3cce89499b1e5ecb1d159b",
     "inputRoot": "."
   },
-  "specVersion": "0.2.0",
+  "specVersion": "0.3.0",
   "specs": [
     {
       "authors": [
@@ -442,7 +442,7 @@
       "kind": "tooling",
       "owner": "The spec-spine Authors",
       "sectionHeadings": [
-        "008: Distribution — uvx/PyPI wheel shim",
+        "008: Distribution, uvx/PyPI wheel shim",
         "1. Purpose",
         "2. Territory",
         "3. Behavior",
@@ -452,7 +452,8 @@
         "3.4 Unsupported hosts fail clearly",
         "3.5 Version lock",
         "3.6 Release integration",
-        "4. Out of scope"
+        "4. Out of scope",
+        "Release log"
       ],
       "specPath": "specs/008-python-distribution/spec.md",
       "status": "approved",
@@ -1019,6 +1020,307 @@
       "status": "draft",
       "summary": "Lets a `depends_on` or `superseded_by` reference name its target by the leading spec number alone (`109`) and have the compiler resolve it to the full id (`109-slug`) when exactly one spec matches that number, rewriting the reference before validation and emission. An exact id, an ambiguous number, or a number matching nothing is left unchanged, so V-008 (superseded_by must resolve) and V-010 (dangling depends_on) still fire on a genuinely broken reference. The resolution policy is the indexer's existing `resolve_id` (spec 004), applied at compile time so the registry and the index agree. Unblocks adopting a corpus that references specs by number (106 specs in the OAP dry-run) without a mass frontmatter migration; a no-op on any corpus that already uses full ids (such as this repo's own).\n",
       "title": "Compile: resolve short spec ids on `depends_on` and `superseded_by`"
+    },
+    {
+      "created": "2026-06-12",
+      "dependsOn": [
+        "004-codebase-index"
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/unit.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/index.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/symbols.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/tests/index.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/tests/grammar.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/version.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/tests/dtos.rs"
+          }
+        }
+      ],
+      "id": "017-directory-crate-module-units",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "017: directory / crate / module authority units",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 Grammar",
+        "3.2 Resolution (in the indexer)",
+        "3.3 Staleness",
+        "3.4 Diagnostic codes",
+        "3.5 Tests (minimum)",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/017-directory-crate-module-units/spec.md",
+      "status": "draft",
+      "summary": "Lifts the v1 unit-grammar limitation (`docs/design/00-architecture.md` §2.2, Q5): the three reserved kinds (`directory`, `crate`, and `module`) are now parsed and resolved alongside `file`/`section`/`symbol`. A `directory` unit resolves to its subtree (existence-checked, I-007 on miss); a `crate` unit resolves a manifest name against the discovered package inventory to that package's directory subtree (I-003 on miss, hyphen/underscore interchangeable); a `module` unit resolves a `::`-qualified Rust module path via a new module index; file-modules whole-file, top-level inline `mod` blocks to their span (I-008 on miss). The registry/index schemas are permissive on the unit payload, so this is an additive MINOR (`INDEX_SCHEMA_VERSION` 0.2.0 → 0.3.0) with no schema-file edit. Unblocks adopting the OAP corpus, which authors these three kinds across ~192 unit declarations (93 `directory`, 99 `crate`, 1 `module`) with no mass frontmatter migration.\n",
+      "title": "Authority units: resolve the reserved directory / crate / module kinds"
+    },
+    {
+      "created": "2026-06-12",
+      "dependsOn": [
+        "001-compile-registry",
+        "004-codebase-index"
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/edges.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/tests/grammar.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/compile.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/tests/compile.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/index.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/tests/index.rs"
+          }
+        }
+      ],
+      "id": "018-constrains-discriminator-optional-unit",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "018: constrains discriminator and optional unit",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 Grammar",
+        "3.2 Index projection",
+        "3.3 Validation: V-011",
+        "3.4 Tests (minimum)",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/018-constrains-discriminator-optional-unit/spec.md",
+      "status": "draft",
+      "summary": "Widens the `constrains` item grammar to the two shapes the predecessor dialect authors: a **path-scoped** constraint (`unit:`, the canonical `invariant-freeze` over a file or schema) and a **spec-scoped** constraint (`target_specs:`, a sequencing/ordering plan over other specs with no code unit). Two changes: `unit` becomes optional, and an optional documentary discriminator is accepted under either spelling `flavor:` or `kind:` (synonyms, not gate-load-bearing). A new V-011 requires every item to scope at least one of `unit` / `target_specs`. A spec-scoped item contributes no resolved unit to the index. Unblocks the OAP corpus, which authors `{ flavor: invariant-freeze, unit }` (spec 130) and `{ kind: <plan>, target_specs }` (specs 078, 089), both rejected by the unit-required, discriminator-less v1 grammar.\n",
+      "title": "Constrains grammar: classification discriminator and optional unit"
+    },
+    {
+      "created": "2026-06-12",
+      "dependsOn": [
+        "001-compile-registry",
+        "005-coupling-gate"
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/edges.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/frontmatter.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/lib.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/tests/grammar.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "000-spec-spine-bootstrap",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/tests/dtos.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/registry.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-types/src/version.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/compile.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "001-compile-registry",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/tests/compile.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "002-registry-query",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/query.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "003-conformance-lint",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/lint.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/index.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "005-coupling-gate",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/couple.rs"
+          }
+        },
+        {
+          "nature": "additive",
+          "spec": "005-coupling-gate",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/tests/couple.rs"
+          }
+        }
+      ],
+      "id": "019-structured-partial-supersedes",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "019: structured and partial supersedes",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 Grammar",
+        "3.2 Normalization & wire (the full form never escapes)",
+        "3.3 Authority transfer",
+        "3.4 Short-id resolution",
+        "3.5 Tests (minimum)",
+        "4. Out of scope"
+      ],
+      "specPath": "specs/019-structured-partial-supersedes/spec.md",
+      "status": "draft",
+      "summary": "Implements Option A from `docs/design/01-partial-supersession.md`: a `supersedes` item may be a bare predecessor id (full) or a structured `{ spec, scope, unit?, note?, rationale? }`. A full item (bare id or `scope: full`) normalizes to the bare-string form, so a full-only corpus emits a byte-identical registry; the wire is unchanged for every existing adopter; only a partial item serializes as an object. `scope: partial` with a `unit` transfers authority over that unit alone (additive, the predecessor keeps it and everything else), threaded through the index as a `supersedes` resolved unit so the gate already treats the successor as an owner of that unit's paths; `build_superseders` therefore contributes only **full** supersession to the whole-spec transfer. A partial item with no unit (a documentary lifecycle marker) transfers nothing. Short ids on the predecessor resolve like `depends_on` (spec 016). Unblocks the OAP corpus shapes 073 (`scope: full`), 108 (bare short id), 114 (`partial` + unit), and 199 (`partial` + note).\n",
+      "title": "Supersedes grammar: structured items and partial (unit-scoped) transfer"
     }
   ],
   "validation": {

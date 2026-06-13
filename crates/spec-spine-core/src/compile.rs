@@ -2,7 +2,7 @@
 //!
 //! Pure function of `(config, file contents)`. Per-spec parse failures are
 //! recorded as error-tier violations rather than aborting the run; `Err` is
-//! reserved for I/O failures. The wall clock is never read here — it lives in
+//! reserved for I/O failures. The wall clock is never read here; it lives in
 //! `build-meta.json`, written by the CLI.
 
 use std::collections::BTreeMap;
@@ -128,6 +128,12 @@ pub fn compile(cfg: &Config, repo_root: &Path) -> Result<CompileOutcome, Error> 
         if let Some(by) = p.fm.superseded_by.as_mut() {
             *by = resolve_spec_ref(by, &all_ids);
         }
+        // The predecessor named by a `supersedes` item may use a short id too
+        // (spec 019), so the gate's predecessor→superseder transfer keys match.
+        for item in &mut p.fm.supersedes {
+            let resolved = resolve_spec_ref(item.spec(), &all_ids);
+            item.set_spec(resolved);
+        }
     }
 
     // --- per-spec validation + record construction ---
@@ -168,7 +174,7 @@ pub fn compile(cfg: &Config, repo_root: &Path) -> Result<CompileOutcome, Error> 
     })
 }
 
-/// Per-spec validation codes V-001/005/006/007/008/009/010/012 (V-013 is
+/// Per-spec validation codes V-001/005/006/007/008/009/010/011/012 (V-013 is
 /// emitted at the parse stage above).
 fn validate_spec(
     cfg: &Config,
@@ -263,6 +269,18 @@ fn validate_spec(
             out.push(warning(
                 "V-010",
                 format!("depends_on '{dep}' does not resolve to an existing spec"),
+                at(),
+            ));
+        }
+    }
+    // V-011: a constrains item must scope something (spec 018): a code `unit`
+    // (path-scoped, e.g. invariant-freeze) or `target_specs` (spec-scoped, e.g.
+    // a sequencing plan). An item with neither asserts an invariant over nothing.
+    for c in &fm.constrains {
+        if c.unit.is_none() && c.target_specs.is_empty() {
+            out.push(error(
+                "V-011",
+                "constrains item declares neither a unit nor target_specs".into(),
                 at(),
             ));
         }

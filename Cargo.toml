@@ -1,4 +1,4 @@
-# spec-spine — workspace root.
+# spec-spine: workspace root.
 # A typed, hash-verifiable authority ledger over a markdown spec corpus.
 # Three published crates (types/core/cli); see docs/design/00-architecture.md.
 [workspace]
@@ -11,7 +11,7 @@ members = [
 
 # Shared metadata inherited by member crates via `field.workspace = true`.
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.85"
 license = "Apache-2.0"
@@ -30,8 +30,8 @@ sha2 = "0.10"
 clap = { version = "4", features = ["derive"] }
 time = { version = "0.3", features = ["formatting"] }
 # Internal crates (path + version so the published surface is not path-only).
-spec-spine-types = { version = "0.2.0", path = "crates/spec-spine-types" }
-spec-spine-core = { version = "0.2.0", path = "crates/spec-spine-core" }
+spec-spine-types = { version = "0.3.0", path = "crates/spec-spine-types" }
+spec-spine-core = { version = "0.3.0", path = "crates/spec-spine-core" }
 
 # The library must not contain unsafe; the public boundary is FFI-friendly without it.
 [workspace.lints.rust]

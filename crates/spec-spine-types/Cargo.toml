@@ -1,6 +1,6 @@
 [package]
 name = "spec-spine-types"
-description = "Typed DTOs, frontmatter grammar, configuration, and schema-version constants for spec-spine — the data substrate shared by the engine and (future) bindings."
+description = "Typed DTOs, frontmatter grammar, configuration, and schema-version constants for spec-spine: the data substrate shared by the engine and (future) bindings."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

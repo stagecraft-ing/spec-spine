@@ -99,7 +99,7 @@ fn has_ownership_edge(spec: &SpecRecord) -> bool {
 /// Every spec id this spec names across its relationship edges.
 fn edge_targets(spec: &SpecRecord) -> Vec<String> {
     let mut targets = Vec::new();
-    targets.extend(spec.supersedes.iter().cloned());
+    targets.extend(spec.supersedes.iter().map(|s| s.spec().to_string()));
     targets.extend(spec.amends.iter().cloned());
     targets.extend(spec.extends.iter().map(|e| e.spec.clone()));
     targets.extend(spec.refines.iter().flat_map(|r| r.refines_specs.clone()));

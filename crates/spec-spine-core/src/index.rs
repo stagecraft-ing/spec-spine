@@ -18,7 +18,7 @@ use spec_spine_types::{
 use crate::manifest;
 use crate::pathutil::{is_excluded, rel_posix};
 use crate::sections;
-use crate::symbols::{self, SymbolIndex};
+use crate::symbols::{self, ModuleIndex, SymbolIndex};
 use crate::{canonical_json, hash};
 
 /// Resolver hard-error codes (`I-003`..`I-009`) that fail `index check`.
@@ -63,7 +63,7 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
     // Comment-header linkage: file path -> spec id.
     let comment_links = scan_comment_headers(cfg, repo_root, &discovered.packages, &all_ids);
 
-    // Symbol index — built only if some spec declares a symbol unit (avoids
+    // Symbol index, built only if some spec declares a symbol unit (avoids
     // parsing all source for corpora that use only file/section units).
     let needs_symbols = specs.iter().any(|s| {
         s.units
@@ -80,6 +80,22 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
         SymbolIndex::default()
     };
 
+    // Module index, built only if some spec declares a module unit (spec 017).
+    let needs_modules = specs.iter().any(|s| {
+        s.units
+            .iter()
+            .any(|(_, u, _)| matches!(u, Unit::Module { .. }))
+    });
+    let module_index = if needs_modules {
+        symbols::build_module_index(
+            repo_root,
+            &discovered.packages,
+            &cfg.index.resolver_exclusions,
+        )
+    } else {
+        ModuleIndex::default()
+    };
+
     // --- traceability mappings ---
     let mut mappings: Vec<TraceMapping> = Vec::new();
     for spec in &specs {
@@ -88,8 +104,15 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
 
         // Source 3: spec edges (units).
         for (field, unit, ownership) in &spec.units {
-            let locations =
-                resolve_unit(repo_root, unit, &symbol_index, &spec.id, &mut diagnostics);
+            let locations = resolve_unit(
+                repo_root,
+                unit,
+                &discovered.packages,
+                &symbol_index,
+                &module_index,
+                &spec.id,
+                &mut diagnostics,
+            );
             for loc in &locations {
                 paths
                     .entry(loc.file.clone())
@@ -257,7 +280,7 @@ pub fn check_index_freshness(
 /// `build.sliceHashes` entry (spec 012 §3.3). A single-subject gate: it never
 /// consults the global hash or diagnostics. Unknown name → [`Error::Config`]
 /// (exit 3); a committed index with no entry for a configured slice is
-/// `Stale`, not an error — an index predating the slice config is by
+/// `Stale`, not an error: an index predating the slice config is by
 /// definition not vouching for it.
 pub fn check_slice_freshness(
     cfg: &spec_spine_types::Config,
@@ -284,7 +307,7 @@ pub fn check_slice_freshness(
     }
 }
 
-/// "Who currently owns this unit?" — a set query over resolved traceability.
+/// "Who currently owns this unit?": a set query over resolved traceability.
 pub fn authorities(index: &CodebaseIndex, unit: &Unit) -> Vec<String> {
     let mut owners: BTreeSet<String> = BTreeSet::new();
     for mapping in &index.traceability.mappings {
@@ -336,7 +359,7 @@ fn compute_slice_hashes(
 
 /// SHA-256 over a slice's matched files: the same normalization and
 /// path-sorted folding as the global hash. Zero matches hash the empty input
-/// sequence — deletion of a guarded file reads as a hash change, never a
+/// sequence: deletion of a guarded file reads as a hash change, never a
 /// config error.
 fn slice_hash(repo_root: &Path, patterns: &[String]) -> String {
     let mut pieces: Vec<(String, String)> = Vec::new();
@@ -397,11 +420,25 @@ fn discover_specs(
             units.push((SourceField::CoAuthority, c.unit.clone(), true));
         }
         for c in &fm.constrains {
-            units.push((SourceField::Constrains, c.unit.clone(), true));
+            // A spec-scoped constraint (`target_specs`, no unit) claims no code
+            // path; only a path-scoped constraint contributes a resolved unit
+            // (spec 018).
+            if let Some(u) = &c.unit {
+                units.push((SourceField::Constrains, u.clone(), true));
+            }
         }
         for r in &fm.references {
             if let Some(u) = &r.unit {
                 units.push((SourceField::References, u.clone(), false));
+            }
+        }
+        // A partial supersession transfers authority over a single unit to this
+        // (superseding) spec, modeled as an owned resolved unit so the gate
+        // treats the superseder as an owner of that unit's paths (spec 019). A
+        // full or unit-less supersedes contributes no resolved unit here.
+        for s in &fm.supersedes {
+            if let Some(u) = s.partial_unit() {
+                units.push((SourceField::Supersedes, u.clone(), true));
             }
         }
         out.push(SpecInfo {
@@ -418,7 +455,9 @@ fn discover_specs(
 fn resolve_unit(
     repo_root: &Path,
     unit: &Unit,
+    packages: &[spec_spine_types::PackageRecord],
     symbols: &SymbolIndex,
+    modules: &ModuleIndex,
     spec_id: &str,
     diagnostics: &mut Diagnostics,
 ) -> Vec<ResolvedLocation> {
@@ -438,6 +477,62 @@ fn resolve_unit(
                 });
                 Vec::new()
             }
+        }
+        // A directory subtree: resolve to the directory path itself (the gate
+        // prefix-matches it against changed paths), requiring the directory to
+        // exist (spec 017; I-007 mirrors OAP's missing-directory hard error).
+        Unit::Directory { path } => {
+            if repo_root.join(path).is_dir() {
+                vec![ResolvedLocation {
+                    file: path.clone(),
+                    span: None,
+                }]
+            } else {
+                diagnostics.errors.push(Diagnostic {
+                    code: "I-007".to_string(),
+                    message: format!("spec '{spec_id}' directory unit '{path}' is not a directory"),
+                    path: Some(path.clone()),
+                });
+                Vec::new()
+            }
+        }
+        // A compilation unit by manifest name: resolve to the discovered
+        // package's directory subtree (spec 017; I-003 = unknown crate). Hyphen
+        // and underscore are interchangeable in the name (Rust crate convention).
+        Unit::Crate { id } => {
+            let norm = id.replace('-', "_");
+            match packages
+                .iter()
+                .find(|p| p.name == *id || p.name.replace('-', "_") == norm)
+            {
+                Some(pkg) => vec![ResolvedLocation {
+                    file: pkg.path.clone(),
+                    span: None,
+                }],
+                None => {
+                    diagnostics.errors.push(Diagnostic {
+                        code: "I-003".to_string(),
+                        message: format!(
+                            "spec '{spec_id}' crate unit '{id}' does not match any discovered package"
+                        ),
+                        path: None,
+                    });
+                    Vec::new()
+                }
+            }
+        }
+        // A Rust module by `::`-qualified path (spec 017; I-008 = unresolved,
+        // distinct from the symbol band's I-005).
+        Unit::Module { id } => {
+            let locations = modules.resolve(id);
+            if locations.is_empty() {
+                diagnostics.errors.push(Diagnostic {
+                    code: "I-008".to_string(),
+                    message: format!("spec '{spec_id}' module unit '{id}' did not resolve"),
+                    path: None,
+                });
+            }
+            locations
         }
         Unit::Section { file, anchor } => {
             let abs = repo_root.join(file);
@@ -531,7 +626,7 @@ fn collect_hash_inputs(
     };
 
     // Manifests. npm manifests fold as their governance projection (spec 004
-    // §3.5 amendment) — dependency tables are not a governed input, so a
+    // §3.5 amendment): dependency tables are not a governed input, so a
     // dependabot-class version bump leaves the committed index fresh while
     // a name / workspaces / spec-metadata change still stales it. Parse
     // failure falls back to raw bytes (over-hashing is fail-closed).
@@ -576,7 +671,7 @@ fn collect_hash_inputs(
         push(&repo_root.join(rel), &mut pieces);
     }
     // De-duplicate by path so an input folded by two routes (e.g. a section unit
-    // in a file also matched by extra_hashed_inputs) is hashed once — content for
+    // in a file also matched by extra_hashed_inputs) is hashed once; content for
     // a given path is identical, so the hash stays a pure function of the set.
     pieces.sort_by(|a, b| a.0.cmp(&b.0));
     pieces.dedup_by(|a, b| a.0 == b.0);
@@ -586,15 +681,23 @@ fn collect_hash_inputs(
 /// The set of repo-relative source files backing a resolved `symbol`/`section`
 /// unit's span. These are folded into the content hash so a source-line shift
 /// that moves a committed span forces the index `Stale` (spec 004 §3.5). `file`
-/// units carry no span and are intentionally excluded — a file-unit-only corpus
+/// units carry no span and are intentionally excluded: a file-unit-only corpus
 /// contributes nothing here.
 fn resolved_span_files(mappings: &[TraceMapping]) -> BTreeSet<String> {
     let mut out = BTreeSet::new();
     for m in mappings {
         for ru in &m.resolved_units {
-            if matches!(ru.unit, Unit::Section { .. } | Unit::Symbol { .. }) {
+            // Span-backed kinds: section, symbol, and the inline-`mod` form of a
+            // module unit (spec 017). File/directory/crate units are whole-file
+            // or whole-subtree (span `None`) and contribute nothing here.
+            if matches!(
+                ru.unit,
+                Unit::Section { .. } | Unit::Symbol { .. } | Unit::Module { .. }
+            ) {
                 for loc in &ru.locations {
-                    out.insert(loc.file.clone());
+                    if loc.span.is_some() {
+                        out.insert(loc.file.clone());
+                    }
                 }
             }
         }
@@ -682,6 +785,9 @@ fn canonical_unit(unit: &Unit) -> String {
         Unit::File { path } => format!("file:{path}"),
         Unit::Section { file, anchor } => format!("section:{file}#{anchor}"),
         Unit::Symbol { id } => format!("symbol:{id}"),
+        Unit::Directory { path } => format!("directory:{path}"),
+        Unit::Crate { id } => format!("crate:{id}"),
+        Unit::Module { id } => format!("module:{id}"),
     }
 }
 

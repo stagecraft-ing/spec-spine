@@ -1,4 +1,4 @@
-//! `spec-spine registry …` — typed, read-only queries over the compiled
+//! `spec-spine registry …`: typed, read-only queries over the compiled
 //! registry. Reads `registry.json` via the library loader (never ad-hoc parsing,
 //! per spec 000 §1).
 
@@ -73,7 +73,7 @@ pub fn run(repo: &Path, query: &RegistryQuery) -> Result<u8, Error> {
                 status: status.as_deref().map(parse_status).transpose()?,
             };
             if *ids_only {
-                // Spec 010 §3.1: ids and nothing else — an empty corpus prints
+                // Spec 010 §3.1: ids and nothing else; an empty corpus prints
                 // nothing (no "(no specs)" placeholder) and still exits 0.
                 let ids = list_ids(&registry, &filter);
                 if *json {
