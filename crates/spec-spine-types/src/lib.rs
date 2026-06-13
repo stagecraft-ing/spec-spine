@@ -42,6 +42,7 @@ pub use config::{
 };
 pub use edges::{
     CoAuthorityItem, ConstrainItem, ExtendItem, Origin, Provenance, ReferenceItem, RefineItem,
+    SupersedeItem, SupersedeScope, SupersedeScoped,
 };
 pub use error::{Error, Result};
 pub use frontmatter::{

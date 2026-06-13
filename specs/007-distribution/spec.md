@@ -186,6 +186,14 @@ The runbook step lives in `docs/releasing.md`.
 
 ## Release log
 
+- **0.3.0 (2026-06-12).** Grammar-completion release: specs 017 (the reserved
+  `directory` / `crate` / `module` authority units), 018 (constrains
+  classification discriminator + optional unit), and 019 (structured / partial
+  `supersedes`). Schema-version minors `index.json` 0.2.0 → 0.3.0 and
+  `registry.json` 0.2.0 → 0.3.0, both additive — a corpus using only
+  `file`/`section`/`symbol` units and full supersession compiles
+  byte-identically. Same five-triple matrix and launcher shim; no
+  distribution-mechanics change.
 - **0.2.0 (2026-06-11).** First post-bootstrap feature release: the specs
   004/005 dependency-only cutover (governance-projection hashing of npm
   manifests + the opt-in `auto_waive_dependency_only` coupling waiver).

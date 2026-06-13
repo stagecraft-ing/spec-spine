@@ -1,11 +1,14 @@
 //! The authority-unit grammar.
 //!
-//! A spec declares the units it owns via a `unit:` on a typed edge. v1 resolves
-//! three granularities: [`Unit::File`], [`Unit::Section`], [`Unit::Symbol`]
-//! (ported from OAP `spec-types::LogicalUnit`; `crate`/`module`/`directory` are
-//! reserved for an additive future minor — see `docs/design/00-architecture.md`
-//! §2.2). A bare string is shorthand for a file unit; a trailing-slash path
-//! denotes the directory subtree.
+//! A spec declares the units it owns via a `unit:` on a typed edge. The grammar
+//! resolves six granularities: [`Unit::File`], [`Unit::Section`],
+//! [`Unit::Symbol`], [`Unit::Directory`], [`Unit::Crate`], and [`Unit::Module`]
+//! (ported from OAP `spec-types::LogicalUnit`). The first three shipped in v1;
+//! `directory`/`crate`/`module` were reserved as an additive minor in
+//! `docs/design/00-architecture.md` §2.2 (Q5) and are resolved as of spec 017
+//! — the schema is permissive on the unit payload, so the new kinds are a MINOR
+//! bump (no schema-file edit), and a bare string remains shorthand for a file
+//! unit (a trailing-slash path denotes a directory subtree).
 
 use serde::de::{self, Deserializer};
 use serde::{Deserialize, Serialize};
@@ -29,6 +32,19 @@ pub enum Unit {
     /// A symbol (function / type / export), resolved by the indexer via
     /// tree-sitter (Rust + TypeScript in v1).
     Symbol { id: String },
+    /// A directory subtree, named explicitly (`{ kind: directory, path }`). The
+    /// subtree-prefix resolution is identical to a trailing-slash file unit; the
+    /// distinct kind preserves the author's intent across the round-trip (spec
+    /// 017). Resolves to the directory path; the gate prefix-matches it.
+    Directory { path: String },
+    /// A compilation unit by its manifest name (Cargo `[package].name` or npm
+    /// `package.json:name`), resolved against the discovered package inventory to
+    /// the package directory subtree (spec 017).
+    Crate { id: String },
+    /// A module by its `::`-qualified path (e.g. `my_crate::serialization`),
+    /// resolved by the indexer's Rust module index — file-modules (whole file)
+    /// and top-level inline `mod` blocks (line-span) (spec 017).
+    Module { id: String },
 }
 
 impl Unit {
@@ -37,9 +53,14 @@ impl Unit {
         Unit::File { path: path.into() }
     }
 
-    /// True if this unit is a directory subtree (a file unit whose path ends `/`).
+    /// True if this unit resolves to a directory subtree: a file unit whose path
+    /// ends `/`, or an explicit [`Unit::Directory`] (spec 017).
     pub fn is_directory_subtree(&self) -> bool {
-        matches!(self, Unit::File { path } if path.ends_with('/'))
+        match self {
+            Unit::File { path } => path.ends_with('/'),
+            Unit::Directory { .. } => true,
+            _ => false,
+        }
     }
 }
 
@@ -69,6 +90,9 @@ impl<'de> Deserialize<'de> for Unit {
             File { path: String },
             Section { file: String, anchor: String },
             Symbol { id: String },
+            Directory { path: String },
+            Crate { id: String },
+            Module { id: String },
         }
 
         match Repr::deserialize(deserializer)? {
@@ -81,6 +105,9 @@ impl<'de> Deserialize<'de> for Unit {
             Repr::Tagged(Tagged::File { path }) => Ok(Unit::File { path }),
             Repr::Tagged(Tagged::Section { file, anchor }) => Ok(Unit::Section { file, anchor }),
             Repr::Tagged(Tagged::Symbol { id }) => Ok(Unit::Symbol { id }),
+            Repr::Tagged(Tagged::Directory { path }) => Ok(Unit::Directory { path }),
+            Repr::Tagged(Tagged::Crate { id }) => Ok(Unit::Crate { id }),
+            Repr::Tagged(Tagged::Module { id }) => Ok(Unit::Module { id }),
             Repr::Wrapped { unit } => Ok(*unit),
         }
     }

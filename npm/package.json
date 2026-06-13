@@ -1,6 +1,6 @@
 {
   "name": "spec-spine",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The spec-spine CLI: compile a markdown spec corpus into a deterministic authority ledger and refuse code that drifts from its owning spec. Ships the prebuilt binary; no Rust toolchain required.",
   "keywords": [
     "spec",
@@ -42,11 +42,11 @@
     "smoke": "scripts/smoke-test.sh"
   },
   "optionalDependencies": {
-    "@spec-spine/cli-darwin-arm64": "0.2.0",
-    "@spec-spine/cli-darwin-x64": "0.2.0",
-    "@spec-spine/cli-linux-x64": "0.2.0",
-    "@spec-spine/cli-linux-arm64": "0.2.0",
-    "@spec-spine/cli-win32-x64": "0.2.0"
+    "@spec-spine/cli-darwin-arm64": "0.3.0",
+    "@spec-spine/cli-darwin-x64": "0.3.0",
+    "@spec-spine/cli-linux-x64": "0.3.0",
+    "@spec-spine/cli-linux-arm64": "0.3.0",
+    "@spec-spine/cli-win32-x64": "0.3.0"
   },
   "spec-spine": {
     "spec": "007-distribution"

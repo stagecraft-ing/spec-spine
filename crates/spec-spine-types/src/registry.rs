@@ -12,7 +12,9 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::edges::{CoAuthorityItem, ConstrainItem, ExtendItem, Origin, ReferenceItem, RefineItem};
+use crate::edges::{
+    CoAuthorityItem, ConstrainItem, ExtendItem, Origin, ReferenceItem, RefineItem, SupersedeItem,
+};
 use crate::frontmatter::{Implementation, Risk, Status};
 use crate::unit::Unit;
 
@@ -83,8 +85,10 @@ pub struct SpecRecord {
     pub extends: Vec<ExtendItem>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub refines: Vec<RefineItem>,
+    /// Full supersession serializes as a bare predecessor id; a partial item
+    /// serializes as an object (spec 019).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub supersedes: Vec<String>,
+    pub supersedes: Vec<SupersedeItem>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub amends: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

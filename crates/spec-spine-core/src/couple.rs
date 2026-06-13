@@ -299,13 +299,22 @@ fn any_owner_in_diff(owners: &BTreeSet<String>, diff_paths: &BTreeSet<String>) -
 }
 
 /// Direct `predecessor → {superseders}` map from the registry's `supersedes`.
+///
+/// Only **full** supersession contributes a whole-spec authority transfer (spec
+/// 019). A **partial** item transfers authority over a single unit only — that
+/// is threaded through the index instead, as a `SourceField::Supersedes`
+/// resolved unit owned by the superseder, so it is already an owner of that
+/// unit's paths via `owners_for_path` step 1 and must NOT also inherit the
+/// predecessor's entire surface here.
 fn build_superseders(registry: &Registry) -> BTreeMap<String, BTreeSet<String>> {
     let mut map: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for spec in &registry.specs {
-        for predecessor in &spec.supersedes {
-            map.entry(predecessor.clone())
-                .or_default()
-                .insert(spec.id.clone());
+        for item in &spec.supersedes {
+            if item.is_full() {
+                map.entry(item.spec().to_string())
+                    .or_default()
+                    .insert(spec.id.clone());
+            }
         }
     }
     map

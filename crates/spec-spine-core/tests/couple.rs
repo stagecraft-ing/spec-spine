@@ -372,6 +372,124 @@ fn supersedes_transfers_authority_additively() {
     assert!(!via_succ.has_blocking_drift(), "{:?}", via_succ.violations);
 }
 
+// ── spec 019: partial (unit-scoped) supersession ──────────────────────────
+
+#[test]
+fn partial_supersedes_scopes_transfer_to_the_named_unit() {
+    // P (040) established two files. S (041) PARTIALLY supersedes P over old.rs
+    // only — the index models that as a `supersedes` resolved unit on S. S thus
+    // owns old.rs but NOT keep.rs; the predecessor keeps both (additive).
+    let index = index_from(json!([
+        {
+            "specId": "040-pred",
+            "implementingPaths": [],
+            "resolvedUnits": [
+                { "unit": { "kind": "file", "path": "src/old.rs" },
+                  "sourceField": "establishes", "ownership": true,
+                  "locations": [{ "file": "src/old.rs" }] },
+                { "unit": { "kind": "file", "path": "src/keep.rs" },
+                  "sourceField": "establishes", "ownership": true,
+                  "locations": [{ "file": "src/keep.rs" }] }
+            ]
+        },
+        {
+            "specId": "041-succ",
+            "implementingPaths": [],
+            "resolvedUnits": [
+                { "unit": { "kind": "file", "path": "src/old.rs" },
+                  "sourceField": "supersedes", "ownership": true,
+                  "locations": [{ "file": "src/old.rs" }] }
+            ]
+        }
+    ]));
+    let reg = registry_from(json!([
+        { "id": "040-pred", "title": "p", "status": "superseded",
+          "created": "d", "summary": "s", "specPath": "specs/040-pred/spec.md" },
+        { "id": "041-succ", "title": "s", "status": "approved",
+          "created": "d", "summary": "s", "specPath": "specs/041-succ/spec.md",
+          "supersedes": [{ "spec": "040-pred", "scope": "partial",
+                           "unit": { "kind": "file", "path": "src/old.rs" } }] }
+    ]));
+
+    // The superseded unit: editing the successor clears it (S owns old.rs).
+    let old_via_succ = run(
+        &index,
+        &reg,
+        &diff(vec![
+            file("src/old.rs", &[LineSpan::new(1, 1)]),
+            file("specs/041-succ/spec.md", &[]),
+        ]),
+    );
+    assert!(!old_via_succ.has_blocking_drift(), "{:?}", old_via_succ.violations);
+
+    // The OTHER unit (keep.rs): S is NOT an owner, so editing S does not clear it
+    // — the partial transfer reached old.rs only. Only the predecessor clears it.
+    let keep_via_succ = run(
+        &index,
+        &reg,
+        &diff(vec![
+            file("src/keep.rs", &[LineSpan::new(1, 1)]),
+            file("specs/041-succ/spec.md", &[]),
+        ]),
+    );
+    assert!(
+        keep_via_succ.has_blocking_drift(),
+        "partial transfer must not reach keep.rs"
+    );
+    assert!(keep_via_succ.violations[0].message.contains("040-pred"));
+    assert!(!keep_via_succ.violations[0].message.contains("041-succ"));
+
+    let keep_via_pred = run(
+        &index,
+        &reg,
+        &diff(vec![
+            file("src/keep.rs", &[LineSpan::new(1, 1)]),
+            file("specs/040-pred/spec.md", &[]),
+        ]),
+    );
+    assert!(!keep_via_pred.has_blocking_drift(), "{:?}", keep_via_pred.violations);
+}
+
+#[test]
+fn partial_supersedes_without_unit_transfers_nothing() {
+    // S (041) partially supersedes P (040) with only a note — a documentary
+    // lifecycle marker (OAP spec 199's shape). It transfers no authority: there
+    // is no `supersedes` resolved unit on S, and `build_superseders` skips the
+    // partial item, so the predecessor alone owns the file.
+    let index = index_from(json!([{
+        "specId": "040-pred",
+        "implementingPaths": [],
+        "resolvedUnits": [{
+            "unit": { "kind": "file", "path": "src/old.rs" },
+            "sourceField": "establishes", "ownership": true,
+            "locations": [{ "file": "src/old.rs" }]
+        }]
+    }]));
+    let reg = registry_from(json!([
+        { "id": "040-pred", "title": "p", "status": "approved",
+          "created": "d", "summary": "s", "specPath": "specs/040-pred/spec.md" },
+        { "id": "041-succ", "title": "s", "status": "approved",
+          "created": "d", "summary": "s", "specPath": "specs/041-succ/spec.md",
+          "supersedes": [{ "spec": "040-pred", "scope": "partial",
+                           "note": "retires the read-time projection layer" }] }
+    ]));
+
+    let via_succ = run(
+        &index,
+        &reg,
+        &diff(vec![
+            file("src/old.rs", &[LineSpan::new(1, 1)]),
+            file("specs/041-succ/spec.md", &[]),
+        ]),
+    );
+    assert!(
+        via_succ.has_blocking_drift(),
+        "a unit-less partial supersedes transfers nothing"
+    );
+    assert!(via_succ.violations[0].message.contains("040-pred"));
+    assert!(!via_succ.violations[0].message.contains("041-succ"));
+}
+
 // ── spec 009: explicit claims take precedence over bypass ─────────────────
 
 #[test]

@@ -162,12 +162,20 @@ pub fn relationships(registry: &Registry, id: &str) -> Result<RelationshipView, 
             .map(|other| other.id.clone())
             .collect()
     };
+    // `supersedes` carries structured items (spec 019); the relationship view
+    // is id-only, so project each item to its predecessor id.
+    let superseded_by: Vec<String> = registry
+        .specs
+        .iter()
+        .filter(|other| other.supersedes.iter().any(|x| x.spec() == id))
+        .map(|other| other.id.clone())
+        .collect();
     Ok(RelationshipView {
         id: spec.id.clone(),
         depends_on: spec.depends_on.clone(),
-        supersedes: spec.supersedes.clone(),
+        supersedes: spec.supersedes.iter().map(|x| x.spec().to_string()).collect(),
         amends: spec.amends.clone(),
-        superseded_by: incoming(|s| &s.supersedes),
+        superseded_by,
         amended_by: incoming(|s| &s.amends),
         depended_on_by: incoming(|s| &s.depends_on),
     })

@@ -127,15 +127,131 @@ pub struct CoAuthorityItem {
     pub with_specs: Vec<String>,
 }
 
-/// `constrains: [{ unit, note?, target_specs? }]` — asserts an invariant.
+/// `constrains: [{ flavor? | kind?, unit?, note?, target_specs? }]` — asserts an
+/// invariant others must respect.
+///
+/// Two shapes coexist (spec 018): a **path-scoped** constraint carries a `unit:`
+/// (the canonical `invariant-freeze` over a file/schema); a **spec-scoped**
+/// constraint carries `target_specs:` and no unit (a sequencing/ordering plan
+/// over other specs). `flavor` and `kind` are interchangeable, documentary
+/// discriminators (synonyms — the predecessor dialect uses both spellings);
+/// neither is gate-load-bearing. The compiler requires at least one of `unit` or
+/// `target_specs` (V-011).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConstrainItem {
-    pub unit: Unit,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit: Option<Unit>,
+    /// Documentary constraint classification (e.g. `invariant-freeze`). Synonym
+    /// of `kind`; both are accepted and preserved verbatim.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flavor: Option<String>,
+    /// Documentary constraint classification — the alternative spelling of
+    /// `flavor` (e.g. `sequencing-plan`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub target_specs: Vec<String>,
+}
+
+/// The scope of a `supersedes` edge (spec 019): a whole-spec transfer or a
+/// unit-scoped one.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SupersedeScope {
+    /// The successor inherits the predecessor's entire authority surface.
+    #[default]
+    Full,
+    /// The successor takes over only the named `unit` (additive — the
+    /// predecessor keeps everything else, and keeps the unit too).
+    Partial,
+}
+
+/// One `supersedes` entry. A bare predecessor id and `{ spec, scope: full }`
+/// both mean full supersession; only a `partial` item carries a `unit` (spec
+/// 019). The full form normalizes to [`SupersedeItem::Full`] at parse time, so a
+/// corpus that uses only full supersession emits a byte-identical bare-string
+/// `supersedes` array — the registry wire is unchanged for every existing
+/// adopter; only a partial item serializes as an object.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum SupersedeItem {
+    /// Full supersession — the predecessor id alone.
+    Full(String),
+    /// A structured item (`{ spec, scope?, unit?, note?, rationale? }`).
+    Scoped(SupersedeScoped),
+}
+
+/// The structured `supersedes` item shape.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SupersedeScoped {
+    /// The predecessor spec id being superseded.
+    pub spec: String,
+    #[serde(default)]
+    pub scope: SupersedeScope,
+    /// For a `partial` scope: the unit whose authority transfers. A partial item
+    /// with no unit is a documentary lifecycle marker — it transfers nothing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit: Option<Unit>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rationale: Option<String>,
+}
+
+impl SupersedeItem {
+    /// The predecessor spec id, regardless of form.
+    pub fn spec(&self) -> &str {
+        match self {
+            SupersedeItem::Full(id) => id,
+            SupersedeItem::Scoped(s) => &s.spec,
+        }
+    }
+
+    /// True for a full (whole-spec) supersession. (After normalization a
+    /// `Scoped` is always partial, but this stays correct pre-normalization.)
+    pub fn is_full(&self) -> bool {
+        match self {
+            SupersedeItem::Full(_) => true,
+            SupersedeItem::Scoped(s) => s.scope == SupersedeScope::Full,
+        }
+    }
+
+    /// The unit a *partial* supersession scopes its transfer to, if any.
+    pub fn partial_unit(&self) -> Option<&Unit> {
+        match self {
+            SupersedeItem::Scoped(s) if s.scope == SupersedeScope::Partial => s.unit.as_ref(),
+            _ => None,
+        }
+    }
+
+    /// Rewrite the predecessor id in place (used by compile-time short-id
+    /// resolution; spec 016/019).
+    pub fn set_spec(&mut self, id: String) {
+        match self {
+            SupersedeItem::Full(s) => *s = id,
+            SupersedeItem::Scoped(s) => s.spec = id,
+        }
+    }
+}
+
+/// Normalize `supersedes` items (spec 019): a `Scoped` item with full scope
+/// carries no information beyond its id, so it collapses to the bare-string
+/// [`SupersedeItem::Full`] form — keeping `{ scope: full }` (OAP spec 073) and a
+/// bare id byte-identical on the wire. Partial items pass through unchanged.
+pub(crate) fn normalize_supersedes(items: Vec<SupersedeItem>) -> Vec<SupersedeItem> {
+    items
+        .into_iter()
+        .map(|item| match item {
+            SupersedeItem::Scoped(s) if s.scope == SupersedeScope::Full => {
+                SupersedeItem::Full(s.spec)
+            }
+            other => other,
+        })
+        .collect()
 }
 
 /// `references: [{ unit? | provenance?, role? }]` — the non-owning edge.

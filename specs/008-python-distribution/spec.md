@@ -180,3 +180,9 @@ installed metadata, and the sdist's pyproject is the only declared copy.
   for that reason. Recorded here so the choice is not relitigated silently.
 - **An enterprise/private index.** The channel targets public PyPI; a private
   index is a deployment concern, not a property of this shim.
+
+## Release log
+
+- **0.3.0 (2026-06-12).** Version-lock bump in step with 007's 0.3.0
+  grammar-completion release (specs 017–019). The wheels and sdist track the
+  0.3.0 tag per §3.5; no PyPI-shim mechanics change.

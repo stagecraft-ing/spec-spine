@@ -16,7 +16,9 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::edges::{CoAuthorityItem, ConstrainItem, ExtendItem, Origin, ReferenceItem, RefineItem};
+use crate::edges::{
+    CoAuthorityItem, ConstrainItem, ExtendItem, Origin, ReferenceItem, RefineItem, SupersedeItem,
+};
 use crate::error::{Error, Result};
 use crate::unit::Unit;
 
@@ -157,7 +159,7 @@ pub struct Frontmatter {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub refines: Vec<RefineItem>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub supersedes: Vec<String>,
+    pub supersedes: Vec<SupersedeItem>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub amends: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -301,6 +303,11 @@ pub fn parse_frontmatter_with(
     frontmatter.refines =
         crate::edges::expand_refine_paths(std::mem::take(&mut frontmatter.refines))
             .map_err(malformed)?;
+    // Full-scope supersedes (`{ scope: full }` / bare id) collapse to the
+    // bare-string form so the wire stays byte-identical for full-only corpora
+    // (spec 019).
+    frontmatter.supersedes =
+        crate::edges::normalize_supersedes(std::mem::take(&mut frontmatter.supersedes));
 
     Ok(frontmatter)
 }

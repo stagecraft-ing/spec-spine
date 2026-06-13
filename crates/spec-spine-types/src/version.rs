@@ -12,11 +12,14 @@
 
 /// `specVersion` emitted in `registry.json`.
 /// `0.2.0`: declared extra-frontmatter values widen to arbitrary JSON (spec 013).
-pub const REGISTRY_SCHEMA_VERSION: &str = "0.2.0";
+/// `0.3.0`: structured/partial `supersedes` items (spec 019); full supersession
+/// stays a bare string, so a full-only corpus is byte-identical.
+pub const REGISTRY_SCHEMA_VERSION: &str = "0.3.0";
 
 /// `schemaVersion` emitted in `index.json`. (Index DTOs land in Phase 3.)
 /// `0.2.0`: additive `build.sliceHashes` (spec 012).
-pub const INDEX_SCHEMA_VERSION: &str = "0.2.0";
+/// `0.3.0`: additive `directory`/`crate`/`module` resolved-unit kinds (spec 017).
+pub const INDEX_SCHEMA_VERSION: &str = "0.3.0";
 
 /// `schemaVersion` emitted in `build-meta.json` (the non-deterministic artifact).
 pub const BUILD_META_SCHEMA_VERSION: &str = "0.1.0";

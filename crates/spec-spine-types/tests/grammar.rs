@@ -1,6 +1,6 @@
 //! Unit-grammar and edge-grammar tests.
 
-use spec_spine_types::{Frontmatter, Implementation, Unit, parse_frontmatter};
+use spec_spine_types::{Frontmatter, Implementation, SupersedeItem, Unit, parse_frontmatter};
 
 fn fm_with_edges(edges_yaml: &str) -> Frontmatter {
     let src = format!(
@@ -50,6 +50,41 @@ fn tagged_units_parse() {
 }
 
 #[test]
+fn directory_crate_module_units_parse() {
+    // Spec 017: the three reserved unit kinds now parse from their tagged form.
+    let dir: Unit = serde_yaml::from_str("{ kind: directory, path: \"src/api\" }").unwrap();
+    assert_eq!(
+        dir,
+        Unit::Directory {
+            path: "src/api".into()
+        }
+    );
+    let krate: Unit = serde_yaml::from_str("{ kind: crate, id: \"factory-engine\" }").unwrap();
+    assert_eq!(
+        krate,
+        Unit::Crate {
+            id: "factory-engine".into()
+        }
+    );
+    let module: Unit = serde_yaml::from_str("{ kind: module, id: \"my_crate::tests\" }").unwrap();
+    assert_eq!(
+        module,
+        Unit::Module {
+            id: "my_crate::tests".into()
+        }
+    );
+    // The wrapper form (spec 015) composes with the new kinds.
+    let wrapped: Unit =
+        serde_yaml::from_str("{ unit: { kind: directory, path: \"crates/x\" } }").unwrap();
+    assert_eq!(
+        wrapped,
+        Unit::Directory {
+            path: "crates/x".into()
+        }
+    );
+}
+
+#[test]
 fn unit_wrapper_form_unwraps() {
     // Spec 015 §3.1: `{ unit: <unit> }` is a 1:1 wrapper that normalizes to the
     // inner unit. The inner may itself be a bare string or a tagged map.
@@ -76,6 +111,13 @@ fn unit_wrapper_form_unwraps() {
 fn directory_subtree_detection() {
     assert!(Unit::file("src/").is_directory_subtree());
     assert!(!Unit::file("src/lib.rs").is_directory_subtree());
+    // An explicit directory unit is always a subtree (spec 017).
+    assert!(
+        Unit::Directory {
+            path: "src".into()
+        }
+        .is_directory_subtree()
+    );
 }
 
 #[test]
@@ -220,8 +262,58 @@ extends:\n  - { spec: \"000-x\", paths: [{ kind: file, path: \"a.rs\" }] }\n---\
 }
 
 #[test]
+fn constrains_discriminator_and_optional_unit() {
+    // Spec 018: a path-scoped item carries flavor + unit; a spec-scoped item
+    // carries kind + target_specs and no unit. Both spellings are accepted.
+    let fm = fm_with_edges(
+        "constrains:\n  - { flavor: invariant-freeze, unit: \"schema.json\" }\n  - { kind: sequencing-plan, target_specs: [\"001-a\", \"002-b\"] }\n",
+    );
+    assert_eq!(fm.constrains.len(), 2);
+    assert_eq!(fm.constrains[0].flavor.as_deref(), Some("invariant-freeze"));
+    assert_eq!(
+        fm.constrains[0].unit,
+        Some(Unit::File {
+            path: "schema.json".into()
+        })
+    );
+    assert_eq!(fm.constrains[1].kind.as_deref(), Some("sequencing-plan"));
+    assert!(fm.constrains[1].unit.is_none());
+    assert_eq!(fm.constrains[1].target_specs, vec!["001-a", "002-b"]);
+}
+
+#[test]
 fn supersedes_and_amends_are_id_lists() {
     let fm = fm_with_edges("supersedes: [\"001-old\"]\namends: [\"002-other\"]\n");
-    assert_eq!(fm.supersedes, vec!["001-old".to_string()]);
+    assert_eq!(fm.supersedes.len(), 1);
+    assert_eq!(fm.supersedes[0].spec(), "001-old");
+    assert!(fm.supersedes[0].is_full());
     assert_eq!(fm.amends, vec!["002-other".to_string()]);
+}
+
+#[test]
+fn supersedes_full_and_partial_forms_parse() {
+    // Spec 019: a bare id and `{ scope: full }` both normalize to the bare-string
+    // full form; `{ scope: partial, unit }` and `{ scope: partial, note }` stay
+    // structured. (Covers OAP shapes 108 / 073 / 114 / 199 respectively.)
+    let fm = fm_with_edges(
+        "supersedes:\n  - \"108-old\"\n  - { spec: \"073-x\", scope: full }\n  - { spec: \"113-y\", scope: partial, unit: \"src/clone.ts\" }\n  - { spec: \"140-z\", scope: partial, note: \"retires §2.2\" }\n",
+    );
+    assert_eq!(fm.supersedes.len(), 4);
+    // Bare id → full.
+    assert!(matches!(&fm.supersedes[0], SupersedeItem::Full(id) if id == "108-old"));
+    // `{ scope: full }` collapses to the bare-string full form (byte-stable wire).
+    assert!(matches!(&fm.supersedes[1], SupersedeItem::Full(id) if id == "073-x"));
+    // Partial + unit stays structured and exposes its scoping unit.
+    assert_eq!(fm.supersedes[2].spec(), "113-y");
+    assert!(!fm.supersedes[2].is_full());
+    assert_eq!(
+        fm.supersedes[2].partial_unit(),
+        Some(&Unit::File {
+            path: "src/clone.ts".into()
+        })
+    );
+    // Partial without a unit is documentary — no transfer unit.
+    assert_eq!(fm.supersedes[3].spec(), "140-z");
+    assert!(!fm.supersedes[3].is_full());
+    assert_eq!(fm.supersedes[3].partial_unit(), None);
 }

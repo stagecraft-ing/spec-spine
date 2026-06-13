@@ -280,3 +280,167 @@ fn authorities_resolves_owners() {
     let owners = authorities(&idx, &Unit::file("rs-thing/src/lib.rs"));
     assert!(owners.contains(&"001-rs".to_string()), "owners: {owners:?}");
 }
+
+// ===== spec 017: crate / directory / module unit kinds =====
+
+/// The resolved locations for the first resolved unit of `spec_id`.
+fn first_unit_locations<'a>(
+    idx: &'a spec_spine_types::CodebaseIndex,
+    spec_id: &str,
+) -> &'a [spec_spine_types::ResolvedLocation] {
+    &mapping(idx, spec_id).resolved_units[0].locations
+}
+
+/// A Rust crate with an inline `mod tests {}`, a file-module (`helper.rs`), and a
+/// nested directory, for exercising the three new unit kinds.
+fn module_fixture() -> tempfile::TempDir {
+    let tmp = tempfile::tempdir().unwrap();
+    let r = tmp.path();
+    write(r, "Cargo.toml", "[workspace]\nmembers = [\"rs-thing\"]\n");
+    write(
+        r,
+        "rs-thing/Cargo.toml",
+        "[package]\nname = \"rs-thing\"\nversion = \"0.1.0\"\n",
+    );
+    write(
+        r,
+        "rs-thing/src/lib.rs",
+        "pub fn alpha() {}\n\nmod tests {\n    fn t() {}\n}\n",
+    );
+    write(r, "rs-thing/src/helper.rs", "pub fn help() {}\n");
+    tmp
+}
+
+#[test]
+fn crate_unit_resolves_to_package_subtree() {
+    let fx = module_fixture();
+    write(
+        fx.path(),
+        "specs/001-c/spec.md",
+        &spec("001-c", "establishes:\n  - { kind: crate, id: \"rs-thing\" }\n"),
+    );
+    let idx = index(&Config::default(), fx.path()).unwrap().index;
+    let locs = first_unit_locations(&idx, "001-c");
+    assert_eq!(locs.len(), 1);
+    assert_eq!(locs[0].file, "rs-thing");
+    // Hyphen/underscore are interchangeable in the crate id.
+    assert!(authorities(&idx, &Unit::Crate { id: "rs-thing".into() }).contains(&"001-c".into()));
+}
+
+#[test]
+fn unknown_crate_unit_is_blocking_diagnostic_i003() {
+    let fx = module_fixture();
+    write(
+        fx.path(),
+        "specs/001-c/spec.md",
+        &spec("001-c", "establishes:\n  - { kind: crate, id: \"ghost\" }\n"),
+    );
+    let idx = index(&Config::default(), fx.path()).unwrap().index;
+    assert!(idx.diagnostics.errors.iter().any(|d| d.code == "I-003"));
+}
+
+#[test]
+fn directory_unit_resolves_to_subtree() {
+    let fx = module_fixture();
+    write(
+        fx.path(),
+        "specs/001-d/spec.md",
+        &spec(
+            "001-d",
+            "establishes:\n  - { kind: directory, path: \"rs-thing/src\" }\n",
+        ),
+    );
+    let idx = index(&Config::default(), fx.path()).unwrap().index;
+    let locs = first_unit_locations(&idx, "001-d");
+    assert_eq!(locs.len(), 1);
+    assert_eq!(locs[0].file, "rs-thing/src");
+    assert_eq!(locs[0].span, None);
+}
+
+#[test]
+fn missing_directory_unit_is_blocking_diagnostic_i007() {
+    let fx = module_fixture();
+    write(
+        fx.path(),
+        "specs/001-d/spec.md",
+        &spec(
+            "001-d",
+            "establishes:\n  - { kind: directory, path: \"rs-thing/nope\" }\n",
+        ),
+    );
+    let idx = index(&Config::default(), fx.path()).unwrap().index;
+    assert!(idx.diagnostics.errors.iter().any(|d| d.code == "I-007"));
+}
+
+#[test]
+fn module_unit_resolves_inline_and_file_modules() {
+    let fx = module_fixture();
+    // Inline `mod tests {}` → a line span; the file-module `helper` → whole file.
+    write(
+        fx.path(),
+        "specs/001-m/spec.md",
+        &spec(
+            "001-m",
+            "establishes:\n  - { kind: module, id: \"rs_thing::tests\" }\n  - { kind: module, id: \"rs_thing::helper\" }\n",
+        ),
+    );
+    let idx = index(&Config::default(), fx.path()).unwrap().index;
+    let m = mapping(&idx, "001-m");
+    let tests_unit = m
+        .resolved_units
+        .iter()
+        .find(|u| matches!(&u.unit, Unit::Module { id } if id == "rs_thing::tests"))
+        .unwrap();
+    assert_eq!(tests_unit.locations[0].file, "rs-thing/src/lib.rs");
+    assert!(
+        tests_unit.locations[0].span.is_some(),
+        "inline mod resolves to a block span"
+    );
+    let helper_unit = m
+        .resolved_units
+        .iter()
+        .find(|u| matches!(&u.unit, Unit::Module { id } if id == "rs_thing::helper"))
+        .unwrap();
+    assert_eq!(helper_unit.locations[0].file, "rs-thing/src/helper.rs");
+    assert_eq!(
+        helper_unit.locations[0].span, None,
+        "a file-module resolves whole-file"
+    );
+}
+
+#[test]
+fn spec_scoped_constrains_produces_no_resolved_unit() {
+    // Spec 018: a constrains item with target_specs and no unit claims no code
+    // path, so it contributes no resolved unit to the index.
+    let tmp = tempfile::tempdir().unwrap();
+    write(tmp.path(), "Cargo.toml", "[workspace]\nmembers = []\n");
+    write(
+        tmp.path(),
+        "specs/001-x/spec.md",
+        &spec(
+            "001-x",
+            "constrains:\n  - { kind: sequencing-plan, target_specs: [\"002-y\"] }\n",
+        ),
+    );
+    write(tmp.path(), "specs/002-y/spec.md", &spec("002-y", ""));
+    let idx = index(&Config::default(), tmp.path()).unwrap().index;
+    assert!(
+        mapping(&idx, "001-x").resolved_units.is_empty(),
+        "spec-scoped constrains claims no code path"
+    );
+}
+
+#[test]
+fn unresolved_module_unit_is_blocking_diagnostic_i008() {
+    let fx = module_fixture();
+    write(
+        fx.path(),
+        "specs/001-m/spec.md",
+        &spec(
+            "001-m",
+            "establishes:\n  - { kind: module, id: \"rs_thing::ghost\" }\n",
+        ),
+    );
+    let idx = index(&Config::default(), fx.path()).unwrap().index;
+    assert!(idx.diagnostics.errors.iter().any(|d| d.code == "I-008"));
+}
