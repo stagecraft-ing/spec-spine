@@ -1,5 +1,5 @@
 #!/bin/sh
-# spec-spine installer — curl -fsSL https://raw.githubusercontent.com/bartekus/spec-spine/main/install.sh | sh
+# spec-spine installer: curl -fsSL https://raw.githubusercontent.com/bartekus/spec-spine/main/install.sh | sh
 #
 # Detects your platform/arch, downloads the matching release archive and its
 # .sha256 sidecar from GitHub Releases, verifies the checksum, and drops the

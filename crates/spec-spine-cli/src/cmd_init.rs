@@ -1,8 +1,8 @@
-//! `spec-spine init` — scaffold a new adopter (spec 006).
+//! `spec-spine init`: scaffold a new adopter (spec 006).
 //!
 //! Core returns the files as data ([`spec_spine_core::scaffold_init`]); this is
 //! where they are written. Without `--force`, a pre-existing file is skipped (not
-//! an error — `init` is idempotent); with `--force`, every file is overwritten.
+//! an error; `init` is idempotent); with `--force`, every file is overwritten.
 
 use std::fs;
 use std::path::Path;

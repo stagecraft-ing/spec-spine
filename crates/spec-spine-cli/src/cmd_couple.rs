@@ -1,4 +1,4 @@
-//! `spec-spine couple` — the PR-time coupling gate (spec 005).
+//! `spec-spine couple`: the PR-time coupling gate (spec 005).
 //!
 //! This is the only place `git` runs: it invokes `git diff --no-color -U0
 //! base...head`, parses the unified diff into a typed [`DiffInput`] (new-side
@@ -34,7 +34,7 @@ pub fn run(repo: &Path, args: &CoupleArgs) -> Result<u8, Error> {
     let mut waiver = parse_waiver(&cfg, &body);
     let mut auto_waived = false;
 
-    // Spec 005 §3.5 — mechanical dependency-only auto-waiver. Opt-in,
+    // Spec 005 §3.5: mechanical dependency-only auto-waiver. Opt-in,
     // git-diff mode only (`--paths-from` has no content to compare), and
     // never overrides an explicit PR-body waiver.
     if waiver.is_none() && cfg.coupling.auto_waive_dependency_only && args.paths_from.is_none() {
@@ -46,7 +46,7 @@ pub fn run(repo: &Path, args: &CoupleArgs) -> Result<u8, Error> {
 
     if report.has_blocking_drift() {
         eprintln!(
-            "spec-spine couple: {} drift violation(s) — a changed path lacks an authoring edit to an owning spec.\n",
+            "spec-spine couple: {} drift violation(s): a changed path lacks an authoring edit to an owning spec.\n",
             report.violations.len()
         );
         for v in &report.violations {
@@ -58,7 +58,7 @@ pub fn run(repo: &Path, args: &CoupleArgs) -> Result<u8, Error> {
         );
     } else if let Some(reason) = &report.waiver {
         println!(
-            "spec-spine couple: {} violation(s) {} — reason: {reason}",
+            "spec-spine couple: {} violation(s) {}, reason: {reason}",
             report.violations.len(),
             if auto_waived { "auto-waived" } else { "waived" }
         );
@@ -67,7 +67,7 @@ pub fn run(repo: &Path, args: &CoupleArgs) -> Result<u8, Error> {
         }
     } else {
         println!(
-            "spec-spine couple: OK — {} path(s) checked, no drift.",
+            "spec-spine couple: OK: {} path(s) checked, no drift.",
             report.checked_paths
         );
     }
@@ -177,7 +177,7 @@ fn git_show(repo: &Path, rev: &str, path: &str) -> Option<String> {
         .output()
         .ok()?;
     if !out.status.success() {
-        return None; // absent at this rev (created/deleted) — fail closed upstream
+        return None; // absent at this rev (created/deleted); fail closed upstream
     }
     Some(String::from_utf8_lossy(&out.stdout).into_owned())
 }
@@ -268,7 +268,7 @@ fn parse_hunk_header(line: &str) -> Option<LineSpan> {
     let start: usize = start_s.parse().ok()?;
     let count: usize = count_s.parse().ok()?;
     if start == 0 {
-        // `+0,0` — a deletion with no new-side line. Whole-file fallback handles
+        // `+0,0`: a deletion with no new-side line. Whole-file fallback handles
         // the path; emit nothing for this hunk.
         return None;
     }

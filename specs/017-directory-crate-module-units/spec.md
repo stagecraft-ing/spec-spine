@@ -21,13 +21,13 @@ extends:
       - "crates/spec-spine-types/tests/dtos.rs"
 summary: >
   Lifts the v1 unit-grammar limitation (`docs/design/00-architecture.md` §2.2,
-  Q5): the three reserved kinds — `directory`, `crate`, and `module` — are now
+  Q5): the three reserved kinds (`directory`, `crate`, and `module`) are now
   parsed and resolved alongside `file`/`section`/`symbol`. A `directory` unit
   resolves to its subtree (existence-checked, I-007 on miss); a `crate` unit
   resolves a manifest name against the discovered package inventory to that
   package's directory subtree (I-003 on miss, hyphen/underscore interchangeable);
   a `module` unit resolves a `::`-qualified Rust module path via a new module
-  index — file-modules whole-file, top-level inline `mod` blocks to their span
+  index; file-modules whole-file, top-level inline `mod` blocks to their span
   (I-008 on miss). The registry/index schemas are permissive on the unit payload,
   so this is an additive MINOR (`INDEX_SCHEMA_VERSION` 0.2.0 → 0.3.0) with no
   schema-file edit. Unblocks adopting the OAP corpus, which authors these three
@@ -40,14 +40,14 @@ summary: >
 ## 1. Purpose
 
 The Phase-0 design (`00-architecture.md` §2.2) shipped three of six unit kinds
-in v1 — `file`, `section`, `symbol` — and explicitly **reserved** the other
+in v1 (`file`, `section`, `symbol`) and explicitly **reserved** the other
 three as "an additive minor … so `crate`/`module` slot in … without breaking
 readers" (Q5). `directory` was folded into trailing-slash file units; `crate`
 and `module` were named-but-unbuilt.
 
 The OAP-corpus dry-run is the trigger to build them. OAP authors all three as
-first-class kinds — 93 `{ kind: directory, path }`, 99 `{ kind: crate, id }`,
-and one `{ kind: module, id }` — across 100 specs. Rejecting them (the `Tagged`
+first-class kinds (93 `{ kind: directory, path }`, 99 `{ kind: crate, id }`,
+and one `{ kind: module, id }`) across 100 specs. Rejecting them (the `Tagged`
 deserializer's `deny_unknown_fields` surfaces an opaque "untagged enum" parse
 error) is the single largest blocker to adoption. Migrating 192 unit
 declarations to trailing-slash file units would be backwards: the corpus is the
@@ -61,7 +61,7 @@ The unit grammar (`unit.rs`: three new `Unit` variants and their `Tagged`
 deserialize arms) and the indexer's resolver (`index.rs`: three new
 `resolve_unit` arms; `canonical_unit`; the span-backing hash set; a
 `needs_modules` gate) plus a Rust module index (`symbols.rs`:
-`build_module_index`). The schemas are unchanged — they are deliberately
+`build_module_index`). The schemas are unchanged; they are deliberately
 permissive on the typed-unit payload (`additionalProperties` on `traceMapping`,
 no unit-shape `$ref`), so the new kinds validate as-is; the change is recorded
 as the `INDEX_SCHEMA_VERSION` minor bump alone.
@@ -108,7 +108,7 @@ A `module` unit's *inline-block* location carries a span, so its backing source
 file folds into the content hash (a line shift that moves the block stales the
 index, exactly as for `symbol`/`section`). `directory`, `crate`, and the
 *file-module* form of `module` are whole-subtree / whole-file (`span: None`) and
-contribute no span-backing source — consistent with `file` units, whose content
+contribute no span-backing source, consistent with `file` units, whose content
 does not affect resolution.
 
 ### 3.4 Diagnostic codes
@@ -133,7 +133,7 @@ module) join the existing blocking band (`I-003`..`I-009`) that fails
 
 TypeScript/Python module resolution (the module index is Rust-only; the corpus
 has no TS module unit). Nested-module resolution beyond top-level inline blocks
-(a deeper `mod a { mod b {} }` resolves `a` but not `a::b` — file-modules and
+(a deeper `mod a { mod b {} }` resolves `a` but not `a::b`: file-modules and
 top-level inline mods cover the corpus; deepen on demand). Any registry/index
 JSON Schema text change (the payload is permissive by design). Re-emitting a
 derived `implements:` view.

@@ -50,7 +50,7 @@ fn emitted_registry_conforms_to_embedded_schema() {
 
 #[test]
 fn schema_rejects_a_malformed_registry() {
-    // A registry missing the required `build` block must be rejected — proves the
+    // A registry missing the required `build` block must be rejected; proves the
     // conformance check has teeth.
     let schema: serde_json::Value = serde_json::from_str(REGISTRY_SCHEMA).unwrap();
     let bad = serde_json::json!({ "specVersion": "0.1.0", "specs": [], "validation": { "passed": true, "violations": [] } });

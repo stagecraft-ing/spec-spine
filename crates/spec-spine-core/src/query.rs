@@ -173,7 +173,11 @@ pub fn relationships(registry: &Registry, id: &str) -> Result<RelationshipView, 
     Ok(RelationshipView {
         id: spec.id.clone(),
         depends_on: spec.depends_on.clone(),
-        supersedes: spec.supersedes.iter().map(|x| x.spec().to_string()).collect(),
+        supersedes: spec
+            .supersedes
+            .iter()
+            .map(|x| x.spec().to_string())
+            .collect(),
         amends: spec.amends.clone(),
         superseded_by,
         amended_by: incoming(|s| &s.amends),

@@ -5,8 +5,8 @@
 //! [`Unit::Symbol`], [`Unit::Directory`], [`Unit::Crate`], and [`Unit::Module`]
 //! (ported from OAP `spec-types::LogicalUnit`). The first three shipped in v1;
 //! `directory`/`crate`/`module` were reserved as an additive minor in
-//! `docs/design/00-architecture.md` §2.2 (Q5) and are resolved as of spec 017
-//! — the schema is permissive on the unit payload, so the new kinds are a MINOR
+//! `docs/design/00-architecture.md` §2.2 (Q5) and are resolved as of spec 017:
+//! the schema is permissive on the unit payload, so the new kinds are a MINOR
 //! bump (no schema-file edit), and a bare string remains shorthand for a file
 //! unit (a trailing-slash path denotes a directory subtree).
 
@@ -42,7 +42,7 @@ pub enum Unit {
     /// the package directory subtree (spec 017).
     Crate { id: String },
     /// A module by its `::`-qualified path (e.g. `my_crate::serialization`),
-    /// resolved by the indexer's Rust module index — file-modules (whole file)
+    /// resolved by the indexer's Rust module index: file-modules (whole file)
     /// and top-level inline `mod` blocks (line-span) (spec 017).
     Module { id: String },
 }

@@ -4,20 +4,20 @@
 //! grammar, the authority-unit and typed-edge vocabulary, the registry DTOs,
 //! schema-version constants, and the stable [`Error`] enum.
 //!
-//! Everything here is plain, owned, `serde`-serializable data — no lifetimes,
-//! generics, or trait objects at the public boundary — so the same types back
+//! Everything here is plain, owned, `serde`-serializable data (no lifetimes,
+//! generics, or trait objects at the public boundary) so the same types back
 //! both the `spec-spine-core` engine and future FFI bindings.
 //!
 //! See `docs/design/00-architecture.md` for the design and the provenance of
 //! the ported semantics.
 //!
 //! ## Layout
-//! - [`config`] — the `spec-spine.toml` model ([`Config`]).
-//! - [`frontmatter`] — the authored grammar ([`Frontmatter`], [`parse_frontmatter`]).
-//! - [`unit`] / [`edges`] — the authority-unit and relationship vocabulary.
-//! - [`registry`] — the compiled spec-as-source DTOs ([`Registry`]).
-//! - [`version`] — schema-version constants.
-//! - [`error`] — the [`Error`] enum and its exit-code contract.
+//! - [`config`]: the `spec-spine.toml` model ([`Config`]).
+//! - [`frontmatter`]: the authored grammar ([`Frontmatter`], [`parse_frontmatter`]).
+//! - [`unit`] / [`edges`]: the authority-unit and relationship vocabulary.
+//! - [`registry`]: the compiled spec-as-source DTOs ([`Registry`]).
+//! - [`version`]: schema-version constants.
+//! - [`error`]: the [`Error`] enum and its exit-code contract.
 
 pub mod codebase;
 pub mod config;

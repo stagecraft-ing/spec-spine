@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::unit::Unit;
 
-/// `extends: [{ spec, unit? | paths?, nature? }]` — adds surface to a
+/// `extends: [{ spec, unit? | paths?, nature? }]`: adds surface to a
 /// predecessor. `paths:` is parse-time sugar for N file units (spec 014).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -25,7 +25,7 @@ pub struct ExtendItem {
     pub spec: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unit: Option<Unit>,
-    /// Authoring sugar only — always `None` after parse (spec 014 §3.2).
+    /// Authoring sugar only: always `None` after parse (spec 014 §3.2).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub paths: Option<Vec<String>>,
     /// Free-text nature hint (e.g. `additive`, `wrapping`); validated by lint.
@@ -33,7 +33,7 @@ pub struct ExtendItem {
     pub nature: Option<String>,
 }
 
-/// `refines: [{ aspect, unit? | paths?, refines_specs? }]` — tightens a named
+/// `refines: [{ aspect, unit? | paths?, refines_specs? }]`: tightens a named
 /// aspect. `paths:` is parse-time sugar for N file units (spec 014).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -42,7 +42,7 @@ pub struct RefineItem {
     pub aspect: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unit: Option<Unit>,
-    /// Authoring sugar only — always `None` after parse (spec 014 §3.2).
+    /// Authoring sugar only: always `None` after parse (spec 014 §3.2).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub paths: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -83,7 +83,7 @@ pub(crate) fn expand_extend_paths(items: Vec<ExtendItem>) -> Result<Vec<ExtendIt
     Ok(out)
 }
 
-/// Expand the `paths:` sugar on `refines` items — symmetric with
+/// Expand the `paths:` sugar on `refines` items, symmetric with
 /// [`expand_extend_paths`].
 pub(crate) fn expand_refine_paths(items: Vec<RefineItem>) -> Result<Vec<RefineItem>, String> {
     let mut out = Vec::with_capacity(items.len());
@@ -116,7 +116,7 @@ pub(crate) fn expand_refine_paths(items: Vec<RefineItem>) -> Result<Vec<RefineIt
     Ok(out)
 }
 
-/// `co_authority: [{ unit, with_specs? }]` — shares a section with other specs.
+/// `co_authority: [{ unit, with_specs? }]`: shares a section with other specs.
 ///
 /// `unit` must be a [`Unit::Section`] (validated by the compiler in Phase 2).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -127,14 +127,14 @@ pub struct CoAuthorityItem {
     pub with_specs: Vec<String>,
 }
 
-/// `constrains: [{ flavor? | kind?, unit?, note?, target_specs? }]` — asserts an
+/// `constrains: [{ flavor? | kind?, unit?, note?, target_specs? }]`: asserts an
 /// invariant others must respect.
 ///
 /// Two shapes coexist (spec 018): a **path-scoped** constraint carries a `unit:`
 /// (the canonical `invariant-freeze` over a file/schema); a **spec-scoped**
 /// constraint carries `target_specs:` and no unit (a sequencing/ordering plan
 /// over other specs). `flavor` and `kind` are interchangeable, documentary
-/// discriminators (synonyms — the predecessor dialect uses both spellings);
+/// discriminators (synonyms; the predecessor dialect uses both spellings);
 /// neither is gate-load-bearing. The compiler requires at least one of `unit` or
 /// `target_specs` (V-011).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -146,7 +146,7 @@ pub struct ConstrainItem {
     /// of `kind`; both are accepted and preserved verbatim.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flavor: Option<String>,
-    /// Documentary constraint classification — the alternative spelling of
+    /// Documentary constraint classification: the alternative spelling of
     /// `flavor` (e.g. `sequencing-plan`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
@@ -164,7 +164,7 @@ pub enum SupersedeScope {
     /// The successor inherits the predecessor's entire authority surface.
     #[default]
     Full,
-    /// The successor takes over only the named `unit` (additive — the
+    /// The successor takes over only the named `unit` (additive: the
     /// predecessor keeps everything else, and keeps the unit too).
     Partial,
 }
@@ -173,12 +173,12 @@ pub enum SupersedeScope {
 /// both mean full supersession; only a `partial` item carries a `unit` (spec
 /// 019). The full form normalizes to [`SupersedeItem::Full`] at parse time, so a
 /// corpus that uses only full supersession emits a byte-identical bare-string
-/// `supersedes` array — the registry wire is unchanged for every existing
+/// `supersedes` array: the registry wire is unchanged for every existing
 /// adopter; only a partial item serializes as an object.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SupersedeItem {
-    /// Full supersession — the predecessor id alone.
+    /// Full supersession: the predecessor id alone.
     Full(String),
     /// A structured item (`{ spec, scope?, unit?, note?, rationale? }`).
     Scoped(SupersedeScoped),
@@ -193,7 +193,7 @@ pub struct SupersedeScoped {
     #[serde(default)]
     pub scope: SupersedeScope,
     /// For a `partial` scope: the unit whose authority transfers. A partial item
-    /// with no unit is a documentary lifecycle marker — it transfers nothing.
+    /// with no unit is a documentary lifecycle marker; it transfers nothing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unit: Option<Unit>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -240,7 +240,7 @@ impl SupersedeItem {
 
 /// Normalize `supersedes` items (spec 019): a `Scoped` item with full scope
 /// carries no information beyond its id, so it collapses to the bare-string
-/// [`SupersedeItem::Full`] form — keeping `{ scope: full }` (OAP spec 073) and a
+/// [`SupersedeItem::Full`] form, keeping `{ scope: full }` (OAP spec 073) and a
 /// bare id byte-identical on the wire. Partial items pass through unchanged.
 pub(crate) fn normalize_supersedes(items: Vec<SupersedeItem>) -> Vec<SupersedeItem> {
     items
@@ -254,7 +254,7 @@ pub(crate) fn normalize_supersedes(items: Vec<SupersedeItem>) -> Vec<SupersedeIt
         .collect()
 }
 
-/// `references: [{ unit? | provenance?, role? }]` — the non-owning edge.
+/// `references: [{ unit? | provenance?, role? }]`: the non-owning edge.
 ///
 /// `unit` and `provenance` are mutually exclusive (enforced by the compiler).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -281,7 +281,7 @@ pub struct Provenance {
     pub reference: String,
 }
 
-/// The `origin` bootstrap marker — NOT a relationship edge.
+/// The `origin` bootstrap marker, NOT a relationship edge.
 ///
 /// `retroactive: true` declares authority held since before the graph existed.
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]

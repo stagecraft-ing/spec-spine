@@ -2,7 +2,7 @@
 //!
 //! Pure function of `(config, file contents)`. Per-spec parse failures are
 //! recorded as error-tier violations rather than aborting the run; `Err` is
-//! reserved for I/O failures. The wall clock is never read here — it lives in
+//! reserved for I/O failures. The wall clock is never read here; it lives in
 //! `build-meta.json`, written by the CLI.
 
 use std::collections::BTreeMap;
@@ -273,7 +273,7 @@ fn validate_spec(
             ));
         }
     }
-    // V-011: a constrains item must scope something (spec 018) — a code `unit`
+    // V-011: a constrains item must scope something (spec 018): a code `unit`
     // (path-scoped, e.g. invariant-freeze) or `target_specs` (spec-scoped, e.g.
     // a sequencing plan). An item with neither asserts an invariant over nothing.
     for c in &fm.constrains {

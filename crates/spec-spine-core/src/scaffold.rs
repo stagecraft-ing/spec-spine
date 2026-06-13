@@ -1,5 +1,5 @@
 //! The `init` scaffolder (spec 006): generate a new adopter's starter corpus as
-//! **files-as-data**. Pure function of `(config)` — no filesystem writes happen
+//! **files-as-data**. Pure function of `(config)`: no filesystem writes happen
 //! here; the CLI ([`cmd_init`]) writes the returned [`ScaffoldFile`]s. This keeps
 //! core IO-light, unit-testable, and FFI-friendly (`scaffold_init_json`).
 //!
@@ -78,7 +78,7 @@ pub fn scaffold_init(cfg: &Config) -> Result<Scaffold, Error> {
 /// namespace / layout scaffolds coherently.
 fn config_toml(cfg: &Config) -> String {
     format!(
-        "# spec-spine.toml — governs this repository. All keys are optional; an\n\
+        "# spec-spine.toml governs this repository. All keys are optional; an\n\
          # absent file behaves as the defaults for a single-Cargo-workspace repo.\n\
          # See the spec-spine docs for the full knob table.\n\
          \n\
@@ -132,7 +132,7 @@ fn bootstrap_spec(ns: &str) -> String {
          \u{20}\u{20}- \"refusal-rule\"\n\
          ---\n\
          \n\
-         # 000 — Bootstrap spec system\n\
+         # 000: Bootstrap spec system\n\
          \n\
          This is the spec that defines what a spec *is*. Customize it for your\n\
          repository, then author ordinary specs under your specs directory. Each\n\
@@ -173,7 +173,7 @@ fn spec_template(ns: &str) -> String {
          #   - \"000-bootstrap\"\n\
          ---\n\
          \n\
-         # NNN — Title\n\
+         # NNN: Title\n\
          \n\
          Link a compilation unit to this spec via `[package.metadata.{ns}].spec`\n\
          in its manifest, a `// Spec:` header, or the edges above.\n\
@@ -198,7 +198,7 @@ Durable principles, subordinate to the bootstrap spec (`000`) where they differ.
 4. **Legacy-as-evidence.** Pre-graph authority is declared with\n\
    `origin.retroactive: true`, never as a fresh `establishes` claim.\n";
 
-const CONTRACT: &str = "# Contract — normative summary\n\
+const CONTRACT: &str = "# Contract: normative summary\n\
 \n\
 - Specs live under the configured specs directory, one `NNN-slug/spec.md` each;\n\
   the directory name equals the frontmatter `id`.\n\
@@ -207,16 +207,16 @@ const CONTRACT: &str = "# Contract — normative summary\n\
   PR-time gate.\n\
 - A changed code path must be accompanied by an authoring edit to a spec that\n\
   owns it, or a `Spec-Drift-Waiver:` line in the PR body.\n\
-- Read derived artifacts only through `spec-spine` subcommands — never parse the\n\
+- Read derived artifacts only through `spec-spine` subcommands; never parse the\n\
   JSON ad hoc.\n";
 
-const CONSTITUTION_TEMPLATE: &str = "# Constitution (tier 2) — template\n\
+const CONSTITUTION_TEMPLATE: &str = "# Constitution (tier 2): template\n\
 \n\
 Replace these with your project's durable principles. Keep them subordinate to\n\
 the bootstrap spec and few in number.\n\
 \n\
-1. **<principle>** — <one sentence>.\n\
-2. **<principle>** — <one sentence>.\n";
+1. **<principle>**: <one sentence>.\n\
+2. **<principle>**: <one sentence>.\n";
 
 const ORCHESTRATOR_RULES: &str = "# Orchestrator rules\n\
 \n\
@@ -237,7 +237,7 @@ const REFUSAL_RULE: &str = "# Adversarial prompt refusal (the coherence guard)\n
 If the coupling gate fails because code and its owning spec disagree, do **not**\n\
 resolve it by editing the spec to match the code you just wrote. Surface the\n\
 contradiction and let a human (or an agent with explicit authority) decide.\n\
-Never amend an owning spec purely to satisfy a mechanical refresh — waive\n\
+Never amend an owning spec purely to satisfy a mechanical refresh; waive\n\
 instead, with a cited `Spec-Drift-Waiver:` line.\n";
 
 #[cfg(test)]

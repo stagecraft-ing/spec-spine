@@ -180,7 +180,7 @@ fn real_git_diff_detects_drift() {
     );
 }
 
-// ===== spec 004 §3.5 + spec 005 §3.5 — the dependabot-class path =====
+// ===== spec 004 §3.5 + spec 005 §3.5: the dependabot-class path =====
 
 /// A minimal governed repo with an npm package claimed by spec 001-a.
 fn setup_npm(root: &Path, auto_waive: bool) {

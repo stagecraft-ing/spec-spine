@@ -1,11 +1,11 @@
-//! Registry DTOs — the spec-as-source view, emitted by `compile` as
+//! Registry DTOs: the spec-as-source view, emitted by `compile` as
 //! `registry.json`. Field names serialize to `camelCase` (the JSON contract),
 //! distinct from the `snake_case` authored [`crate::Frontmatter`] grammar.
 //!
 //! The compiler (Phase 2) populates these from parsed frontmatter plus computed
 //! fields (`spec_path`, `section_headings`, the content hash). Shapes are ported
 //! from OAP `registry.schema.json` (`featureRecord`, `build`, `violation`),
-//! pruned to the generic v1 surface — overlay fields (compliance, factory,
+//! pruned to the generic v1 surface; overlay fields (compliance, factory,
 //! capability/registry/profile) are intentionally absent (see §10.4).
 
 use std::collections::BTreeMap;
@@ -29,7 +29,7 @@ pub struct Registry {
     pub validation: ValidationReport,
 }
 
-/// Deterministic build metadata embedded in `registry.json` (no timestamps —
+/// Deterministic build metadata embedded in `registry.json` (no timestamps:
 /// the wall clock lives in the separate, non-deterministic `build-meta.json`).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

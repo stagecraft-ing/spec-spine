@@ -10,8 +10,8 @@
 //! base and head versions of each changed manifest: the two documents must
 //! be semantically identical everywhere except *version strings* inside the
 //! standard dependency tables (same package keys; values may differ only
-//! where both sides are strings). Anything else — a new or removed package,
-//! a `scripts` edit, a spec-metadata edit, a non-object document — refuses
+//! where both sides are strings). Anything else (a new or removed package,
+//! a `scripts` edit, a spec-metadata edit, a non-object document) refuses
 //! the auto-waiver, fail-closed.
 //!
 //! Like everything in core, this is pure: the CLI resolves the merge-base,
@@ -29,7 +29,7 @@ pub const DEPENDENCY_TABLES: &[&str] = &[
 ];
 
 /// One changed file with both sides of its content. `None` = the file is
-/// absent on that side (created or deleted) — never dependency-only.
+/// absent on that side (created or deleted): never dependency-only.
 #[derive(Clone, Debug)]
 pub struct FileContents {
     pub path: String,
@@ -39,7 +39,7 @@ pub struct FileContents {
 
 /// The mechanical verdict over a whole diff: `Some(Waiver)` iff **every**
 /// entry is a `package.json` whose base→head change is dependency-only.
-/// An empty slice yields `None` — there is nothing to waive.
+/// An empty slice yields `None`: there is nothing to waive.
 pub fn dependency_only_waiver(files: &[FileContents]) -> Option<Waiver> {
     if files.is_empty() {
         return None;
@@ -49,7 +49,7 @@ pub fn dependency_only_waiver(files: &[FileContents]) -> Option<Waiver> {
             return None;
         }
         let (Some(base), Some(head)) = (&f.base, &f.head) else {
-            return None; // created or deleted manifest — not a version bump
+            return None; // created or deleted manifest, not a version bump
         };
         if !dependency_only_change(base, head) {
             return None;

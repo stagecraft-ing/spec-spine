@@ -5,7 +5,7 @@
 //! `specs/` at the root ([`Config::default`]). Every struct is
 //! `#[serde(default, deny_unknown_fields)]`: missing keys default, and a
 //! *misspelled* knob is a loud [`Error::Config`] rather than a silently-ignored
-//! setting — the exact failure class that left template-encore blind to its npm
+//! setting: the exact failure class that left template-encore blind to its npm
 //! packages. See `docs/design/00-architecture.md` §3.
 
 use std::collections::BTreeMap;
@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 
-/// The full configuration. All sections are optional. `Default` is derived —
+/// The full configuration. All sections are optional. `Default` is derived;
 /// each field's own `Default` supplies the conventional value.
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -22,7 +22,7 @@ pub struct Config {
     pub manifest: ManifestConfig,
     /// Opt-in `domain` taxonomy (empty `allowed` ⇒ free-text/disabled).
     pub domains: AllowlistConfig,
-    /// Opt-in `kind` taxonomy — symmetric with `domains` (empty ⇒ disabled).
+    /// Opt-in `kind` taxonomy, symmetric with `domains` (empty ⇒ disabled).
     pub kind: AllowlistConfig,
     pub layout: LayoutConfig,
     pub index: IndexConfig,
@@ -32,7 +32,7 @@ pub struct Config {
     pub frontmatter: FrontmatterConfig,
 }
 
-/// `[manifest]` — how a manifest links a compilation unit back to its spec.
+/// `[manifest]`: how a manifest links a compilation unit back to its spec.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ManifestConfig {
@@ -72,7 +72,7 @@ impl AllowlistConfig {
     }
 }
 
-/// `[layout]` — path conventions. Never hardcode `specs/`, `.derived/`, etc.
+/// `[layout]`: path conventions. Never hardcode `specs/`, `.derived/`, etc.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct LayoutConfig {
@@ -84,7 +84,7 @@ pub struct LayoutConfig {
     pub cargo_workspace: String,
     /// Manifests that DECLARE npm/pnpm workspace members. The indexer reads
     /// member globs from whichever exists. The default reads root
-    /// `package.json#workspaces` — fixing the template-encore bug where a
+    /// `package.json#workspaces`, fixing the template-encore bug where a
     /// hardcoded `public/pnpm-workspace.yaml` made all npm packages invisible.
     pub npm_workspaces: Vec<String>,
     /// Crates outside the root Cargo workspace.
@@ -111,7 +111,7 @@ impl Default for LayoutConfig {
     }
 }
 
-/// `[index]` — inputs and exclusions for the codebase indexer.
+/// `[index]`: inputs and exclusions for the codebase indexer.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct IndexConfig {
@@ -148,7 +148,7 @@ impl Default for IndexConfig {
     }
 }
 
-/// `[branding]` — identifiers stamped into emitted `build` metadata.
+/// `[branding]`: identifiers stamped into emitted `build` metadata.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct BrandingConfig {
@@ -165,14 +165,14 @@ impl Default for BrandingConfig {
     }
 }
 
-/// `[coupling]` — the PR-time gate's exemptions and waiver keyword.
+/// `[coupling]`: the PR-time gate's exemptions and waiver keyword.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CouplingConfig {
     /// **Additional** paths exempt from the gate, on top of the always-applied
     /// hardcoded floor (`spec_spine_core::DEFAULT_BYPASS_PREFIXES`). Match rules:
     /// trailing `/` ⇒ dir prefix; leading `**/` ⇒ tail-suffix anywhere; else
-    /// exact file. This list is **additive** — it adds to the floor and can never
+    /// exact file. This list is **additive**: it adds to the floor and can never
     /// remove a floor entry. The default is **empty**: the floor is the single
     /// built-in source, so an adopter declares only their own additions rather
     /// than restating (and seeming able to override) the floor.
@@ -184,17 +184,17 @@ pub struct CouplingConfig {
     /// the parsed base/head JSON of every non-bypassed changed path: if all
     /// are `package.json` manifests whose only differences are version
     /// strings inside the standard dependency tables (same package keys),
-    /// the gate self-waives — the path dependabot-class PRs cannot take
+    /// the gate self-waives: the path dependabot-class PRs cannot take
     /// (they can edit neither specs nor PR bodies). Anything beyond a
-    /// version string — a new package, a `scripts` edit, spec-binding
-    /// metadata — refuses the auto-waiver, fail-closed. Default `false`.
+    /// version string (a new package, a `scripts` edit, spec-binding
+    /// metadata) refuses the auto-waiver, fail-closed. Default `false`.
     pub auto_waive_dependency_only: bool,
 }
 
 impl Default for CouplingConfig {
     fn default() -> Self {
         CouplingConfig {
-            // Empty by design — the floor lives in `couple.rs` and is always
+            // Empty by design: the floor lives in `couple.rs` and is always
             // unioned in; duplicating it here was redundant and misleadingly
             // implied it was overridable.
             bypass_prefixes: Vec::new(),
@@ -204,7 +204,7 @@ impl Default for CouplingConfig {
     }
 }
 
-/// `[provenance]` — the OPEN provenance-scheme registry (kind → URI scheme).
+/// `[provenance]`: the OPEN provenance-scheme registry (kind → URI scheme).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ProvenanceConfig {
@@ -220,7 +220,7 @@ impl Default for ProvenanceConfig {
     }
 }
 
-/// `[frontmatter]` — recognized-key extensions.
+/// `[frontmatter]`: recognized-key extensions.
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct FrontmatterConfig {
@@ -232,7 +232,7 @@ pub struct FrontmatterConfig {
 /// Load and validate a `spec-spine.toml` from its source text.
 ///
 /// Returns [`Error::Config`] (mapped to exit code 3) on any malformed or
-/// unknown-key error — never panics.
+/// unknown-key error; never panics.
 pub fn load_config(toml_src: &str) -> Result<Config> {
     let config: Config = toml::from_str(toml_src).map_err(|e| Error::Config(e.to_string()))?;
     validate_slices(&config)?;

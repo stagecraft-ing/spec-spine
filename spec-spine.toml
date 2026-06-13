@@ -1,7 +1,7 @@
 # spec-spine governing its own repository (dogfood).
 #
 # This repo is a single Cargo workspace with specs/ at the root and no npm
-# packages, so most of this matches the built-in defaults — it is written out
+# packages, so most of this matches the built-in defaults; it is written out
 # explicitly to exercise the config parser and document the dogfood setup.
 # Every key here is optional; an absent file would behave identically.
 
@@ -40,7 +40,7 @@ indexer_id  = "spec-spine"
 # Additions to the built-in generic bypass floor (see couple.rs::DEFAULT_BYPASS_PREFIXES).
 # This list is ADDITIVE and cannot remove a floor entry. The floor already covers
 # the root README.md, docs/, .github/, lockfiles, .derived/, etc.; we extend it to
-# per-crate READMEs (e.g. crates/*/README.md) — prose documentation lives inside
+# per-crate READMEs (e.g. crates/*/README.md): prose documentation lives inside
 # the crate dir, which manifest-metadata maps to the crate's spec, so without this
 # a README tweak would read as code drift. `**/README.md` = tail-suffix match.
 bypass_prefixes = ["**/README.md"]

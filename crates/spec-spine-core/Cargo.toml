@@ -21,7 +21,7 @@ spec-spine-types = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
-# Symbol resolution. Pinned EXACT (=) — the resolver is a determinism input
+# Symbol resolution. Pinned EXACT (=): the resolver is a determinism input
 # across the 5-triple release matrix (Phase-3 watch-item 2): an unpinned grammar
 # would shift symbol line-spans and surface as flaky goldens. Cargo.lock is committed.
 tree-sitter = "=0.25.10"

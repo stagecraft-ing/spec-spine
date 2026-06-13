@@ -42,7 +42,7 @@ Dockerfile* text eol=lf
 .eslintrc*  text eol=lf
 .prettierrc* text eol=lf
 
-# --- Binary — never touch line endings ---
+# --- Binary: never touch line endings ---
 *.png       binary
 *.jpg       binary
 *.jpeg      binary
@@ -60,11 +60,3 @@ Dockerfile* text eol=lf
 *.gz        binary
 *.tar       binary
 *.tgz       binary
-
-# --- Derived-artifact merge driver (spec 188) ---
-# The one committed derived artifact carries a global content hash, so two
-# branches that both regenerated it conflict textually. The `oap-index-regen`
-# driver regenerates it from the merged tree instead. Opt-in: register the
-# driver per-clone (see CLAUDE.md). If unregistered, git falls back to the
-# default text merge — no behavior change.
-.derived/codebase-index/index.json merge=oap-index-regen

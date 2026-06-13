@@ -133,7 +133,7 @@ fn v004_duplicate_prefix() {
 #[test]
 fn supersedes_full_emits_bare_string_partial_emits_object() {
     // Spec 019: a full supersedes (bare id or `{ scope: full }`) serializes as a
-    // bare predecessor id — byte-stable wire; a partial item serializes as an
+    // bare predecessor id, byte-stable wire; a partial item serializes as an
     // object carrying its scope and unit.
     let tmp = tempfile::tempdir().unwrap();
     write_spec(tmp.path(), "001-old", "001-old", "");
@@ -165,9 +165,14 @@ fn supersedes_full_emits_bare_string_partial_emits_object() {
 #[test]
 fn v011_constrains_item_must_scope_unit_or_target_specs() {
     // Spec 018: a constrains item with neither a unit nor target_specs scopes
-    // nothing — V-011.
+    // nothing: V-011.
     let tmp = tempfile::tempdir().unwrap();
-    write_spec(tmp.path(), "001-x", "001-x", "constrains:\n  - flavor: dangling\n");
+    write_spec(
+        tmp.path(),
+        "001-x",
+        "001-x",
+        "constrains:\n  - flavor: dangling\n",
+    );
     let c = codes(&compile(&Config::default(), tmp.path()).unwrap());
     assert!(c.contains(&"V-011".to_string()), "codes: {c:?}");
 }
@@ -190,7 +195,10 @@ fn constrains_scoped_forms_compile_clean() {
         "constrains:\n  - { kind: sequencing-plan, target_specs: [\"001-fz\"] }\n",
     );
     let c = codes(&compile(&Config::default(), tmp.path()).unwrap());
-    assert!(!c.contains(&"V-011".to_string()), "no V-011 expected: {c:?}");
+    assert!(
+        !c.contains(&"V-011".to_string()),
+        "no V-011 expected: {c:?}"
+    );
 }
 
 #[test]

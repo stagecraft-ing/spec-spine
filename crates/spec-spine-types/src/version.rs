@@ -1,4 +1,4 @@
-//! Schema-version constants — library-owned, started fresh at `0.1.0`.
+//! Schema-version constants: library-owned, started fresh at `0.1.0`.
 //!
 //! These are deliberately decoupled from the reference repos' version lines
 //! (OAP registry `2.2.0`, index `3.0.0`). They are compile-time constants; in

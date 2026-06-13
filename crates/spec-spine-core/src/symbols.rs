@@ -109,10 +109,13 @@ fn qualify_module(crate_name: &str, module: &[String]) -> String {
 }
 
 /// Top-level `mod X { ... }` blocks (those with a body) and their spans. A
-/// bodyless `mod X;` is skipped — the file-module entry for its file covers it.
+/// bodyless `mod X;` is skipped: the file-module entry for its file covers it.
 fn extract_inline_mods(src: &str) -> Vec<(String, LineSpan)> {
     let mut parser = Parser::new();
-    if parser.set_language(&tree_sitter_rust::LANGUAGE.into()).is_err() {
+    if parser
+        .set_language(&tree_sitter_rust::LANGUAGE.into())
+        .is_err()
+    {
         return Vec::new();
     }
     let Some(tree) = parser.parse(src, None) else {

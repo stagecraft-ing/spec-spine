@@ -5,7 +5,7 @@
 //! adds **couple** (the PR-time drift gate) and **init** (the adopter scaffolder).
 //!
 //! Every artifact-producing function is a pure function of `(config, file
-//! contents)` — no ambient clock or environment reads, and **no git** (the CLI
+//! contents)`: no ambient clock or environment reads, and **no git** (the CLI
 //! parses the diff and passes a typed [`DiffInput`] in). The public API returns
 //! owned, `serde`-serializable DTOs (from [`spec_spine_types`]); the
 //! JSON-in/JSON-out facade ([`compile_json`], [`query_json`], [`index_json`],
@@ -189,7 +189,7 @@ pub fn load_config_json(toml_src: &str) -> Result<String, Error> {
 /// Run the coupling gate. `request_json` bundles config + repo_root + diff +
 /// optional waiver:
 /// `{ "config"?: Config, "repoRoot": string, "diff": DiffInput, "waiver"?: { "reason": string } }`.
-/// Returns the [`CoupleReport`] as JSON (even when drift is present — the caller
+/// Returns the [`CoupleReport`] as JSON (even when drift is present; the caller
 /// inspects `violations` / `waiver`).
 pub fn couple_json(request_json: &str) -> Result<String, Error> {
     #[derive(Deserialize)]

@@ -47,9 +47,9 @@ summary: >
   `supersedes` item may be a bare predecessor id (full) or a structured
   `{ spec, scope, unit?, note?, rationale? }`. A full item (bare id or
   `scope: full`) normalizes to the bare-string form, so a full-only corpus emits
-  a byte-identical registry — the wire is unchanged for every existing adopter;
+  a byte-identical registry; the wire is unchanged for every existing adopter;
   only a partial item serializes as an object. `scope: partial` with a `unit`
-  transfers authority over that unit alone (additive — the predecessor keeps it
+  transfers authority over that unit alone (additive, the predecessor keeps it
   and everything else), threaded through the index as a `supersedes` resolved
   unit so the gate already treats the successor as an owner of that unit's paths;
   `build_superseders` therefore contributes only **full** supersession to the
@@ -66,19 +66,19 @@ summary: >
 
 `supersedes` was a flat `Vec<String>` of predecessor ids. The architecture's
 edge table (§2.1) already labels it *"replaces a predecessor (partial/full);
-inherits current authority"* — **partial was named but unbuilt**. The
+inherits current authority"*: **partial was named but unbuilt**. The
 Phase-0 OAP dry-run surfaced four authored shapes the flat grammar rejects:
 
-- `108` — `supersedes: ["088"]` (bare **short** id; full).
-- `073` — `{ spec, scope: full }` (object, full).
-- `114` — `{ spec, scope: partial, unit }` (scoped transfer over one unit).
-- `199` — `{ spec, scope: partial, note }` (partial, no unit — documentary).
+- `108`: `supersedes: ["088"]` (bare **short** id; full).
+- `073`: `{ spec, scope: full }` (object, full).
+- `114`: `{ spec, scope: partial, unit }` (scoped transfer over one unit).
+- `199`: `{ spec, scope: partial, note }` (partial, no unit, documentary).
 
 `docs/design/01-partial-supersession.md` analysed this and recommended **Option
 A** once a second adopter appeared. OAP is that adopter, so this builds it. The
 design's load-bearing constraints are honoured: the full form stays a bare
-string (byte-identical registries), and partial transfer is **additive** (§4.3)
-— the successor *gains* the unit, the predecessor is never stripped — so the
+string (byte-identical registries), and partial transfer is **additive** (§4.3):
+the successor *gains* the unit, the predecessor is never stripped, so the
 gate's "any one owner clears" rule stays monotonic.
 
 ## 2. Territory
@@ -112,7 +112,7 @@ form is `{ spec, scope=full, unit?, note?, rationale? }` with
 ### 3.2 Normalization & wire (the full form never escapes)
 
 At parse time a `Scoped` item whose scope is `full` collapses to
-`SupersedeItem::Full(spec)` — so a bare id and `{ scope: full }` are
+`SupersedeItem::Full(spec)`, so a bare id and `{ scope: full }` are
 indistinguishable downstream, and a corpus that uses only full supersession
 emits the **exact same** `"supersedes": ["…", "…"]` string array as before. Only
 a `partial` item serializes as an object (`{ spec, scope: "partial", unit? }`).
@@ -120,13 +120,13 @@ The byte-equivalence of a full-only corpus is the compatibility contract.
 
 ### 3.3 Authority transfer
 
-- **Full** (bare / `scope: full`): unchanged from spec 005 — the successor
+- **Full** (bare / `scope: full`): unchanged from spec 005; the successor
   inherits the predecessor's entire authority surface (`build_superseders` →
   `owners_for_path` step 2, additive, transitive across chains).
 - **Partial** (`scope: partial`, with `unit`): the index resolves the `unit` as
   a `SourceField::Supersedes`, ownership-bearing resolved unit on the
   **successor**, so `owners_for_path` step 1 makes the successor an owner of
-  exactly that unit's paths — and `build_superseders` **excludes** partial items,
+  exactly that unit's paths; and `build_superseders` **excludes** partial items,
   so the successor does **not** also inherit the predecessor's other units.
   Additive: the predecessor keeps the unit too.
 - **Partial without `unit`** (`note`/`rationale` only): a documentary lifecycle
@@ -154,7 +154,7 @@ The predecessor named by a `supersedes` item resolves a leading-number short id
 
 ## 4. Out of scope
 
-Exclusive hand-off (the predecessor *losing* the unit) — the design's §4.3 first
+Exclusive hand-off (the predecessor *losing* the unit): the design's §4.3 first
 cut is additive; a true removal is the graph's first owner-stripping operation
 and waits for demand. Partial transfer scoped to a `section`/`symbol` unit is
 supported by the same resolved-unit path but unexercised by the corpus (the only

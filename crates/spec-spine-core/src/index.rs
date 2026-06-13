@@ -63,7 +63,7 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
     // Comment-header linkage: file path -> spec id.
     let comment_links = scan_comment_headers(cfg, repo_root, &discovered.packages, &all_ids);
 
-    // Symbol index — built only if some spec declares a symbol unit (avoids
+    // Symbol index, built only if some spec declares a symbol unit (avoids
     // parsing all source for corpora that use only file/section units).
     let needs_symbols = specs.iter().any(|s| {
         s.units
@@ -80,7 +80,7 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
         SymbolIndex::default()
     };
 
-    // Module index — built only if some spec declares a module unit (spec 017).
+    // Module index, built only if some spec declares a module unit (spec 017).
     let needs_modules = specs.iter().any(|s| {
         s.units
             .iter()
@@ -280,7 +280,7 @@ pub fn check_index_freshness(
 /// `build.sliceHashes` entry (spec 012 §3.3). A single-subject gate: it never
 /// consults the global hash or diagnostics. Unknown name → [`Error::Config`]
 /// (exit 3); a committed index with no entry for a configured slice is
-/// `Stale`, not an error — an index predating the slice config is by
+/// `Stale`, not an error: an index predating the slice config is by
 /// definition not vouching for it.
 pub fn check_slice_freshness(
     cfg: &spec_spine_types::Config,
@@ -307,7 +307,7 @@ pub fn check_slice_freshness(
     }
 }
 
-/// "Who currently owns this unit?" — a set query over resolved traceability.
+/// "Who currently owns this unit?": a set query over resolved traceability.
 pub fn authorities(index: &CodebaseIndex, unit: &Unit) -> Vec<String> {
     let mut owners: BTreeSet<String> = BTreeSet::new();
     for mapping in &index.traceability.mappings {
@@ -359,7 +359,7 @@ fn compute_slice_hashes(
 
 /// SHA-256 over a slice's matched files: the same normalization and
 /// path-sorted folding as the global hash. Zero matches hash the empty input
-/// sequence — deletion of a guarded file reads as a hash change, never a
+/// sequence: deletion of a guarded file reads as a hash change, never a
 /// config error.
 fn slice_hash(repo_root: &Path, patterns: &[String]) -> String {
     let mut pieces: Vec<(String, String)> = Vec::new();
@@ -433,7 +433,7 @@ fn discover_specs(
             }
         }
         // A partial supersession transfers authority over a single unit to this
-        // (superseding) spec — modeled as an owned resolved unit so the gate
+        // (superseding) spec, modeled as an owned resolved unit so the gate
         // treats the superseder as an owner of that unit's paths (spec 019). A
         // full or unit-less supersedes contributes no resolved unit here.
         for s in &fm.supersedes {
@@ -521,7 +521,7 @@ fn resolve_unit(
                 }
             }
         }
-        // A Rust module by `::`-qualified path (spec 017; I-008 = unresolved —
+        // A Rust module by `::`-qualified path (spec 017; I-008 = unresolved,
         // distinct from the symbol band's I-005).
         Unit::Module { id } => {
             let locations = modules.resolve(id);
@@ -626,7 +626,7 @@ fn collect_hash_inputs(
     };
 
     // Manifests. npm manifests fold as their governance projection (spec 004
-    // §3.5 amendment) — dependency tables are not a governed input, so a
+    // §3.5 amendment): dependency tables are not a governed input, so a
     // dependabot-class version bump leaves the committed index fresh while
     // a name / workspaces / spec-metadata change still stales it. Parse
     // failure falls back to raw bytes (over-hashing is fail-closed).
@@ -671,7 +671,7 @@ fn collect_hash_inputs(
         push(&repo_root.join(rel), &mut pieces);
     }
     // De-duplicate by path so an input folded by two routes (e.g. a section unit
-    // in a file also matched by extra_hashed_inputs) is hashed once — content for
+    // in a file also matched by extra_hashed_inputs) is hashed once; content for
     // a given path is identical, so the hash stays a pure function of the set.
     pieces.sort_by(|a, b| a.0.cmp(&b.0));
     pieces.dedup_by(|a, b| a.0 == b.0);
@@ -681,7 +681,7 @@ fn collect_hash_inputs(
 /// The set of repo-relative source files backing a resolved `symbol`/`section`
 /// unit's span. These are folded into the content hash so a source-line shift
 /// that moves a committed span forces the index `Stale` (spec 004 §3.5). `file`
-/// units carry no span and are intentionally excluded — a file-unit-only corpus
+/// units carry no span and are intentionally excluded: a file-unit-only corpus
 /// contributes nothing here.
 fn resolved_span_files(mappings: &[TraceMapping]) -> BTreeSet<String> {
     let mut out = BTreeSet::new();

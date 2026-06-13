@@ -15,13 +15,13 @@
       spec-spine lint --fail-on-warn && spec-spine couple --base origin/main --head HEAD`.
 - [ ] Versions bumped consistently with `scripts/bump_version.py <version>`,
       then `scripts/bump_version.py --check <version>` is green. The script sets
-      all three shims in lockstep — workspace `version` in the root `Cargo.toml`;
+      all three shims in lockstep: workspace `version` in the root `Cargo.toml`;
       `version` + the `optionalDependencies` pins in `npm/package.json` (the
       release workflow re-locks these to the tag via `--write-main`, but they
       should match in source); `version` in `py/pyproject.toml` (the workflow
-      verifies this against the tag and fails loudly on a mismatch — the asymmetry
+      verifies this against the tag and fails loudly on a mismatch, the asymmetry
       that let v0.2.0's PyPI publish fail while npm/crates shipped). Schema-version
-      constants in `spec-spine-types` are decoupled — bump them separately per
+      constants in `spec-spine-types` are decoupled; bump them separately per
       [schema-versioning.md](schema-versioning.md) only if the schema changed.
 - [ ] `cargo package --workspace --locked` succeeds (it cross-verifies every
       crate from its packaged sources, in dependency order: the same check CI can

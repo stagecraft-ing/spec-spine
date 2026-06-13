@@ -1,4 +1,4 @@
-//! Codebase-index DTOs — the code-as-source view, emitted by `spec-spine index`
+//! Codebase-index DTOs: the code-as-source view, emitted by `spec-spine index`
 //! as `index.json`. Field names serialize to `camelCase`. Shapes are ported from
 //! OAP `codebase-index.schema.json` (3.0.0), pruned to the generic v1 surface and
 //! re-versioned to this library's own `0.1.0`.
@@ -16,9 +16,9 @@ pub struct CodebaseIndex {
     /// `MAJOR.MINOR.PATCH`; see [`crate::version::INDEX_SCHEMA_VERSION`].
     pub schema_version: String,
     pub build: IndexBuild,
-    /// Layer 1 — the discovered compilation units.
+    /// Layer 1: the discovered compilation units.
     pub packages: Vec<PackageRecord>,
-    /// Layer 2 — spec ↔ code traceability.
+    /// Layer 2: spec ↔ code traceability.
     pub traceability: Traceability,
     pub diagnostics: Diagnostics,
 }
@@ -67,7 +67,7 @@ pub struct PackageRecord {
     pub spec_ref: Option<String>,
 }
 
-/// Layer 2 — how the corpus maps onto the code, and what is unmapped.
+/// Layer 2: how the corpus maps onto the code, and what is unmapped.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Traceability {

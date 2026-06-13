@@ -62,10 +62,10 @@ pub enum Implementation {
 /// (spec 013 §3.3).
 #[derive(Clone, Debug)]
 pub enum FrontmatterIssue {
-    /// Malformed YAML or a grammar violation — the V-002 class.
+    /// Malformed YAML or a grammar violation: the V-002 class.
     Malformed(String),
     /// A DECLARED extra key whose value JSON cannot represent (non-string
-    /// mapping key, YAML tag, non-finite number) — the V-013 class.
+    /// mapping key, YAML tag, non-finite number): the V-013 class.
     UnrepresentableDeclared { key: String, detail: String },
 }
 
@@ -313,7 +313,7 @@ pub fn parse_frontmatter_with(
 }
 
 /// The UNDECLARED-key path: scalars and string lists only (`Null` drops the
-/// key); a nested map, mixed list, or tag is a grammar violation — exactly
+/// key); a nested map, mixed list, or tag is a grammar violation, exactly
 /// the pre-013 guard.
 fn yaml_to_extra(v: &serde_yaml::Value) -> std::result::Result<serde_json::Value, String> {
     use serde_yaml::Value;
@@ -353,7 +353,7 @@ fn yaml_to_extra(v: &serde_yaml::Value) -> std::result::Result<serde_json::Value
 /// The DECLARED-key path (spec 013 §3.2): full YAML → JSON conversion.
 /// Mappings require string keys; tags and non-finite numbers are
 /// unrepresentable. Map key order is canonicalized by the sorted
-/// `serde_json::Map` (authoring order is not preserved — the price of
+/// `serde_json::Map` (authoring order is not preserved: the price of
 /// byte-identical registries).
 fn yaml_to_json(v: &serde_yaml::Value) -> std::result::Result<serde_json::Value, String> {
     use serde_yaml::Value;

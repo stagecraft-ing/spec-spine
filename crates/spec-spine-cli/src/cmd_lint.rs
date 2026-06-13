@@ -1,4 +1,4 @@
-//! `spec-spine lint` — corpus conformance lint with tiered fail gating.
+//! `spec-spine lint`: corpus conformance lint with tiered fail gating.
 
 use std::path::Path;
 

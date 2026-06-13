@@ -107,7 +107,7 @@ fn indexes_deterministically() {
 
 #[test]
 fn discovers_rust_and_npm_packages() {
-    // The npm package is declared by root package.json#workspaces — the encore
+    // The npm package is declared by root package.json#workspaces; the encore
     // failure was that npm packages went undiscovered. They must appear here.
     let fx = mixed_fixture();
     let idx = index(&Config::default(), fx.path()).unwrap().index;
@@ -256,7 +256,7 @@ fn staleness_detects_symbol_source_line_shift() {
         Freshness::Fresh
     );
 
-    // Prepend a line to the symbol's source file — this shifts every committed
+    // Prepend a line to the symbol's source file: this shifts every committed
     // span downward but touches no manifest/spec/config. It MUST go Stale.
     write(
         fx.path(),
@@ -317,14 +317,25 @@ fn crate_unit_resolves_to_package_subtree() {
     write(
         fx.path(),
         "specs/001-c/spec.md",
-        &spec("001-c", "establishes:\n  - { kind: crate, id: \"rs-thing\" }\n"),
+        &spec(
+            "001-c",
+            "establishes:\n  - { kind: crate, id: \"rs-thing\" }\n",
+        ),
     );
     let idx = index(&Config::default(), fx.path()).unwrap().index;
     let locs = first_unit_locations(&idx, "001-c");
     assert_eq!(locs.len(), 1);
     assert_eq!(locs[0].file, "rs-thing");
     // Hyphen/underscore are interchangeable in the crate id.
-    assert!(authorities(&idx, &Unit::Crate { id: "rs-thing".into() }).contains(&"001-c".into()));
+    assert!(
+        authorities(
+            &idx,
+            &Unit::Crate {
+                id: "rs-thing".into()
+            }
+        )
+        .contains(&"001-c".into())
+    );
 }
 
 #[test]
@@ -333,7 +344,10 @@ fn unknown_crate_unit_is_blocking_diagnostic_i003() {
     write(
         fx.path(),
         "specs/001-c/spec.md",
-        &spec("001-c", "establishes:\n  - { kind: crate, id: \"ghost\" }\n"),
+        &spec(
+            "001-c",
+            "establishes:\n  - { kind: crate, id: \"ghost\" }\n",
+        ),
     );
     let idx = index(&Config::default(), fx.path()).unwrap().index;
     assert!(idx.diagnostics.errors.iter().any(|d| d.code == "I-003"));

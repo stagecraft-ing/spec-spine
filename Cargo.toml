@@ -1,4 +1,4 @@
-# spec-spine — workspace root.
+# spec-spine: workspace root.
 # A typed, hash-verifiable authority ledger over a markdown spec corpus.
 # Three published crates (types/core/cli); see docs/design/00-architecture.md.
 [workspace]

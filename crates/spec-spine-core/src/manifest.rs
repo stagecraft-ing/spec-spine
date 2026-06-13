@@ -3,7 +3,7 @@
 //! Rust crates come from the root Cargo workspace members plus
 //! `layout.standalone_rust_workspaces`; npm/pnpm packages from the workspace
 //! globs declared by `layout.npm_workspaces` (the default reads root
-//! `package.json#workspaces` — the template-encore fix) plus
+//! `package.json#workspaces`, the template-encore fix) plus
 //! `layout.standalone_npm_packages`. The owning spec is read from the configurable
 //! `manifest.metadata_namespace`. Everything is path-sorted for determinism and
 //! `index.resolver_exclusions` directories are never descended.
@@ -266,7 +266,7 @@ fn npm_record(repo_root: &Path, manifest: &Path, namespace: &str) -> Option<Pack
     })
 }
 
-/// The governance projection of an npm manifest — exactly the fields
+/// The governance projection of an npm manifest: exactly the fields
 /// discovery consumes (`npm_record` + workspace-glob extraction): `name`,
 /// `version`, `workspaces`, and the adopter's metadata-namespace object.
 /// The index content hash folds this INSTEAD of the raw bytes (spec 004
@@ -274,7 +274,7 @@ fn npm_record(repo_root: &Path, manifest: &Path, namespace: &str) -> Option<Pack
 /// (dependabot-class) is not a governed input and must not stale the
 /// committed index, while any change to a field the indexer actually reads
 /// still does. `None` (unparseable / non-object) tells the caller to fall
-/// back to raw bytes — over-hashing is the fail-closed direction.
+/// back to raw bytes: over-hashing is the fail-closed direction.
 pub fn npm_hash_projection(content: &str, namespace: &str) -> Option<String> {
     let doc: serde_json::Value = serde_json::from_str(content).ok()?;
     let obj = doc.as_object()?;

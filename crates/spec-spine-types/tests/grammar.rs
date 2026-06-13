@@ -112,12 +112,7 @@ fn directory_subtree_detection() {
     assert!(Unit::file("src/").is_directory_subtree());
     assert!(!Unit::file("src/lib.rs").is_directory_subtree());
     // An explicit directory unit is always a subtree (spec 017).
-    assert!(
-        Unit::Directory {
-            path: "src".into()
-        }
-        .is_directory_subtree()
-    );
+    assert!(Unit::Directory { path: "src".into() }.is_directory_subtree());
 }
 
 #[test]
@@ -312,7 +307,7 @@ fn supersedes_full_and_partial_forms_parse() {
             path: "src/clone.ts".into()
         })
     );
-    // Partial without a unit is documentary — no transfer unit.
+    // Partial without a unit is documentary: no transfer unit.
     assert_eq!(fm.supersedes[3].spec(), "140-z");
     assert!(!fm.supersedes[3].is_full());
     assert_eq!(fm.supersedes[3].partial_unit(), None);

@@ -35,7 +35,7 @@ summary: >
   not gate-load-bearing). A new V-011 requires every item to scope at least one
   of `unit` / `target_specs`. A spec-scoped item contributes no resolved unit to
   the index. Unblocks the OAP corpus, which authors `{ flavor: invariant-freeze,
-  unit }` (spec 130) and `{ kind: <plan>, target_specs }` (specs 078, 089) —
+  unit }` (spec 130) and `{ kind: <plan>, target_specs }` (specs 078, 089),
   both rejected by the unit-required, discriminator-less v1 grammar.
 
 ---
@@ -48,9 +48,9 @@ The v1 `ConstrainItem` required a `unit:` and rejected any other field
 (`deny_unknown_fields`). The corpus authors two legitimate constraint shapes the
 grammar could not express:
 
-- **Path-scoped** — `{ flavor: invariant-freeze, unit: <schema/file> }` (the
+- **Path-scoped**: `{ flavor: invariant-freeze, unit: <schema/file> }` (the
   canonical invariant-freeze; OAP spec 130). Has a unit, plus a classification.
-- **Spec-scoped** — `{ kind: <plan-name>, target_specs: [...] }` (a delivery /
+- **Spec-scoped**: `{ kind: <plan-name>, target_specs: [...] }` (a delivery /
   sequencing plan asserting an ordering invariant over *other specs*; OAP specs
   078, 089). Has **no** code unit at all.
 
@@ -58,7 +58,7 @@ Both trip the v1 grammar: the discriminator field (`flavor`/`kind`) is unknown,
 and the spec-scoped form has no `unit`. The fix accepts both shapes, keeping the
 discriminator documentary (the architecture §2.1 already names the constraint
 edge "asserts an invariant others must respect" with the canonical
-`invariant-freeze` kind — this records *which* invariant without the gate having
+`invariant-freeze` kind; this records *which* invariant without the gate having
 to interpret it).
 
 ## 2. Territory
@@ -81,7 +81,7 @@ constrains:
 - `unit` is optional.
 - `flavor` and `kind` are **interchangeable synonyms** for the documentary
   classification; both are accepted and preserved verbatim (the dialect uses
-  both — 130 writes `flavor`, 078/089 write `kind`). Neither is read by the
+  both: 130 writes `flavor`, 078/089 write `kind`). Neither is read by the
   coupling gate. They are not normalized into one another, so `registry show`
   renders the authored spelling.
 - `note` and `target_specs` are unchanged from v1.
@@ -90,13 +90,13 @@ constrains:
 
 A path-scoped item (with `unit`) contributes a `SourceField::Constrains`
 resolved unit, exactly as before. A spec-scoped item (no unit) contributes
-**nothing** to `resolved_units` — it claims no code path; its authority is over
+**nothing** to `resolved_units`: it claims no code path; its authority is over
 the listed specs, which the gate does not derive from `constrains`.
 
 ### 3.3 Validation: V-011
 
 A constrains item that declares **neither** `unit` nor `target_specs` asserts an
-invariant over nothing — an error-tier **V-011**. This is the floor that keeps
+invariant over nothing, an error-tier **V-011**. This is the floor that keeps
 the now-optional `unit` from admitting a content-free item.
 
 ### 3.4 Tests (minimum)
@@ -104,7 +104,7 @@ the now-optional `unit` from admitting a content-free item.
 - Grammar: a `flavor` + `unit` item and a `kind` + `target_specs` item both
   parse; the discriminator is preserved; `unit` is `None` on the spec-scoped form.
 - Compile: V-011 fires on a `{ flavor: … }`-only item; both scoped forms clear
-  V-011 (a file-unit need not exist — that is the indexer's I-004, not compile).
+  V-011 (a file-unit need not exist; that is the indexer's I-004, not compile).
 - Index: a spec-scoped constrains item yields no resolved unit.
 
 ## 4. Out of scope
