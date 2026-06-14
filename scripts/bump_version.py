@@ -5,6 +5,10 @@ The release version lives in three committed files, and a release tag publishes
 all three (crates.io, npm, PyPI) under the same number. They MUST agree:
 
   - Cargo.toml           [workspace.package] version  (crates.io)
+                         + the internal [workspace.dependencies] pins for the
+                           sibling crates (a 0.x MINOR bump crosses the caret
+                           boundary, so `^0.3.0` would stop matching `0.4.0` and
+                           break `cargo build`/`cargo package` if left stale)
   - npm/package.json     version + the 5 optionalDependencies pins  (npm)
   - py/pyproject.toml    [project] version  (PyPI)
 
@@ -41,6 +45,13 @@ PYPROJECT = ROOT / "py" / "pyproject.toml"
 # [workspace.package] version (dependency versions are inline `{ version = ... }`,
 # never at column 0); in pyproject.toml it is the [project] version.
 _TOML_VERSION = re.compile(r'(?m)^(version\s*=\s*)"[^"]*"')
+# The internal sibling-crate pins in Cargo.toml's [workspace.dependencies]:
+# `spec-spine-types = { version = "x.y.z", path = ... }`. Matched by the
+# dependency-name prefix at column 0, so this never collides with the
+# [workspace.package] `version =` line above.
+_CARGO_INTERNAL_DEP = re.compile(
+    r'(?m)^(spec-spine-(?:types|core)\s*=\s*\{\s*version\s*=\s*)"[^"]*"'
+)
 # package.json: the single top-level "version" key (opt-dep keys are package
 # names, never the literal "version").
 _JSON_VERSION = re.compile(r'("version"\s*:\s*)"[^"]*"')
@@ -71,6 +82,10 @@ def read_cargo() -> str:
     return m.group(0).split('"')[1] if m else die("no version in Cargo.toml")
 
 
+def read_cargo_internal_deps() -> set[str]:
+    return {m.group(0).split('"')[1] for m in _CARGO_INTERNAL_DEP.finditer(CARGO.read_text())}
+
+
 def read_pyproject() -> str:
     m = _TOML_VERSION.search(PYPROJECT.read_text())
     return m.group(0).split('"')[1] if m else die("no version in pyproject.toml")
@@ -86,8 +101,11 @@ def read_npm() -> tuple[str, set[str]]:
 def current_versions() -> dict[str, str]:
     npm_v, npm_pins = read_npm()
     pin_repr = next(iter(npm_pins)) if len(npm_pins) == 1 else f"MIXED{sorted(npm_pins)}"
+    dep_pins = read_cargo_internal_deps()
+    dep_repr = next(iter(dep_pins)) if len(dep_pins) == 1 else f"MIXED{sorted(dep_pins)}"
     return {
         "Cargo.toml": read_cargo(),
+        "Cargo.toml (internal deps)": dep_repr,
         "npm/package.json (version)": npm_v,
         "npm/package.json (pins)": pin_repr,
         "py/pyproject.toml": read_pyproject(),
@@ -97,7 +115,11 @@ def current_versions() -> dict[str, str]:
 # --- commands ----------------------------------------------------------------
 
 def do_bump(version: str) -> None:
-    CARGO.write_text(_sub_once(_TOML_VERSION, CARGO.read_text(), version, "version in Cargo.toml"))
+    cargo = _sub_once(_TOML_VERSION, CARGO.read_text(), version, "version in Cargo.toml")
+    cargo, ndeps = _CARGO_INTERNAL_DEP.subn(rf'\g<1>"{version}"', cargo)
+    if ndeps != 2:
+        die(f"expected 2 internal [workspace.dependencies] pins in Cargo.toml, rewrote {ndeps}")
+    CARGO.write_text(cargo)
 
     pkg = PACKAGE_JSON.read_text()
     pkg = _sub_once(_JSON_VERSION, pkg, version, 'top-level "version" in package.json')

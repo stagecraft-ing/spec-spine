@@ -1,8 +1,8 @@
 {
   "build": {
-    "contentHash": "749bf9bc90524ba95676039e153ae2f99fabc012828362c8397147d2455fcb47",
+    "contentHash": "9cdcc709c54796d5eefc2ee4d7aac39b0b7a682b520e29e1deb153b74c8fa81b",
     "indexerId": "spec-spine",
-    "indexerVersion": "0.3.0",
+    "indexerVersion": "0.4.0",
     "repoRoot": "."
   },
   "diagnostics": {
@@ -33,7 +33,7 @@
       "name": "spec-spine",
       "path": "npm",
       "specRef": "007-distribution",
-      "version": "0.3.0"
+      "version": "0.4.0"
     }
   ],
   "schemaVersion": "0.3.0",

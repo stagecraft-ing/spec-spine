@@ -1115,7 +1115,7 @@ dependencies = [
 
 [[package]]
 name = "spec-spine-cli"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "clap",
  "serde",
@@ -1128,7 +1128,7 @@ dependencies = [
 
 [[package]]
 name = "spec-spine-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "glob",
  "jsonschema",
@@ -1147,7 +1147,7 @@ dependencies = [
 
 [[package]]
 name = "spec-spine-types"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
