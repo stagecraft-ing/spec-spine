@@ -114,18 +114,26 @@ over any unit is *derived by walking the graph*, never declared directly.
 
 `origin` is a bootstrap marker, **not** an edge. The graph has eight edge types.
 
-### 4.2 Authority units: file, section, symbol (v1)
+### 4.2 Authority units: file, section, symbol, directory, crate, module
 
-Ownership resolves at three granularities, declared via a `unit:` on an edge:
+Ownership resolves at six granularities, declared via a `unit:` on an edge:
 
 - **file**: `{ kind: file, path }` (a bare string is shorthand for this; a
   trailing-slash path denotes the directory subtree).
 - **section**: `{ kind: section, file, anchor }` (a Makefile target, a Markdown
-  heading slug, a `region:` marker, a CI `jobs.<name>`).
+  heading slug, a `region:` marker, a CI `jobs.<name>`, or a bounded keypath into
+  a structured file).
 - **symbol**: `{ kind: symbol, id }` (a function/type/export, resolved by the
-  indexer; Rust and TypeScript in v1).
+  indexer; Rust and TypeScript).
+- **directory**: `{ kind: directory, path }` (a subtree named explicitly;
+  resolution is identical to a trailing-slash file unit).
+- **crate**: `{ kind: crate, id }` (a compilation unit by its manifest name,
+  resolved to that package's directory subtree).
+- **module**: `{ kind: module, id }` (a `::`-qualified module path, resolved by
+  the indexer's module index).
 
-(`crate`, `module`, `directory` are reserved for additive future minors.)
+The schema is permissive on the unit payload, so `directory`/`crate`/`module`
+were added as an additive minor with no schema-file edit.
 
 ### 4.3 Resolution and amends-awareness
 

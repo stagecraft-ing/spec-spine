@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.4.0",
-    "contentHash": "a1d5f836ef7a119e67d4dae17a1c5dac316e15568da8aeff3f866c02d2ab3359",
+    "contentHash": "f39e538802fca67588ff62dedd95ab8d996c4ed83a9c731b23af25f03caea38d",
     "inputRoot": "."
   },
   "specVersion": "0.3.0",
@@ -24,7 +24,7 @@
         "3. Frontmatter grammar",
         "4. The typed authority graph",
         "4.1 Edges: eight types, seven ownership-bearing",
-        "4.2 Authority units: file, section, symbol (v1)",
+        "4.2 Authority units: file, section, symbol, directory, crate, module",
         "4.3 Resolution and amends-awareness",
         "5. The compiled artifacts",
         "6. Determinism",
