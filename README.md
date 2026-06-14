@@ -9,7 +9,8 @@ Installable Rust library + CLI; API-first, binding-ready, deterministic.
 spec-spine turns a markdown spec corpus into a governed, hash-verifiable
 authority ledger and **refuses code that drifts from its owning spec** at PR
 time. Each `specs/NNN-slug/spec.md` declares, in YAML frontmatter, typed edges to
-other specs and the authority units it owns (**file / section / symbol**). Two
+other specs and the authority units it owns (**file / section / symbol /
+directory / crate / module**). Two
 deterministic views are emitted and joined by a coupling gate:
 
 - **`registry.json`**: the *spec-as-source* view (the compiler's output).
@@ -58,7 +59,7 @@ install → init → annotate → wire-CI walkthrough.
 | Command | Capability |
 |---|---|
 | `spec-spine compile` | validate frontmatter, emit the deterministic registry |
-| `spec-spine index` / `index check` | emit the codebase index / check it for staleness |
+| `spec-spine index` / `index check` / `index render` / `index orphans` | emit the codebase index / check staleness / render it as markdown / list orphaned specs |
 | `spec-spine registry list\|show\|status-report\|relationships` | typed read-only queries |
 | `spec-spine lint [--fail-on-warn] [--fail-on-info]` | corpus well-formedness |
 | `spec-spine couple` | the PR-time coupling gate (refuses drift) |
@@ -97,7 +98,9 @@ operation has a JSON-in/JSON-out facade (`compile_json`, `query_json`, …); see
 - **Deterministic by construction.** Sorted-key, pretty-printed JSON with LF and
   a trailing newline; content hashes over LF/BOM-normalized, path-sorted bytes;
   tree-sitter grammars pinned exact. CI proves **byte-identical `registry.json` +
-  `index.json` across all five release triples**, not just locally.
+  `index.json` across four release triples**, not just locally (the fifth,
+  x86_64-apple-darwin, is built and shipped by the release workflow but omitted
+  from the determinism gate; its two dimensions are each proven by other legs).
 - **spec-spine governs itself.** This repo's own coupling gate runs against its
   own spec corpus in CI: a spec-spine that is not itself spec-governed would be
   hypocritical.

@@ -131,8 +131,8 @@ an unknown field fails loudly, which is the intended safety net.
 Determinism + pinning is how an adopter gets reproducible governance:
 
 - **crates.io:** pin the CLI version, `cargo install spec-spine-cli --version
-  =0.1.0`, or commit a `Cargo.lock`/`--locked` in CI.
-- **Prebuilt binary:** pin the release tag, `SPEC_SPINE_VERSION=v0.1.0
+  =X.Y.Z`, or commit a `Cargo.lock`/`--locked` in CI.
+- **Prebuilt binary:** pin the release tag, `SPEC_SPINE_VERSION=vX.Y.Z
   install.sh` (see [adoption-guide.md](adoption-guide.md)).
 - The binary **embeds** the schema version; every emitted artifact **carries** it
   (`specVersion` / `schemaVersion`). So a committed `registry.json` /

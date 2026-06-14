@@ -1,6 +1,10 @@
 # 01: Partial supersession (structured `supersedes`)
 
-**Status:** open design question. Decision needed before any `017` is filed.
+**Status:** decided and shipped. Option A was implemented as spec
+`019-structured-partial-supersedes` (approved, complete). This document is the
+historical design analysis that preceded the decision; the analysis and
+algorithm sketch below match what was built, but the "open question" and staged
+recommendation framing is superseded (see the postscript at the end).
 **Origin:** the Phase-0 OAP corpus dry-run (read-only, throwaway config). Five
 specs author `supersedes` items in a structured `{ spec, scope: partial, unit }`
 form that this library's grammar does not accept. Unlike the other dry-run gaps
@@ -60,8 +64,9 @@ couple.rs`. The relevant pieces:
 - **Grammar / registry.** `supersedes: Vec<String>` -- a list of predecessor
   spec ids. The architecture edge table (§2.1) already labels the edge
   *"replaces a predecessor (partial/full); inherits current authority"*, so
-  "partial" is a **named-but-unbuilt** capability, not a foreign concept. Only
-  the full form is implemented.
+  "partial" was a **named-but-unbuilt** capability at the time of this analysis,
+  not a foreign concept. (Both forms are now implemented as of spec 019; this
+  section describes the pre-019 baseline.)
 - **`build_superseders`** (`couple.rs`): folds the registry into a
   `predecessor_id -> { superseder_ids }` map. The key is a bare id; there is no
   slot for a unit qualifier.
@@ -200,3 +205,24 @@ demand signal this small).
 4. **`scope: full` spelling:** if A is built, do we also accept an explicit
    `{ spec, scope: full }` object (symmetry), or keep full as bare-string-only
    to guarantee registry stability?
+
+## 9. Outcome (postscript)
+
+The decision was taken and **Option A shipped directly as spec
+`019-structured-partial-supersedes`** (approved, complete), not the staged
+Option-D-then-A path recommended in §7, and not under the `017` number used as a
+placeholder above (`017` became the unrelated directory/crate/module-units
+spec). The implementation matches the §5 sketch:
+
+- **Wire format** (`spec-spine-types/src/edges.rs`): `supersedes` is a
+  `Vec<SupersedeItem>`. A bare predecessor id and an explicit
+  `{ spec, scope: full }` both normalize to `SupersedeItem::Full`, so existing
+  registries stay byte-identical (answering open question 4: symmetry accepted,
+  full canonicalizes to the bare form). A partial item is
+  `{ spec, scope: partial, unit, note?, rationale? }` -> `SupersedeItem::Scoped`.
+- **Transfer semantics:** additive (open question 1) -- `build_superseders` in
+  `couple.rs` branches on `SupersedeItem::is_full()`, so a partial item transfers
+  only the scoped unit's authority rather than the predecessor's whole surface.
+
+This document is retained as the design analysis that justified that shape; the
+analysis stands, only its "open question" framing is historical.

@@ -55,12 +55,13 @@ spec-spine/
 ├─ crates/
 │  ├─ spec-spine-types/             # DTOs, frontmatter grammar, Config, schema-version
 │  │  │                             #   consts, EMBEDDED JSON Schemas, the Error enum.
-│  │  └─ schemas/                   #   registry / index / config-hash / build-meta .schema.json
+│  │  └─ schemas/                   #   registry / index / build-meta .schema.json
 │  │                                #   (include_str!'d: the crate is self-contained)
-│  ├─ spec-spine-core/              # THE library: compile / index / query / lint / couple
+│  ├─ spec-spine-core/              # THE library: compile / index / query / lint / couple / render
 │  │                                #   + load_registry / load_index (overlay seam)
-│  │                                #   + scaffold_init + JSON facade. Internal canonical-json
-│  │                                #   + content-hash + tree-sitter symbol resolver modules.
+│  │                                #   + scaffold_init + JSON facade. Internal canonical-json,
+│  │                                #   content-hash, markdown, sections, symbols (tree-sitter),
+│  │                                #   manifest, pathutil, dep_only modules.
 │  └─ spec-spine-cli/               # thin clap wrapper → ONE `spec-spine` multi-call binary;
 │                                   #   git invocation, stdout/stderr, process::exit live HERE only.
 ├─ specs/                           # the library's own spec corpus (000 = bootstrap); dogfood
@@ -136,24 +137,26 @@ it does not; it is a **bootstrap marker**, not a relationship. The concept doc a
 `spec-spine.md` are authoritative: **eight edge types**, with `origin` tracked
 separately as frontmatter, not as a graph edge.)
 
-### 2.2 Authority unit grammar: v1 ships file / section / symbol
+### 2.2 Authority unit grammar: six kinds (file / section / symbol / directory / crate / module)
 
 A spec declares the units it owns via a `unit:` object on an edge. The full
-grammar (ported from OAP `LogicalUnit`, `spec-types/src/lib.rs`) is six kinds;
-**v1 resolves three**, per the build mandate (§1 of the prompt):
+grammar (ported from OAP `LogicalUnit`, `spec-types/src/lib.rs`) is six kinds.
+v1 shipped three (file / section / symbol); **spec 017 added the other three**
+(directory / crate / module) as the planned additive MINOR, so all six now
+resolve:
 
-| Unit kind | v1? | Shape | Resolution |
+| Unit kind | Status | Shape | Resolution |
 |---|---|---|---|
-| `file` | **v1** | `{ kind: file, path }` | literal path; trailing-`/` path ⇒ directory subtree (prefix match) |
-| `section` | **v1** | `{ kind: section, file, anchor }` | anchor parser by file type (Makefile target / Markdown heading slug / `region:` marker / workflow `jobs.<name>`) |
-| `symbol` | **v1** | `{ kind: symbol, id }` | tree-sitter (**Rust + TypeScript** in v1; Python deferred, Q4) → `(file, line-span)` |
-| `directory` | folded | n/a | expressed as a `file` unit with a trailing-slash path; **not a separate kind in v1** |
-| `crate` | deferred | `{ kind: crate, id }` | workspace-member validation; reserved (additive minor) |
-| `module` | deferred | `{ kind: module, id }` | tree-sitter module index; reserved (additive minor) |
+| `file` | v1 | `{ kind: file, path }` | literal path; trailing-`/` path ⇒ directory subtree (prefix match) |
+| `section` | v1 | `{ kind: section, file, anchor }` | anchor parser by file type (Makefile target / Markdown heading slug / `region:` marker / workflow `jobs.<name>` / bounded keypath, spec 022) |
+| `symbol` | v1 | `{ kind: symbol, id }` | tree-sitter (**Rust + TypeScript**; Python deferred, Q4) → `(file, line-span)` |
+| `directory` | spec 017 | `{ kind: directory, path }` | explicit subtree kind (same prefix-match semantics as a trailing-slash `file`) |
+| `crate` | spec 017 | `{ kind: crate, id }` | resolved by manifest name to the package directory subtree |
+| `module` | spec 017 | `{ kind: module, id }` | `::`-qualified module path, resolved via the module index |
 
 A bare string on an edge is shorthand for `{ kind: file, path }`. The `Unit`
-enum is designed additively so `crate`/`module` slot in as a MINOR schema bump
-later without breaking readers.
+enum was designed additively, so the three later kinds slotted in as a MINOR
+schema bump (spec 017) without breaking readers.
 
 ### 2.3 Three linkage directions (how code ↔ spec connect)
 
@@ -286,8 +289,8 @@ extra_known_keys = []
 #[serde(default, deny_unknown_fields)]   // deny_unknown_fields ⇒ typos are loud, not silent
 pub struct Config {
     pub manifest:    ManifestConfig,
-    pub domains:     DomainsConfig,   // { allowed: Vec<String> }
-    pub kind:        KindConfig,      // { allowed: Vec<String> }; symmetric with domains
+    pub domains:     AllowlistConfig, // { allowed: Vec<String> }
+    pub kind:        AllowlistConfig, // { allowed: Vec<String> }; symmetric with domains
     pub layout:      LayoutConfig,
     pub index:       IndexConfig,
     pub branding:    BrandingConfig,
@@ -348,7 +351,7 @@ pub fn check_index_freshness(cfg: &Config, repo_root: &Path) -> Result<Freshness
 
 ```rust
 pub struct CompileOutcome { pub registry: Registry, pub json: String, pub validation_passed: bool }
-pub struct IndexOutcome   { pub index: CodebaseIndex, pub json: String, pub content_hash: String }
+pub struct IndexOutcome   { pub index: CodebaseIndex, pub json: String }  // hash: index.build.content_hash
 pub enum   Freshness      { Fresh, Stale { expected: String, actual: String } }
 ```
 
@@ -380,14 +383,15 @@ extensibility model (OAP's enrichers do exactly this).
 ### 4.4 Typed query layer (over a loaded `Registry`)
 
 ```rust
-impl Registry {
-    pub fn list   (&self, filter: &ListFilter)  -> Vec<&SpecRecord>;
-    pub fn show   (&self, id: &SpecId)          -> Option<&SpecRecord>;
-    pub fn status_report(&self)                 -> StatusReport;          // counts by status
-    pub fn relationships(&self, id: &SpecId)    -> Option<RelationshipView>;
-}
-// Authority-by-unit needs both the registry (edges) and the index (resolved units):
-pub fn authorities(registry: &Registry, index: &CodebaseIndex, unit: &UnitRef) -> Vec<SpecId>;
+// Free functions in `spec_spine_core::query`, not inherent methods on Registry:
+pub fn list        (registry: &Registry, filter: &ListFilter) -> Vec<&SpecRecord>;
+pub fn list_ids    (registry: &Registry, filter: &ListFilter) -> Vec<&str>;   // idsOnly projection (spec 010)
+pub fn show        (registry: &Registry, id: &str)            -> Result<&SpecRecord, Error>;
+pub fn status_report(registry: &Registry)                     -> StatusReport; // counts by status
+pub fn relationships(registry: &Registry, id: &str)           -> Result<RelationshipView, Error>;
+
+// Authority-by-unit resolves over the index alone (the compiler pre-flattens edges into units):
+pub fn authorities(index: &CodebaseIndex, unit: &Unit) -> Vec<String>;  // → owning spec ids
 ```
 
 ### 4.5 The `Error` enum (stable variants → exit codes)
@@ -437,7 +441,7 @@ pub fn scaffold_init_json  (config_json: &str)                  -> Result<String
 ```
 spec-spine compile                                  # → .derived/spec-registry/registry.json (+ build-meta.json)
 spec-spine index   [check | render | orphans]       # check = staleness gate; default subcmd writes index.json
-spec-spine registry list|show|status-report|authorities|relationships
+spec-spine registry list|show|status-report|relationships
 spec-spine lint    [--fail-on-warn] [--fail-on-info]
 spec-spine couple  [--base origin/main] [--head HEAD] [--pr-body FILE] [--paths-from FILE]
 spec-spine init    [--force]
@@ -475,10 +479,14 @@ The references run registry `specVersion 2.2.0` and index `schemaVersion 3.0.0`.
 We **do not inherit those lines.** spec-spine starts every schema fresh at
 `0.1.0`, decoupled from any consumer's history.
 
-| Artifact | Field | v1 value | Owner |
+Each schema started at `0.1.0`; the values below are current (registry and
+index have since taken additive MINOR bumps as features shipped, e.g. spec 012
+hash slices, 013 passthrough, 017 unit kinds, 019 structured supersedes).
+
+| Artifact | Field | Current value | Owner |
 |---|---|---|---|
-| `registry.json` | `specVersion` | `0.1.0` | library |
-| `index.json` | `schemaVersion` | `0.1.0` | library |
+| `registry.json` | `specVersion` | `0.3.0` | library |
+| `index.json` | `schemaVersion` | `0.3.0` | library |
 | `spec-spine.toml` | `config_version` (optional) | `0.1.0` | library |
 | `build-meta.json` | `schemaVersion` | `0.1.0` | library (non-deterministic; excluded from golden) |
 
@@ -530,6 +538,10 @@ top-level `LICENSE`.
 **Recommendation: minimal-original** (per prompt §9 lean), not a re-derivation of
 the reference corpora. spec-spine governs itself from day one with a small, clean,
 purpose-built corpus.
+
+> Phase-0 outline of the original seven specs (000–006). The corpus has since
+> grown through ordinary governed development to 000–022 (23 specs, all
+> approved); `spec-spine registry list` is the live source of truth.
 
 ```
 specs/
@@ -602,8 +614,10 @@ The compiler is built to satisfy `000`; once built, it compiles its own corpus
 - **The symbol resolver is a determinism input** (Phase-0 checkpoint item 1).
   tree-sitter core and each grammar crate are pinned to **exact** versions
   (`=x.y.z`) with `Cargo.lock` committed; an unpinned grammar shifts symbol
-  line-spans and surfaces as flaky goldens late, across the 5-triple release
-  matrix. Phase 3 (specs 004/005) adds a **per-platform golden test for symbol
+  line-spans and surfaces as flaky goldens late. The release workflow builds
+  five triples; the determinism gate proves byte-identity across four of them
+  (`x86_64-apple-darwin` is omitted, its two dimensions each proven by another
+  leg). Phase 3 (specs 004/005) adds a **per-platform golden test for symbol
   line-spans** so a span drift fails CI on every target, not just locally.
 
 ### 10.2 Ported semantics → provenance map (cite-on-reuse)
@@ -664,8 +678,9 @@ forking.
   `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`,
   `x86_64-pc-windows-msvc`, each with a `.sha256` sidecar, plus an `install.sh`
   (`curl … | sh`) that detects platform/arch and drops the binary on `PATH`.
-- **SBOM** (CycloneDX per archive): nice-to-have; flagged as low-but-nonzero
-  workflow time; defer unless requested (§10 Q7).
+- **SBOM** (CycloneDX per archive): **shipped** (spec 021). The release workflow
+  emits a per-target CycloneDX SBOM plus build provenance, with a gate that
+  fails closed on a zero-component SBOM (§10 Q7).
 
 ---
 
@@ -726,9 +741,9 @@ as recommended unless you redirect.
 | Q2 | **CLI shape:** one multi-call binary vs five? | ✅ **One multi-call `spec-spine` binary** (confirmed) |
 | Q3 | **Bootstrap corpus:** minimal-original vs re-derive? | ✅ **Minimal-original** (6 capability specs + 000) (confirmed) |
 | Q4 | **v1 symbol-resolution languages?** | ✅ **Rust + TypeScript** in v1; **Python deferred** (confirmed). Expands Phase 3: two tree-sitter grammars. |
-| Q5 | Include `directory`/`crate`/`module` unit kinds in v1? | `directory` folded into trailing-slash `file` units; `crate`/`module` reserved for an additive minor |
+| Q5 | Include `directory`/`crate`/`module` unit kinds in v1? | v1 shipped file/section/symbol; ✅ **all three later added (spec 017)** as the planned additive MINOR: `directory` as an explicit kind, `crate`/`module` resolved via the package/module index |
 | Q6 | Registry/index JSON: pretty (diffable) vs compact (OAP)? | **Pretty**, sorted keys, LF, trailing newline |
-| Q7 | Per-archive CycloneDX SBOM in the release workflow? | Defer (low value/time ratio for v1); add on request |
+| Q7 | Per-archive CycloneDX SBOM in the release workflow? | ✅ **Shipped (spec 021):** per-target CycloneDX SBOM + build provenance, gated to fail closed on a zero-component SBOM |
 | Q8 | `index.extra_hashed_inputs` default base set contents? | `["standards/**", ".github/workflows/**"]` + always-hashed core (specs, manifests, config) |
 | Q9 | `manifest.metadata_namespace` default `"spec-spine"` ⇒ `[package.metadata.spec-spine]` (hyphenated TOML key, legal but unusual). Prefer `"spec"`? | Keep **`"spec-spine"`** (self-describing; hyphenated bare keys are valid TOML) |
 | Q10 | How much provenance/`references` semantics in v1? | Ship the `references` edge + open `provenance.uri_schemes` config + basic URI well-formedness; defer rich knowledge-graph semantics |

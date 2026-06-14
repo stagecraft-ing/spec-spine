@@ -9,13 +9,15 @@ pure.
 spec-spine init [--force]                  # scaffold a new adopter (config, standards, specs/000, rules)
 spec-spine compile                         # specs/*/spec.md -> .derived/spec-registry/registry.json
 spec-spine index                           # scan manifests + specs -> .derived/codebase-index/index.json
-spec-spine index check                     # staleness gate (exit 2 if stale)
-spec-spine registry list [--status S]      # list specs
-spec-spine registry show <id>              # show one spec
-spec-spine registry status-report          # counts by status
-spec-spine registry relationships <id>     # relationship neighborhood
+spec-spine index check [--slice NAME]      # staleness gate (exit 2 if stale)
+spec-spine index render                    # render the committed index as markdown (read-only)
+spec-spine index orphans [--json]          # list specs with no resolved code units
+spec-spine registry list [--status S] [--ids-only] [--json]   # list specs
+spec-spine registry show <id> [--json]     # show one spec
+spec-spine registry status-report [--nonzero-only] [--json]   # counts by status
+spec-spine registry relationships <id> [--json]   # relationship neighborhood
 spec-spine lint [--fail-on-warn] [--fail-on-info]   # corpus conformance
-spec-spine couple --base origin/main --head HEAD [--pr-body FILE]   # the PR-time drift gate
+spec-spine couple --base origin/main --head HEAD [--pr-body FILE] [--paths-from FILE]   # the PR-time drift gate
 ```
 
 `cargo install spec-spine-cli` installs the `spec-spine` binary. A global

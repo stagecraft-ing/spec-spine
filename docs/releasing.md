@@ -13,6 +13,11 @@
 - [ ] Working tree clean and green: `cargo test --workspace --locked`.
 - [ ] Self-governance green: `spec-spine compile && spec-spine index check &&
       spec-spine lint --fail-on-warn && spec-spine couple --base origin/main --head HEAD`.
+- [ ] If the spec-020 derived-artifact merge driver is enabled on this clone
+      (`./.githooks/enable-merge-driver.sh`), the binary is current
+      (`cargo build --release --locked`) before merging the release-prep branch:
+      the driver regenerates the committed artifacts by shelling out to
+      `spec-spine compile && index`.
 - [ ] Versions bumped consistently with `scripts/bump_version.py <version>`,
       then `scripts/bump_version.py --check <version>` is green. The script sets
       all three shims in lockstep: workspace `version` in the root `Cargo.toml`;
@@ -54,14 +59,15 @@ All three crates are publish-clean by construction: full metadata
 The release workflow (`.github/workflows/release.yml`) is tag-gated:
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
 That builds a per-triple archive (with a `.sha256` sidecar) for all five
 supported targets, `x86_64`/`aarch64` `apple-darwin`, `x86_64`/`aarch64`
-`unknown-linux-gnu`, `x86_64-pc-windows-msvc`, each natively on a matching
-GitHub-hosted runner, and attaches them to the GitHub Release.
+`unknown-linux-gnu`, `x86_64-pc-windows-msvc`, each on a GitHub-hosted runner
+(`x86_64-apple-darwin` cross-compiles on the Apple Silicon runner), and attaches
+them to the GitHub Release.
 [`install.sh`](../install.sh) (`curl | sh`) consumes those assets.
 
 ### Supply-chain artifacts (spec 021)
@@ -99,7 +105,7 @@ The shape (esbuild / biome / turbo model):
   (`npm/bin/spec-spine.js`);
 - five **platform packages** `@spec-spine/cli-<os>-<cpu>`, each carrying one
   prebuilt binary, `os`/`cpu`-gated and listed as `optionalDependencies` of the
-  main package, **version-locked** to the tag (npm `0.1.0` ⇔ `v0.1.0` assets).
+  main package, **version-locked** to the tag (npm `X.Y.Z` ⇔ `vX.Y.Z` assets).
 
 There is **no `postinstall`**, so it installs under `npm ci --ignore-scripts` and
 offline. The `npm/scripts/generate-platform-packages.js` generator assembles the
@@ -190,9 +196,12 @@ platform wheel, installs it into a throwaway env with uv or pip, and runs
 
 `.github/workflows/determinism.yml` proves the emitted `registry.json` and
 `index.json` (including tree-sitter symbol line-spans) are **byte-identical
-across all five triples**: the empirical backstop for the
-"identical-on-every-triple" claim, beyond merely pinning the grammars exact. Keep
-it green; a span drift on any platform fails this gate.
+across four triples** (`x86_64-apple-darwin` is intentionally omitted: its two
+dimensions, x86_64 and apple-darwin, are each proven by another leg, and the
+deprecated Intel macOS runner queues badly): the empirical backstop for the
+"identical-on-every-triple" claim, beyond merely pinning the grammars exact. The
+release workflow still builds and ships all five archives. Keep this gate green;
+a span drift on any platform fails it.
 
 ## Schema / version bumps
 

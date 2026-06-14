@@ -4,8 +4,8 @@
 > *how*, see [adoption-guide.md](adoption-guide.md) (using it),
 > [api.md](api.md) (the library), and
 > [design/00-architecture.md](design/00-architecture.md) (the design). Where this
-> document describes the full vision, the README's capability table marks what v1
-> actually ships.
+> document describes the model, the README's capability table and the release
+> notes track what each release actually ships.
 
 **A typed, hash-verifiable ledger of who-owns-what, sitting underneath a codebase
 so that many agents can work in parallel without trampling each other.**
@@ -141,7 +141,11 @@ The graph expresses ownership at finer granularity than "file." A unit can be:
 - a **section** within a file, a named anchor such as a particular build target
   or a Markdown heading,
 - a **symbol**, a function, a type, an exported binding (resolved via
-  tree-sitter).
+  tree-sitter for Rust and TypeScript; Python deferred),
+- a **directory** subtree (the explicit `{ kind: directory, path }` form,
+  complementing the trailing-slash file shorthand),
+- a **crate**, a compilation unit named by its manifest,
+- a **module**, a `::`-qualified module path.
 
 Section-scoped co-authority is the property that makes the canonical hard case
 tractable: a project-wide build file where many features each add targets.

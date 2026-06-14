@@ -36,7 +36,7 @@ depend on `spec-spine-core` alone and reach everything via
 
 ```toml
 [dependencies]
-spec-spine-core = "0.1"
+spec-spine-core = "0.3"
 ```
 
 ---
@@ -47,7 +47,11 @@ Each is a pure function of `(Config, on-disk inputs under repo_root)`:
 
 ```rust
 use std::path::Path;
-use spec_spine_core::{compile, index, lint, couple, check_index_freshness};
+use spec_spine_core::{
+    compile, index, lint, couple, couple_with, parse_waiver,
+    check_index_freshness, check_slice_freshness,
+    DiffInput, DiffFile, Waiver,
+};
 
 pub fn compile(cfg: &Config, repo_root: &Path) -> Result<CompileOutcome, Error>;
 pub fn index  (cfg: &Config, repo_root: &Path) -> Result<IndexOutcome,   Error>;
@@ -65,6 +69,9 @@ pub fn couple_with(cfg: &Config, registry: &Registry, index: &CodebaseIndex,
 // Cheap staleness check: does the committed index.json's contentHash match
 // the current inputs?
 pub fn check_index_freshness(cfg: &Config, repo_root: &Path) -> Result<Freshness, Error>;
+
+// Per-slice staleness (spec 012): `name` is a configured `[index.slices]` key.
+pub fn check_slice_freshness(cfg: &Config, repo_root: &Path, name: &str) -> Result<Freshness, Error>;
 ```
 
 Returned outcomes carry both the typed struct and the canonical bytes the CLI
@@ -72,7 +79,7 @@ writes, so overlays and tests need not re-parse:
 
 ```rust
 pub struct CompileOutcome { pub registry: Registry,       pub json: String, pub validation_passed: bool }
-pub struct IndexOutcome   { pub index:    CodebaseIndex,   pub json: String, pub content_hash: String }
+pub struct IndexOutcome   { pub index:    CodebaseIndex,   pub json: String }  // hash: index.build.content_hash
 pub enum   Freshness      { Fresh, Stale { expected: String, actual: String } }
 ```
 
@@ -87,6 +94,16 @@ pub struct Waiver    { pub reason: String }
 
 // Build a Waiver from a PR body using the configured keyword:
 pub fn parse_waiver(cfg: &Config, pr_body: &str) -> Option<Waiver>;
+
+// Mechanical dependency-only auto-waiver (spec 005 §3.5), used when
+// `coupling.auto_waive_dependency_only` is set and no PR-body waiver is present:
+pub struct FileContents { pub path: String, pub base: String, pub head: String }
+pub fn dependency_only_waiver(files: &[FileContents]) -> Option<Waiver>;
+pub fn dependency_only_change(base: &str, head: &str) -> bool;  // both are package.json text
+pub fn is_package_json(path: &str) -> bool;
+
+// Is a path covered by the bypass floor (+ configured `coupling.bypass_prefixes`)?
+pub fn is_bypassed_path(cfg: &Config, index: &CodebaseIndex, path: &str) -> bool;
 ```
 
 `couple` returns a `CoupleReport` **even on drift**: drift is data, not an
@@ -143,9 +160,10 @@ unknown MAJOR" means.
 Read-only queries over a loaded `Registry`:
 
 ```rust
-use spec_spine_core::{list, show, status_report, relationships, ListFilter};
+use spec_spine_core::{list, list_ids, show, status_report, relationships, ListFilter};
 
 pub fn list        (registry: &Registry, filter: &ListFilter)  -> Vec<&SpecRecord>;
+pub fn list_ids    (registry: &Registry, filter: &ListFilter)  -> Vec<&str>;  // idsOnly projection (spec 010)
 pub fn show        (registry: &Registry, id: &str)             -> Result<&SpecRecord, Error>;
 pub fn status_report(registry: &Registry)                      -> StatusReport;
 pub fn relationships(registry: &Registry, id: &str)            -> Result<RelationshipView, Error>;
@@ -216,9 +234,10 @@ pub fn scaffold_init_json  (config_json: &str)                  -> Result<String
 - `couple_json` request: `{ "config"?: Config, "repoRoot": string, "diff":
   DiffInput, "waiver"?: { "reason": string } }`.
 - `check_freshness_json` returns `{ "fresh": bool, "expected"?, "actual"? }`.
-- `render_json` / `orphans_json` (spec 011) take the committed `index.json`
-  text and return the markdown projection (a JSON-encoded string) and the
-  orphaned-spec ids (a JSON array) respectively.
+- `render_json` (spec 011) takes `config_json` and the committed `index.json`
+  text and returns the markdown projection (a JSON-encoded string).
+  `orphans_json` (spec 011) takes only the `index.json` text and returns the
+  orphaned-spec ids (a JSON array).
 
 All emitted JSON is **pretty-printed with sorted keys, LF line endings, and a
 trailing newline** (diffability over compactness; see

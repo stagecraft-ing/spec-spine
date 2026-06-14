@@ -122,8 +122,10 @@ those through the compiler **without forking the types crate**, two ways:
   recognizes. They are accepted as first-class frontmatter rather than triggering
   an unknown-key diagnostic.
 - **`extra_frontmatter`** (DTO field): any frontmatter key not otherwise known
-  overflows into a capped `extra_frontmatter` map on the `SpecRecord` (scalar /
-  string-list values only). Your overlay reads it from the loaded `Registry`.
+  overflows into a capped `extra_frontmatter` map on the `SpecRecord`. Undeclared
+  keys are restricted to scalar and string-list values; keys you list in
+  `extra_known_keys` carry any JSON-representable YAML value, including arbitrary
+  nesting (spec 013). Your overlay reads it from the loaded `Registry`.
 
 The compiler validates and emits these deterministically alongside the generic
 fields; the overlay picks them up from the typed `Registry`. Neither path

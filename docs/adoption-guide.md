@@ -29,7 +29,7 @@ curl -fsSL https://raw.githubusercontent.com/bartekus/spec-spine/main/install.sh
 
 The script detects your platform/arch, downloads the matching release archive
 and its `.sha256` sidecar, verifies the checksum, and drops `spec-spine` on your
-`PATH`. Pin a version with `SPEC_SPINE_VERSION=v0.1.0` and a target dir with
+`PATH`. Pin a version with `SPEC_SPINE_VERSION=vX.Y.Z` (a published release tag) and a target dir with
 `SPEC_SPINE_BIN_DIR=~/.local/bin`.
 
 ### From source
@@ -79,8 +79,8 @@ spec-spine registry list    # see your specs
 ```
 
 Write your first real specs under `specs/NNN-slug/spec.md` using the template,
-declaring the **authority units** each spec owns (file / section / symbol) in its
-frontmatter edges.
+declaring the **authority units** each spec owns (file / section / symbol /
+directory / crate / module) in its frontmatter edges.
 
 ---
 
@@ -111,8 +111,9 @@ spec = "001-my-capability"
 
 The third direction, **spec edges**, is the `unit:` declarations inside each
 spec's frontmatter (`establishes` / `extends` / `refines` / `supersedes` /
-`amends` / `co_authority` / `constrains`). See the bootstrap spec and the
-template for the grammar.
+`amends` / `co_authority` / `constrains` / `references`; `references` is the
+only non-owning edge, ignored by the coupling gate). See the bootstrap spec and
+the template for the grammar.
 
 Build the code-as-source view and commit it:
 
@@ -197,9 +198,11 @@ divergence observed across the reference repos. Every sub-table is
 | `layout.standalone_rust_workspaces` / `standalone_npm_packages` | crates/packages outside the root workspace | `[]` |
 | `index.extra_hashed_inputs` | globs folded into the staleness content hash, beyond the always-hashed core | `["standards/**", ".github/workflows/**"]` |
 | `index.resolver_exclusions` | dir names pruned from symbol/section walks | `["target","node_modules",".derived","dist","build",".next"]` |
+| `index.slices` | named glob groups, each emitted as a `build.sliceHashes` entry and gated by `index check --slice <name>`; names match `[a-z0-9][a-z0-9-]*`, each list non-empty. Independent of the global `contentHash` | `{}` |
 | `branding.compiler_id` / `indexer_id` | ids stamped in emitted `build` metadata | `"spec-spine"` |
 | `coupling.bypass_prefixes` | **additions** to the built-in bypass floor (additive; cannot remove a floor entry) | `[]` |
 | `coupling.waiver_keyword` | the PR-body waiver keyword | `"Spec-Drift-Waiver:"` |
+| `coupling.auto_waive_dependency_only` | when `true` and no PR-body waiver is present, mechanically self-waives PRs where every non-bypassed changed path is a `package.json` with only dependency version-string changes (the dependabot-class path); fail-closed on anything more (spec 005 §3.5) | `false` |
 | `provenance.uri_schemes` | open kind→scheme map for provenance URIs | `{ knowledge = "knowledge://", code-fingerprint = "fingerprint://" }` |
 | `frontmatter.extra_known_keys` | recognized frontmatter keys added without forking the types crate | `[]` |
 
@@ -222,8 +225,10 @@ extra_hashed_inputs = ["standards/**", ".github/workflows/**", "schemas/**"]
 
 The bypass floor (always applied, cannot be removed) covers `.github/`, `docs/`,
 `README.md`, `CHANGELOG.md`, `LICENSE`, `CODEOWNERS`, `.gitignore`,
-`.gitattributes`, `standards/spec/constitution.md`, `.derived/`, and the common
-lockfiles. Your `coupling.bypass_prefixes` adds to it. Match rules: a trailing
+`.gitattributes`, `standards/spec/constitution.md`, `.derived/`, `**/Cargo.lock`,
+`**/package-lock.json`, and `**/pnpm-lock.yaml`. Your `coupling.bypass_prefixes`
+adds to it (other lockfiles, e.g. `yarn.lock`, are not covered by default).
+Match rules: a trailing
 `/` is a directory prefix, a leading `**/` is a tail-suffix match anywhere, and
 anything else is an exact path.
 

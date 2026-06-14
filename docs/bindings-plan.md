@@ -32,7 +32,9 @@ The facade functions to wrap:
 | `lint_json(config_json, repo_root)` | `lint` |
 | `check_freshness_json(config_json, repo_root)` | `check_index_freshness` |
 | `couple_json(request_json)` | `couple` |
-| `query_json(request_json)` | `list` / `show` / `status_report` / `relationships` |
+| `query_json(request_json)` | `list` / `list_ids` / `show` / `status_report` / `relationships` |
+| `render_json(config_json, index_json)` | `render_markdown` (spec 011) |
+| `orphans_json(index_json)` | `orphans` (spec 011) |
 | `load_config_json(toml_src)` | `load_config` |
 | `scaffold_init_json(config_json)` | `scaffold_init` |
 
