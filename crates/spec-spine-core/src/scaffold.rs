@@ -149,8 +149,8 @@ fn bootstrap_spec(ns: &str) -> String {
          \n\
          Specs declare typed edges (`establishes`, `extends`, `refines`,\n\
          `supersedes`, `amends`, `co_authority`, `constrains`, `references`) and\n\
-         the units they own (file / section / symbol). Authority is derived by\n\
-         walking the graph.\n",
+         the units they own (file / section / symbol / directory / crate / module).\n\
+         Authority is derived by walking the graph.\n",
         ns = ns
     )
 }
@@ -169,6 +169,9 @@ fn spec_template(ns: &str) -> String {
          \u{20}\u{20}- \"path/to/file.rs\"                              # a file unit\n\
          \u{20}\u{20}# - {{ kind: section, file: \"Makefile\", anchor: \"build\" }}\n\
          \u{20}\u{20}# - {{ kind: symbol, id: \"my_crate::my_fn\" }}\n\
+         \u{20}\u{20}# - {{ kind: directory, path: \"crates/my-crate/\" }}\n\
+         \u{20}\u{20}# - {{ kind: crate, id: \"my-crate\" }}\n\
+         \u{20}\u{20}# - {{ kind: module, id: \"my_crate::serialization\" }}\n\
          # depends_on:\n\
          #   - \"000-bootstrap\"\n\
          ---\n\

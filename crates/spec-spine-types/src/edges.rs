@@ -4,8 +4,10 @@
 //! non-owning one (the coupling gate ignores it). `origin` is a bootstrap
 //! marker, **not** an edge (see `docs/design/00-architecture.md` §2.1).
 //!
-//! `establishes` is a bare `Vec<Unit>`; `supersedes`/`amends` are `Vec<String>`
-//! of spec ids; the remaining edges are lists of the item structs below. Each
+//! `establishes` is a bare `Vec<Unit>`; `supersedes` is `Vec<SupersedeItem>` (a
+//! bare predecessor id for full supersession, or a structured partial item,
+//! spec 019); `amends` is `Vec<String>` of spec ids; the remaining edges are
+//! lists of the item structs below. Each
 //! item uses `deny_unknown_fields` so a misspelled key produces a clear error
 //! rather than silently overflowing. `extends`/`refines` items accept the
 //! predecessor dialect's `paths:` list as authoring sugar (spec 014): the

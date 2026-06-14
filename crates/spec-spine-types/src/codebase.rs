@@ -1,7 +1,8 @@
 //! Codebase-index DTOs: the code-as-source view, emitted by `spec-spine index`
 //! as `index.json`. Field names serialize to `camelCase`. Shapes are ported from
 //! OAP `codebase-index.schema.json` (3.0.0), pruned to the generic v1 surface and
-//! re-versioned to this library's own `0.1.0`.
+//! re-versioned to this library's own schema line (currently `0.3.0`; see
+//! [`crate::version::INDEX_SCHEMA_VERSION`]).
 
 use std::collections::BTreeMap;
 

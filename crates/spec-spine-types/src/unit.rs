@@ -3,11 +3,11 @@
 //! A spec declares the units it owns via a `unit:` on a typed edge. The grammar
 //! resolves six granularities: [`Unit::File`], [`Unit::Section`],
 //! [`Unit::Symbol`], [`Unit::Directory`], [`Unit::Crate`], and [`Unit::Module`]
-//! (ported from OAP `spec-types::LogicalUnit`). The first three shipped in v1;
-//! `directory`/`crate`/`module` were reserved as an additive minor in
-//! `docs/design/00-architecture.md` §2.2 (Q5) and are resolved as of spec 017:
-//! the schema is permissive on the unit payload, so the new kinds are a MINOR
-//! bump (no schema-file edit), and a bare string remains shorthand for a file
+//! (ported from OAP `spec-types::LogicalUnit`). All six are implemented:
+//! `file`/`section`/`symbol` shipped first, and `directory`/`crate`/`module`
+//! landed in spec 017 (originally reserved in `docs/design/00-architecture.md`
+//! §2.2 Q5). They were a MINOR bump because the schema is permissive on the unit
+//! payload (no schema-file edit), and a bare string remains shorthand for a file
 //! unit (a trailing-slash path denotes a directory subtree).
 
 use serde::de::{self, Deserializer};
@@ -30,7 +30,7 @@ pub enum Unit {
     /// a `region:` marker, or a CI `jobs.<name>`.
     Section { file: String, anchor: String },
     /// A symbol (function / type / export), resolved by the indexer via
-    /// tree-sitter (Rust + TypeScript in v1).
+    /// tree-sitter (Rust `.rs` and TypeScript `.ts`/`.tsx`).
     Symbol { id: String },
     /// A directory subtree, named explicitly (`{ kind: directory, path }`). The
     /// subtree-prefix resolution is identical to a trailing-slash file unit; the

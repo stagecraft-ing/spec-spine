@@ -16,7 +16,7 @@
 /// stays a bare string, so a full-only corpus is byte-identical.
 pub const REGISTRY_SCHEMA_VERSION: &str = "0.3.0";
 
-/// `schemaVersion` emitted in `index.json`. (Index DTOs land in Phase 3.)
+/// `schemaVersion` emitted in `index.json`.
 /// `0.2.0`: additive `build.sliceHashes` (spec 012).
 /// `0.3.0`: additive `directory`/`crate`/`module` resolved-unit kinds (spec 017).
 pub const INDEX_SCHEMA_VERSION: &str = "0.3.0";

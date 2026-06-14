@@ -56,7 +56,7 @@
         },
         "extraFrontmatter": {
           "type": "object",
-          "description": "Adopter frontmatter transported by the compiler. Declared keys (frontmatter.extra_known_keys) carry any JSON value (spec 013, specVersion 0.2.0); undeclared keys are scalars or string arrays."
+          "description": "Adopter frontmatter transported by the compiler. Declared keys (frontmatter.extra_known_keys) carry any JSON value (spec 013; first shipped in specVersion 0.2.0); undeclared keys are scalars or string arrays."
         }
       }
     },

@@ -1,8 +1,8 @@
 //! Dogfood: this repo's own bootstrap spec must parse through the types crate.
 //!
-//! The compiler does not exist yet (Phase 2), but the authored frontmatter of
-//! `specs/000` must already conform to the grammar this crate defines, so the
-//! corpus and the grammar cannot drift apart before compile lands.
+//! The authored frontmatter of `specs/000` must conform to the grammar this
+//! crate defines; a parse failure here means the corpus and the types drifted
+//! apart (this guards the grammar independently of the full compile pipeline).
 
 use spec_spine_types::{Status, parse_frontmatter};
 

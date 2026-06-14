@@ -1,8 +1,9 @@
 //! The index capability (spec 004): code-as-source view + staleness + authorities.
 //!
 //! Pure function of `(config, file contents)`. Discovers packages, links code to
-//! specs three ways, resolves the file/section/symbol grammar to physical
-//! locations, and emits a deterministic `index.json`. All discovery is
+//! specs three ways, resolves the unit grammar (file / section / symbol /
+//! directory / crate / module) to physical locations, and emits a deterministic
+//! `index.json`. All discovery is
 //! path-sorted before hashing and emission (watch-item 1).
 
 use std::collections::{BTreeMap, BTreeSet};

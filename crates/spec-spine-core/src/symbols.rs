@@ -1,9 +1,11 @@
 //! Symbol resolution (spec 004 §3.3): build a deterministic index from
 //! `::`-qualified ids to physical `(file, line-span)` locations via tree-sitter.
 //!
-//! v1 indexes top-level items only (no `impl` methods, no inline `mod` bodies)
-//! for Rust (`.rs`) and TypeScript (`.ts`/`.tsx`). The tree-sitter core and
-//! grammar crates are pinned exactly so spans are identical across platforms.
+//! Symbol indexing covers top-level items only (no `impl` methods, no inline
+//! `mod` bodies) for Rust (`.rs`) and TypeScript (`.ts`/`.tsx`). The module index
+//! (spec 017) additionally resolves top-level inline `mod X { ... }` blocks to
+//! their block spans. The tree-sitter core and grammar crates are pinned exactly
+//! so spans are identical across platforms.
 
 use std::collections::BTreeMap;
 use std::fs;
