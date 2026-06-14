@@ -1,7 +1,7 @@
 ---
 id: "022-keypath-section-anchors"
 title: "Bounded keypath section anchors for first-party structured config"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-14"
 implementation: complete

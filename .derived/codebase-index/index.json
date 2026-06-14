@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "dc6a3ef1900e9ba3e7cba5be45a2df1bf4b41f52931f5c666ecce2fefe01d5e9",
+    "contentHash": "749bf9bc90524ba95676039e153ae2f99fabc012828362c8397147d2455fcb47",
     "indexerId": "spec-spine",
     "indexerVersion": "0.3.0",
     "repoRoot": "."
@@ -2253,7 +2253,7 @@
           }
         ],
         "specId": "022-keypath-section-anchors",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [],

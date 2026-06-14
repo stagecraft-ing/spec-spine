@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.3.0",
-    "contentHash": "69049cd2e24e6790d00cb464aeafaf62a09e32586565e660fbace47b163f0397",
+    "contentHash": "a1d5f836ef7a119e67d4dae17a1c5dac316e15568da8aeff3f866c02d2ab3359",
     "inputRoot": "."
   },
   "specVersion": "0.3.0",
@@ -1429,7 +1429,7 @@
         "6. Resolved decisions (as implemented)"
       ],
       "specPath": "specs/022-keypath-section-anchors/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Widens the section-anchor grammar (`sections.rs`, spec 004 §3.3) so a `{ kind: section, file, anchor }` unit can name a bounded mapping keypath inside a first-party structured-config file: a workflow YAML (`on`, `permissions`, `env`, `jobs.<name>`, `jobs.<name>.permissions`), a `Cargo.toml` table path (`workspace`, `package.metadata.oap`), or a `package.json` member (`scripts`, `dependencies`). The anchor field is already a free string (`Unit::Section`), so this is a permissive-payload additive change with no frontmatter or JSON-schema edit, mirroring spec 017. The motivating cases are ASI security boundaries: `permissions:` (GITHUB_TOKEN scope) and `on`/`on.merge_group` (the trigger and merge-queue contract). Section ownership of those keys means any token-scope escalation or trigger change forces the owning spec's review. A hard file-eligibility predicate keeps the grammar pointed at surfaces spec-spine has a first-party reason to parse and off foreign tool schemas (deny.toml, Helm values, k8s manifests), which their owners rev independently. This retires the `# region:`-in-structured-config escape hatch for the eligible surfaces: a structural keypath is computed from the document tree and cannot silently drift from the block it claims, the way a hand-placed region marker can.\n",
       "title": "Bounded keypath section anchors for first-party structured config"
     }
