@@ -1,10 +1,10 @@
+[![CI](https://github.com/bartekus/spec-spine/actions/workflows/ci.yml/badge.svg)](https://github.com/bartekus/spec-spine/actions/workflows/ci.yml)
+&nbsp;License: Apache-2.0
+
 # spec-spine
 
 **A typed, hash-verifiable authority ledger over a markdown spec corpus.**
 Installable Rust library + CLI; API-first, binding-ready, deterministic.
-
-[![CI](https://github.com/bartekus/spec-spine/actions/workflows/ci.yml/badge.svg)](https://github.com/bartekus/spec-spine/actions/workflows/ci.yml)
-&nbsp;License: Apache-2.0
 
 spec-spine turns a markdown spec corpus into a governed, hash-verifiable
 authority ledger and **refuses code that drifts from its owning spec** at PR
