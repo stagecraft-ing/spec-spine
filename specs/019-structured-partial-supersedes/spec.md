@@ -1,7 +1,7 @@
 ---
 id: "019-structured-partial-supersedes"
 title: "Supersedes grammar: structured items and partial (unit-scoped) transfer"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-12"
 implementation: complete

@@ -1,7 +1,7 @@
 ---
 id: "015-establishes-wrapper-na-alias"
 title: "Frontmatter sugar: `unit:`-wrapped establishes items and the `n/a` implementation alias"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-11"
 implementation: complete

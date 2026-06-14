@@ -1,7 +1,7 @@
 ---
 id: "016-short-id-resolution"
 title: "Compile: resolve short spec ids on `depends_on` and `superseded_by`"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-11"
 implementation: complete

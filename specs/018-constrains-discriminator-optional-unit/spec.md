@@ -1,7 +1,7 @@
 ---
 id: "018-constrains-discriminator-optional-unit"
 title: "Constrains grammar: classification discriminator and optional unit"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-12"
 implementation: complete
