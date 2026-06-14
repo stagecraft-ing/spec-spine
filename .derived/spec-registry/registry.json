@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.3.0",
-    "contentHash": "676c1828bdba1a0d238d980d5efdae849192d69b581529429ff67ae8ef51dbb2",
+    "contentHash": "69049cd2e24e6790d00cb464aeafaf62a09e32586565e660fbace47b163f0397",
     "inputRoot": "."
   },
   "specVersion": "0.3.0",
@@ -974,7 +974,7 @@
         "4. Out of scope"
       ],
       "specPath": "specs/015-establishes-wrapper-na-alias/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Two pieces of authoring sugar for the predecessor dialect, both normalized away at parse so nothing new reaches registry.json. (1) An authority unit may be written as a single-key `{ unit: <unit> }` wrapper -- a third 1:1 representation alongside the existing bare-string and tagged-map forms -- which the Unit deserializer unwraps to its inner unit. The corpus uses this on `establishes` items (one wrapper per item, `unit` the only field). (2) `implementation: n/a` is accepted as a deserialize-only alias for the canonical `n-a`, which stays the only spelling ever emitted. Neither changes the registry schema or any consumer; both unblock adopting a corpus authored in the OAP dialect (389 wrapped establishes items across ~97 specs; 5 specs using `n/a`) without a mass frontmatter migration.\n",
       "title": "Frontmatter sugar: `unit:`-wrapped establishes items and the `n/a` implementation alias"
     },
@@ -1017,7 +1017,7 @@
         "4. Out of scope"
       ],
       "specPath": "specs/016-short-id-resolution/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Lets a `depends_on` or `superseded_by` reference name its target by the leading spec number alone (`109`) and have the compiler resolve it to the full id (`109-slug`) when exactly one spec matches that number, rewriting the reference before validation and emission. An exact id, an ambiguous number, or a number matching nothing is left unchanged, so V-008 (superseded_by must resolve) and V-010 (dangling depends_on) still fire on a genuinely broken reference. The resolution policy is the indexer's existing `resolve_id` (spec 004), applied at compile time so the registry and the index agree. Unblocks adopting a corpus that references specs by number (106 specs in the OAP dry-run) without a mass frontmatter migration; a no-op on any corpus that already uses full ids (such as this repo's own).\n",
       "title": "Compile: resolve short spec ids on `depends_on` and `superseded_by`"
     },
@@ -1101,7 +1101,7 @@
         "4. Out of scope"
       ],
       "specPath": "specs/017-directory-crate-module-units/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Lifts the v1 unit-grammar limitation (`docs/design/00-architecture.md` §2.2, Q5): the three reserved kinds (`directory`, `crate`, and `module`) are now parsed and resolved alongside `file`/`section`/`symbol`. A `directory` unit resolves to its subtree (existence-checked, I-007 on miss); a `crate` unit resolves a manifest name against the discovered package inventory to that package's directory subtree (I-003 on miss, hyphen/underscore interchangeable); a `module` unit resolves a `::`-qualified Rust module path via a new module index; file-modules whole-file, top-level inline `mod` blocks to their span (I-008 on miss). The registry/index schemas are permissive on the unit payload, so this is an additive MINOR (`INDEX_SCHEMA_VERSION` 0.2.0 → 0.3.0) with no schema-file edit. Unblocks adopting the OAP corpus, which authors these three kinds across ~192 unit declarations (93 `directory`, 99 `crate`, 1 `module`) with no mass frontmatter migration.\n",
       "title": "Authority units: resolve the reserved directory / crate / module kinds"
     },
@@ -1177,7 +1177,7 @@
         "4. Out of scope"
       ],
       "specPath": "specs/018-constrains-discriminator-optional-unit/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Widens the `constrains` item grammar to the two shapes the predecessor dialect authors: a **path-scoped** constraint (`unit:`, the canonical `invariant-freeze` over a file or schema) and a **spec-scoped** constraint (`target_specs:`, a sequencing/ordering plan over other specs with no code unit). Two changes: `unit` becomes optional, and an optional documentary discriminator is accepted under either spelling `flavor:` or `kind:` (synonyms, not gate-load-bearing). A new V-011 requires every item to scope at least one of `unit` / `target_specs`. A spec-scoped item contributes no resolved unit to the index. Unblocks the OAP corpus, which authors `{ flavor: invariant-freeze, unit }` (spec 130) and `{ kind: <plan>, target_specs }` (specs 078, 089), both rejected by the unit-required, discriminator-less v1 grammar.\n",
       "title": "Constrains grammar: classification discriminator and optional unit"
     },
@@ -1318,7 +1318,7 @@
         "4. Out of scope"
       ],
       "specPath": "specs/019-structured-partial-supersedes/spec.md",
-      "status": "draft",
+      "status": "approved",
       "summary": "Implements Option A from `docs/design/01-partial-supersession.md`: a `supersedes` item may be a bare predecessor id (full) or a structured `{ spec, scope, unit?, note?, rationale? }`. A full item (bare id or `scope: full`) normalizes to the bare-string form, so a full-only corpus emits a byte-identical registry; the wire is unchanged for every existing adopter; only a partial item serializes as an object. `scope: partial` with a `unit` transfers authority over that unit alone (additive, the predecessor keeps it and everything else), threaded through the index as a `supersedes` resolved unit so the gate already treats the successor as an owner of that unit's paths; `build_superseders` therefore contributes only **full** supersession to the whole-spec transfer. A partial item with no unit (a documentary lifecycle marker) transfers nothing. Short ids on the predecessor resolve like `depends_on` (spec 016). Unblocks the OAP corpus shapes 073 (`scope: full`), 108 (bare short id), 114 (`partial` + unit), and 199 (`partial` + note).\n",
       "title": "Supersedes grammar: structured items and partial (unit-scoped) transfer"
     },
@@ -1392,6 +1392,46 @@
       "status": "approved",
       "summary": "Every prebuilt binary spec-spine ships should carry a machine-readable bill of materials and a verifiable provenance trail. This spec adds, to the tag-gated release pipeline (007's release.yml), a per-target CycloneDX SBOM generated by syft for each of the five release archives, plus a SLSA build-provenance attestation over each archive. The SBOM names the dependency graph baked into that binary (read from the committed Cargo.lock, so it is as deterministic as the build); a fail-closed check refuses to ship an SBOM with zero components. SBOMs are attached to the GitHub Release as separate assets named to match their archive; the provenance attestation is recorded in GitHub's attestation store so any archive verifies with `gh attestation verify`. This is a port of OAP spec 117, scaled to spec-spine's single-CLI, five-triple release. The channels themselves (crates.io, npm, PyPI) are unchanged; this is purely additive supply-chain metadata on the binary release.\n",
       "title": "Release supply-chain artifacts: per-target SBOM and build provenance"
+    },
+    {
+      "created": "2026-06-14",
+      "dependsOn": [
+        "004-codebase-index",
+        "005-coupling-gate"
+      ],
+      "extends": [
+        {
+          "nature": "additive",
+          "spec": "004-codebase-index",
+          "unit": {
+            "kind": "file",
+            "path": "crates/spec-spine-core/src/sections.rs"
+          }
+        }
+      ],
+      "id": "022-keypath-section-anchors",
+      "implementation": "complete",
+      "kind": "tooling",
+      "owner": "The spec-spine Authors",
+      "sectionHeadings": [
+        "022: bounded keypath section anchors for first-party structured config",
+        "1. Purpose",
+        "2. Territory",
+        "3. Behavior",
+        "3.1 Grammar: the bounded keypath",
+        "3.2 File eligibility: the ownership boundary (hard)",
+        "3.3 Resolution (per format)",
+        "3.4 Staleness",
+        "3.5 Diagnostics",
+        "3.6 Tests (minimum)",
+        "4. Out of scope",
+        "5. Design decisions (for review, before implementation)",
+        "6. Resolved decisions (as implemented)"
+      ],
+      "specPath": "specs/022-keypath-section-anchors/spec.md",
+      "status": "draft",
+      "summary": "Widens the section-anchor grammar (`sections.rs`, spec 004 §3.3) so a `{ kind: section, file, anchor }` unit can name a bounded mapping keypath inside a first-party structured-config file: a workflow YAML (`on`, `permissions`, `env`, `jobs.<name>`, `jobs.<name>.permissions`), a `Cargo.toml` table path (`workspace`, `package.metadata.oap`), or a `package.json` member (`scripts`, `dependencies`). The anchor field is already a free string (`Unit::Section`), so this is a permissive-payload additive change with no frontmatter or JSON-schema edit, mirroring spec 017. The motivating cases are ASI security boundaries: `permissions:` (GITHUB_TOKEN scope) and `on`/`on.merge_group` (the trigger and merge-queue contract). Section ownership of those keys means any token-scope escalation or trigger change forces the owning spec's review. A hard file-eligibility predicate keeps the grammar pointed at surfaces spec-spine has a first-party reason to parse and off foreign tool schemas (deny.toml, Helm values, k8s manifests), which their owners rev independently. This retires the `# region:`-in-structured-config escape hatch for the eligible surfaces: a structural keypath is computed from the document tree and cannot silently drift from the block it claims, the way a hand-placed region marker can.\n",
+      "title": "Bounded keypath section anchors for first-party structured config"
     }
   ],
   "validation": {
