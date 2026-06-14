@@ -11,14 +11,6 @@ PyPI shims that ship the prebuilt binary. Read `docs/design/00-architecture.md`
 first: it is the load-bearing design doc (crate layout, full `Config`, public
 API, exit codes, schema plan, and the provenance of every ported algorithm).
 
-## House style (required)
-
-**Never use em dashes (the Unicode `U+2014` character).** This project is published
-under the author's name and em dashes read as an AI tell. Use a colon, semicolon,
-comma, parentheses, or two sentences instead. This applies to everything: code
-comments, doc comments, string literals, specs, docs, and commit messages. En
-dashes are fine only for numeric/section ranges (`017–019`, `§3.2–§3.5`).
-
 ## Commands
 
 The toolchain is pinned in `rust-toolchain.toml` (channel `1.92.0`); MSRV is
