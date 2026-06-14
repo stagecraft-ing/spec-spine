@@ -76,3 +76,30 @@ jobs:
           echo "coupling base: $BASE → HEAD"
           printf '%s' "${PR_BODY:-}" > /tmp/pr-body.txt
           ./target/debug/spec-spine couple --base "$BASE" --head HEAD --pr-body /tmp/pr-body.txt
+
+  # Cross-triple determinism golden, run as a reusable workflow so a single
+  # `ci-gate` check below covers it too (spec 020).
+  determinism:
+    name: determinism
+    uses: ./.github/workflows/determinism.yml
+
+  # Spec 020: the single required status check for branch protection and the
+  # merge queue. It aggregates every CI job, so branch protection requires just
+  # this one name instead of an enumerated, drift-prone list. A skipped job
+  # (e.g. a future event-gated one) counts as a pass; a failed or cancelled job
+  # fails the gate.
+  ci-gate:
+    name: ci-gate
+    if: ${{ always() }}
+    needs: [test, dogfood, determinism]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all CI jobs to have passed
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
+          echo "A required CI job failed or was cancelled:"
+          echo "  test=${{ needs.test.result }}  dogfood=${{ needs.dogfood.result }}  determinism=${{ needs.determinism.result }}"
+          exit 1
+      - name: All required CI jobs passed
+        run: |
+          echo "ci-gate passed: test, dogfood, and determinism are all green"

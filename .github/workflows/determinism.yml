@@ -17,14 +17,12 @@ name: determinism
 # build-meta.json is excluded: it carries a wall-clock `builtAt`, the sole
 # non-deterministic artifact (see docs/design/00-architecture.md §10.1).
 
+# Spec 020: driven by ci.yml as a reusable workflow so a single `ci-gate` check
+# covers determinism too (and it runs on the merge queue through ci.yml's
+# merge_group trigger). `workflow_dispatch` keeps it runnable on its own.
 on:
-  push:
-    branches: [main]
-  pull_request:
-  # Spec 020: prove cross-triple determinism on the speculative merged tree too,
-  # so a merge that shifts symbol line-spans cannot reach main unproven. INERT
-  # until a repo admin enables the merge queue in branch protection.
-  merge_group:
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read

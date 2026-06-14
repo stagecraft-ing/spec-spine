@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.3.0",
-    "contentHash": "68b22f11b9c362eae045ae73dd482d318ba2735d81981d807ee0d4d2a8500b5f",
+    "contentHash": "676c1828bdba1a0d238d980d5efdae849192d69b581529429ff67ae8ef51dbb2",
     "inputRoot": "."
   },
   "specVersion": "0.3.0",
@@ -1346,7 +1346,7 @@
         "3. Behavior",
         "3.1 The merge driver",
         "3.2 Registration (opt-in, per clone)",
-        "3.3 Merge queue",
+        "3.3 Merge queue and the `ci-gate` check",
         "4. Out of scope"
       ],
       "specPath": "specs/020-derived-artifact-merge-driver/spec.md",

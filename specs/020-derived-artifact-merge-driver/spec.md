@@ -104,14 +104,22 @@ Absent that registration git falls back to the default text merge, so the
 feature is strictly opt-in and inert by default: no behavior change for a clone
 that has not enabled it.
 
-### 3.3 Merge queue
+### 3.3 Merge queue and the `ci-gate` check
 
-`ci.yml` and `determinism.yml` gain a `merge_group` trigger so every PR in the
-GitHub merge queue is validated against the speculative merged tree, catching
-pairs of PRs that pass alone but break together (for example a duplicate spec id
-introduced on two branches). The build/test/clippy/fmt job, the self-governance
-`compile`/`index check`/`lint` steps, and the cross-triple determinism gate all
-run on `merge_group`.
+`ci.yml` gains a `merge_group` trigger so every PR in the GitHub merge queue is
+validated against the speculative merged tree, catching pairs of PRs that pass
+alone but break together (for example a duplicate spec id introduced on two
+branches). The cross-triple determinism golden runs as a reusable workflow
+(`determinism.yml`, now `workflow_call`) invoked by `ci.yml`, so the queue covers
+it too. The build/test/clippy/fmt job, the self-governance
+`compile`/`index check`/`lint` steps, and the determinism gate all run on
+`merge_group`.
+
+`ci.yml` ends in a single **`ci-gate`** aggregator job that `needs` every other
+CI job (test, dogfood, determinism) and fails if any of them failed or was
+cancelled (a skipped job counts as a pass). Branch protection and the merge
+queue require just this one check name, rather than an enumerated, drift-prone
+list of individual job names.
 
 The coupling gate (spec 005) MUST remain `pull_request`-only. It reads the
 `Spec-Drift-Waiver:` line from the PR body, which the `merge_group` event does
@@ -120,8 +128,8 @@ already passed the coupling gate before it enters the queue, so omitting it from
 `merge_group` loses no coverage.
 
 The queue is **inert until a repository admin enables it** in branch protection
-and requires the merge-queue checks. Adding the trigger is safe and has no
-effect until that operational step.
+and requires the `ci-gate` check. Adding the trigger and the gate job is safe
+and has no effect until that operational step.
 
 ## 4. Out of scope
 
