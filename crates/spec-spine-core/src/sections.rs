@@ -1,8 +1,19 @@
-//! Section anchor parsing (spec 004 §3.3). Given a file's content and name,
-//! enumerate its named sections as `(anchor, LineSpan)`. Four dispatchers:
-//! Makefile targets, Markdown heading slugs, `region:` markers, and CI
-//! `jobs.<name>` blocks. Shared by the indexer (resolve a declared section unit)
-//! and, later, the coupling gate (attribute a diff hunk to a section).
+//! Section anchor parsing (spec 004 §3.3, widened by spec 022). Given a file's
+//! content and name, enumerate its named sections as `(anchor, LineSpan)`.
+//! Dispatchers: Makefile targets, Markdown heading slugs, `region:` markers, CI
+//! `jobs.<name>` blocks, and the spec-022 bounded keypath grammar for the three
+//! first-party structured-config shapes (workflow YAML, `Cargo.toml`,
+//! `package.json`). Shared by the indexer (resolve a declared section unit) and,
+//! later, the coupling gate (attribute a diff hunk to a section).
+//!
+//! Spec 022 widens which `anchor` strings resolve on the eligible structured
+//! files only: a section anchor may be a dotted mapping/table keypath
+//! (`permissions`, `on.merge_group`, `jobs.build.permissions`,
+//! `workspace.package`, `scripts`). Eligibility is a hard predicate (§3.2): a
+//! keypath resolves only on a `.github/workflows/*.yml`, a `Cargo.toml`, or a
+//! `package.json`; foreign structured configs (`deny.toml`, Helm `values.yaml`)
+//! keep whole-file / `region:` ownership and never receive keypath treatment, so
+//! the gate never binds to a third-party schema spec-spine does not own.
 //!
 //! Spans are inclusive 1-based lines, aligned with `git diff -U0` hunk ranges.
 
@@ -16,11 +27,39 @@ pub fn enumerate_sections(content: &str, file_name: &str) -> Vec<(String, LineSp
         makefile_sections(content)
     } else if has_ext(base, &["md", "markdown"]) {
         markdown_sections(content)
+    } else if base == "Cargo.toml" {
+        // spec 022: first-party manifest -> table keypaths.
+        cargo_toml_sections(content)
+    } else if base == "package.json" {
+        // spec 022: first-party manifest -> member keypaths (no region fallback:
+        // JSON has no comment syntax).
+        package_json_sections(content)
     } else if has_ext(base, &["yml", "yaml"]) {
-        ci_job_sections(content)
+        if is_workflow_path(file_name) {
+            // spec 022: governed workflow -> keypath grammar (a strict superset
+            // of the legacy bare-`jobs.<name>` behavior).
+            workflow_yaml_sections(content)
+        } else {
+            // Foreign YAML keeps the legacy bare-job behavior; routing it to
+            // region markers is spec 022 D4, deliberately deferred (§4).
+            ci_job_sections(content)
+        }
     } else {
         region_sections(content, comment_token(base))
     }
+}
+
+/// True if `path` is a governed workflow file: directly under `.github/workflows/`
+/// and ending `.yml` / `.yaml` (spec 022 §3.2). The path is repo-relative POSIX
+/// (the `Unit::Section.file` value), so a leading `./` is tolerated.
+fn is_workflow_path(path: &str) -> bool {
+    const DIR: &str = ".github/workflows/";
+    let p = path.strip_prefix("./").unwrap_or(path);
+    let Some(rest) = p.strip_prefix(DIR) else {
+        return false;
+    };
+    // Directly in the directory (GitHub does not read nested workflow dirs).
+    !rest.contains('/') && has_ext(rest, &["yml", "yaml"])
 }
 
 /// Resolve a single section anchor to its span, if present.
@@ -267,6 +306,455 @@ fn ci_job_sections(content: &str) -> Vec<(String, LineSpan)> {
     out
 }
 
+// ===== spec 022: workflow YAML keypaths =====
+
+/// Bounded keypath enumeration for a governed workflow (spec 022 §3.3). Yields,
+/// by an indentation-aware structural scan that generalizes [`ci_job_sections`]:
+/// every top-level key (`on`, `permissions`, `env`, `jobs`, ...); every
+/// second-level key as a dotted `parent.child` anchor (`on.merge_group`,
+/// `jobs.build`); third-level keys *under a job only* (`jobs.<name>.<key>`, e.g.
+/// `jobs.build.permissions`); and a bare `<name>` alias for each job
+/// (back-compat). Max depth 3; no sequence indexing, no wildcards. A block's
+/// span runs from its key line to the last line before the next key at the same
+/// or shallower indent.
+fn workflow_yaml_sections(content: &str) -> Vec<(String, LineSpan)> {
+    let lines: Vec<&str> = content.lines().collect();
+    let mut out: Vec<(String, LineSpan)> = Vec::new();
+    // Ancestor stack of (indent, key) giving the current mapping path.
+    let mut stack: Vec<(usize, String)> = Vec::new();
+    // Indent of the key opening a block scalar (`run: |` / `>`), while its more-
+    // indented content lines are being skipped: such lines are literal text, not
+    // mapping keys (a stray `echo "x: y"` must not parse as a key).
+    let mut block_scalar_indent: Option<usize> = None;
+
+    for (i, raw) in lines.iter().enumerate() {
+        if raw.trim().is_empty() {
+            continue;
+        }
+        let ind = indent(raw);
+        if let Some(bsi) = block_scalar_indent {
+            if ind > bsi {
+                continue; // inside the block scalar's content
+            }
+            block_scalar_indent = None; // dedented back out
+        }
+        let t = raw.trim_start();
+        // A `... : |` / `... : >` value opens a block scalar; its more-indented
+        // content lines are literal text, not keys. Detected on any line,
+        // including a `- run: |` step item, before the seq/comment skip below.
+        if opens_block_scalar(t) {
+            block_scalar_indent = Some(ind);
+        }
+        // Comments and sequence/flow items are not mapping keys.
+        if t.starts_with(['#', '-', '{', '[', '|', '>']) {
+            continue;
+        }
+        let Some(key) = mapping_key(t) else {
+            continue;
+        };
+        while matches!(stack.last(), Some(&(pi, _)) if pi >= ind) {
+            stack.pop();
+        }
+        let depth = stack.len() + 1;
+        let top = stack.first().map(|(_, k)| k.as_str());
+        let span = block_span(&lines, i, ind);
+        match depth {
+            1 => out.push((key.clone(), span)),
+            2 => {
+                let path = format!("{}.{}", stack[0].1, key);
+                out.push((path, span));
+                if top == Some("jobs") {
+                    out.push((key.clone(), span)); // bare job alias (back-compat)
+                }
+            }
+            3 if top == Some("jobs") => {
+                out.push((format!("{}.{}.{}", stack[0].1, stack[1].1, key), span));
+            }
+            _ => {} // deeper / non-job depth-3: not enumerated (bounded)
+        }
+        stack.push((ind, key));
+    }
+    out
+}
+
+/// The span of the block opened by the key at 0-based line `ki` with indent
+/// `key_indent`: from the key line through the last line before the next
+/// non-blank line at the same-or-shallower indent (or EOF).
+fn block_span(lines: &[&str], ki: usize, key_indent: usize) -> LineSpan {
+    let start = ki + 1; // 1-based
+    let mut end = lines.len();
+    for (offset, line) in lines.iter().enumerate().skip(ki + 1) {
+        if line.trim().is_empty() {
+            continue;
+        }
+        if indent(line) <= key_indent {
+            end = offset; // last included 1-based line is `offset` (line before this)
+            break;
+        }
+    }
+    LineSpan::new(start, end.max(start))
+}
+
+/// True if a left-trimmed line opens a YAML block scalar (`key: |` / `key: >`,
+/// including a `- run: |` step item). Leading sequence markers are stripped, then
+/// the value after the key's colon is checked for the `|` / `>` indicator.
+fn opens_block_scalar(trimmed: &str) -> bool {
+    let s = trimmed.trim_start_matches(['-', ' ']);
+    match s.find(':') {
+        Some(c) => {
+            let value = s[c + 1..].trim();
+            value.starts_with('|') || value.starts_with('>')
+        }
+        None => false,
+    }
+}
+
+/// The mapping key in a `key:` line (already left-trimmed), with surrounding
+/// quotes stripped. `None` if there is no `:` or the key is empty.
+fn mapping_key(trimmed: &str) -> Option<String> {
+    let colon = trimmed.find(':')?;
+    let key = trimmed[..colon]
+        .trim()
+        .trim_matches(|c| c == '"' || c == '\'');
+    if key.is_empty() {
+        return None;
+    }
+    Some(key.to_string())
+}
+
+// ===== spec 022: Cargo.toml table keypaths =====
+
+/// Bounded table-keypath enumeration for a `Cargo.toml` (spec 022 §3.3). Uses
+/// `toml_edit`'s span-aware immutable document so multi-line strings, dotted
+/// keys, and inline tables are handled correctly (where a hand-rolled scanner
+/// would mis-detect a `[header]` inside a multi-line string). Each table
+/// resolves to the span from its header line through the last line before the
+/// next sibling-or-shallower table (subtree-inclusive). Max depth 4 (covers
+/// `package.metadata.<tool>`); array-of-tables are not addressable (no array
+/// indexing). A malformed manifest yields no sections (the anchor falls to I-006).
+fn cargo_toml_sections(content: &str) -> Vec<(String, LineSpan)> {
+    const MAX_DEPTH: usize = 4;
+    let Ok(doc) = toml_edit::ImDocument::parse(content) else {
+        return Vec::new();
+    };
+    let mut tables: Vec<(Vec<String>, usize)> = Vec::new(); // (path, start byte)
+    let mut leaves: Vec<(Vec<String>, std::ops::Range<usize>)> = Vec::new();
+    collect_toml(
+        doc.as_table(),
+        &mut Vec::new(),
+        &mut tables,
+        &mut leaves,
+        MAX_DEPTH,
+    );
+
+    // Table-start positions (depth, start byte), for the next-sibling boundary.
+    let mut starts: Vec<(usize, usize)> = tables.iter().map(|(p, s)| (p.len(), *s)).collect();
+    starts.sort_unstable_by_key(|&(_, s)| s);
+    let total = content.lines().count().max(1);
+
+    let mut out: Vec<(String, LineSpan)> = Vec::with_capacity(tables.len() + leaves.len());
+    for (path, start) in &tables {
+        let depth = path.len();
+        let next = starts
+            .iter()
+            .filter(|&&(d, s)| s > *start && d <= depth)
+            .map(|&(_, s)| s)
+            .min();
+        let start_line = byte_to_line(content, *start);
+        let end_line = match next {
+            Some(nb) => byte_to_line(content, nb).saturating_sub(1).max(start_line),
+            None => total.max(start_line),
+        };
+        out.push((path.join("."), LineSpan::new(start_line, end_line)));
+    }
+    for (path, span) in &leaves {
+        let start_line = byte_to_line(content, span.start);
+        let end_line = byte_to_line(content, span.end.saturating_sub(1)).max(start_line);
+        out.push((path.join("."), LineSpan::new(start_line, end_line)));
+    }
+    out.sort_by(|a, b| {
+        (a.1.start_line, a.1.end_line, &a.0).cmp(&(b.1.start_line, b.1.end_line, &b.0))
+    });
+    out
+}
+
+/// Walk `table`, recording every sub-table (path, start byte) up to `max_depth`
+/// and every top-level leaf value. Returns the smallest start byte found in the
+/// subtree, used to synthesize a start for an implicit table (one created only
+/// by a deeper header, which carries no span of its own).
+fn collect_toml(
+    table: &toml_edit::Table,
+    prefix: &mut Vec<String>,
+    tables: &mut Vec<(Vec<String>, usize)>,
+    leaves: &mut Vec<(Vec<String>, std::ops::Range<usize>)>,
+    max_depth: usize,
+) -> Option<usize> {
+    let mut min_start: Option<usize> = None;
+    for (key, item) in table.iter() {
+        prefix.push(key.to_string());
+        let depth = prefix.len();
+        let own_span = item.span();
+        if let Some(sub) = item.as_table() {
+            let child_min = collect_toml(sub, prefix, tables, leaves, max_depth);
+            let start = own_span.as_ref().map(|s| s.start).or(child_min);
+            if let Some(st) = start {
+                // A dotted-key assignment (`version.workspace = true`) is modeled
+                // as a `Table` but is not a `[header]`-delimited section, so it is
+                // not an addressable table keypath (§3.3). Skip recording it; still
+                // fold its start into `min_start` so the enclosing real table's
+                // span covers the dotted keys. Implicit header tables (created by a
+                // deeper `[a.b]`) are kept: they are header-delimited, just elided.
+                if depth <= max_depth && !sub.is_dotted() {
+                    tables.push((prefix.clone(), st));
+                }
+                min_start = Some(min_start.map_or(st, |m: usize| m.min(st)));
+            }
+        } else if item.is_value() {
+            if let Some(s) = own_span {
+                if depth == 1 {
+                    leaves.push((prefix.clone(), s.clone()));
+                }
+                min_start = Some(min_start.map_or(s.start, |m: usize| m.min(s.start)));
+            }
+        }
+        // Array-of-tables: not addressable by keypath (no array indexing).
+        prefix.pop();
+    }
+    min_start
+}
+
+// ===== spec 022: package.json member keypaths =====
+
+/// Bounded member-keypath enumeration for a `package.json` (spec 022 §3.3). A
+/// brace-depth, string-aware line scan: each object member resolves to the span
+/// from its `"key":` line to the line where its value ends (its matching close
+/// for an object/array, its own line for a scalar). Max depth 2 (top level plus
+/// one nest, e.g. `scripts`, `dependencies`, `scripts.test`); members reached
+/// through an array are not addressable (no array indexing).
+fn package_json_sections(content: &str) -> Vec<(String, LineSpan)> {
+    const MAX_DEPTH: usize = 2;
+    struct Member {
+        key: String,
+        start_line: usize,
+        value_end_line: Option<usize>,
+    }
+    struct Obj {
+        path: Vec<String>,
+        expecting_value: bool,
+        member: Option<Member>,
+    }
+    enum Frame {
+        Obj(Obj),
+        Arr,
+    }
+
+    let bytes = content.as_bytes();
+    let mut out: Vec<(String, LineSpan)> = Vec::new();
+    let mut stack: Vec<Frame> = Vec::new();
+    let mut line: usize = 1;
+    let mut array_depth: usize = 0;
+    let mut i = 0;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'\n' => {
+                line += 1;
+                i += 1;
+            }
+            b'"' => {
+                let start_line = line;
+                let mut j = i + 1;
+                let mut s = String::new();
+                let mut esc = false;
+                while j < bytes.len() {
+                    let cj = bytes[j];
+                    if esc {
+                        s.push(cj as char);
+                        esc = false;
+                    } else if cj == b'\\' {
+                        esc = true;
+                    } else if cj == b'"' {
+                        break;
+                    } else {
+                        if cj == b'\n' {
+                            line += 1;
+                        }
+                        s.push(cj as char);
+                    }
+                    j += 1;
+                }
+                let end_line = line;
+                i = j + 1;
+                if let Some(Frame::Obj(o)) = stack.last_mut() {
+                    if o.expecting_value {
+                        if let Some(m) = o.member.as_mut() {
+                            m.value_end_line = Some(end_line);
+                        }
+                    } else {
+                        o.member = Some(Member {
+                            key: s,
+                            start_line,
+                            value_end_line: None,
+                        });
+                    }
+                }
+            }
+            b':' => {
+                if let Some(Frame::Obj(o)) = stack.last_mut() {
+                    o.expecting_value = true;
+                }
+                i += 1;
+            }
+            b',' => {
+                if let Some(Frame::Obj(o)) = stack.last_mut() {
+                    if let Some(m) = o.member.take() {
+                        if array_depth == 0 {
+                            if let Some(end) = m.value_end_line {
+                                push_member(
+                                    &mut out,
+                                    &o.path,
+                                    &m.key,
+                                    m.start_line,
+                                    end,
+                                    MAX_DEPTH,
+                                );
+                            }
+                        }
+                    }
+                    o.expecting_value = false;
+                }
+                i += 1;
+            }
+            b'{' => {
+                let path = match stack.last() {
+                    Some(Frame::Obj(o)) if o.expecting_value => {
+                        let mut p = o.path.clone();
+                        if let Some(m) = &o.member {
+                            p.push(m.key.clone());
+                        }
+                        p
+                    }
+                    _ => Vec::new(),
+                };
+                stack.push(Frame::Obj(Obj {
+                    path,
+                    expecting_value: false,
+                    member: None,
+                }));
+                i += 1;
+            }
+            b'[' => {
+                array_depth += 1;
+                stack.push(Frame::Arr);
+                i += 1;
+            }
+            b'}' => {
+                if let Some(Frame::Obj(o)) = stack.last_mut() {
+                    if let Some(m) = o.member.take() {
+                        if array_depth == 0 {
+                            if let Some(end) = m.value_end_line {
+                                push_member(
+                                    &mut out,
+                                    &o.path,
+                                    &m.key,
+                                    m.start_line,
+                                    end,
+                                    MAX_DEPTH,
+                                );
+                            }
+                        }
+                    }
+                }
+                stack.pop();
+                // The popped object was the value of the parent's member.
+                if let Some(Frame::Obj(po)) = stack.last_mut() {
+                    if po.expecting_value {
+                        if let Some(m) = po.member.take() {
+                            if array_depth == 0 {
+                                push_member(
+                                    &mut out,
+                                    &po.path,
+                                    &m.key,
+                                    m.start_line,
+                                    line,
+                                    MAX_DEPTH,
+                                );
+                            }
+                        }
+                        po.expecting_value = false;
+                    }
+                }
+                i += 1;
+            }
+            b']' => {
+                array_depth = array_depth.saturating_sub(1);
+                stack.pop();
+                // The popped array was the value of the parent's member.
+                if let Some(Frame::Obj(po)) = stack.last_mut() {
+                    if po.expecting_value {
+                        if let Some(m) = po.member.take() {
+                            if array_depth == 0 {
+                                push_member(
+                                    &mut out,
+                                    &po.path,
+                                    &m.key,
+                                    m.start_line,
+                                    line,
+                                    MAX_DEPTH,
+                                );
+                            }
+                        }
+                        po.expecting_value = false;
+                    }
+                }
+                i += 1;
+            }
+            c => {
+                // A scalar value token (number / true / false / null) under a key.
+                if !c.is_ascii_whitespace() {
+                    if let Some(Frame::Obj(o)) = stack.last_mut() {
+                        if o.expecting_value {
+                            if let Some(m) = o.member.as_mut() {
+                                m.value_end_line = Some(line);
+                            }
+                        }
+                    }
+                }
+                i += 1;
+            }
+        }
+    }
+    out.sort_by(|a, b| {
+        (a.1.start_line, a.1.end_line, &a.0).cmp(&(b.1.start_line, b.1.end_line, &b.0))
+    });
+    out
+}
+
+/// Record a resolved member keypath if it is within the depth bound.
+fn push_member(
+    out: &mut Vec<(String, LineSpan)>,
+    path: &[String],
+    key: &str,
+    start: usize,
+    end: usize,
+    max_depth: usize,
+) {
+    if path.len() < max_depth {
+        let mut full = path.to_vec();
+        full.push(key.to_string());
+        out.push((full.join("."), LineSpan::new(start, end.max(start))));
+    }
+}
+
+/// 1-based line number containing `byte` (the count of newlines before it + 1).
+fn byte_to_line(content: &str, byte: usize) -> usize {
+    let b = byte.min(content.len());
+    content.as_bytes()[..b]
+        .iter()
+        .filter(|&&c| c == b'\n')
+        .count()
+        + 1
+}
+
 fn indent(line: &str) -> usize {
     line.len() - line.trim_start_matches(' ').len()
 }
@@ -331,6 +819,227 @@ mod tests {
             resolve_section(rs, "lib.rs", "core"),
             Some(LineSpan::new(2, 5))
         );
+    }
+
+    // ===== spec 022: keypath section anchors =====
+
+    const WORKFLOW: &str = "\
+name: CI
+on:
+  push:
+  merge_group:
+permissions:
+  contents: read
+env:
+  FOO: bar
+jobs:
+  build:
+    permissions:
+      contents: write
+    runs-on: ubuntu
+    steps:
+      - run: echo hi
+  test:
+    runs-on: ubuntu
+";
+
+    fn ws_span(content: &str, file: &str, anchor: &str) -> Option<LineSpan> {
+        resolve_section(content, file, anchor)
+    }
+
+    #[test]
+    fn workflow_keypaths_and_back_compat() {
+        let f = ".github/workflows/ci.yml";
+        // Top-level keys.
+        assert_eq!(ws_span(WORKFLOW, f, "on"), Some(LineSpan::new(2, 4)));
+        assert_eq!(
+            ws_span(WORKFLOW, f, "permissions"),
+            Some(LineSpan::new(5, 6))
+        );
+        assert_eq!(ws_span(WORKFLOW, f, "env"), Some(LineSpan::new(7, 8)));
+        // Second-level dotted keys (the merge-queue / trigger contract).
+        assert_eq!(
+            ws_span(WORKFLOW, f, "on.merge_group"),
+            Some(LineSpan::new(4, 4))
+        );
+        assert_eq!(ws_span(WORKFLOW, f, "on.push"), Some(LineSpan::new(3, 3)));
+        // Bare job alias (back-compat) and qualified job both resolve identically.
+        assert_eq!(ws_span(WORKFLOW, f, "build"), Some(LineSpan::new(10, 15)));
+        assert_eq!(
+            ws_span(WORKFLOW, f, "jobs.build"),
+            Some(LineSpan::new(10, 15))
+        );
+        // Per-job security boundary (depth 3 under a job).
+        assert_eq!(
+            ws_span(WORKFLOW, f, "jobs.build.permissions"),
+            Some(LineSpan::new(11, 12))
+        );
+    }
+
+    #[test]
+    fn workflow_bounds_reject_index_and_overdepth() {
+        let f = ".github/workflows/ci.yml";
+        // Sequence index does not resolve (no array indexing).
+        assert_eq!(ws_span(WORKFLOW, f, "jobs.build.steps.0"), None);
+        // Over-deep keypath does not resolve (max depth 3).
+        assert_eq!(ws_span(WORKFLOW, f, "jobs.build.steps.run"), None);
+        // Depth-3 under a non-job top-level key is not enumerated.
+        assert_eq!(ws_span(WORKFLOW, f, "on.push.branches"), None);
+    }
+
+    const CARGO: &str = "\
+[workspace]
+resolver = \"2\"
+members = [\"a\"]
+
+[workspace.package]
+version = \"0.3.0\"
+
+[dependencies]
+serde = \"1\"
+
+[package.metadata.oap]
+spec = \"001\"
+";
+
+    #[test]
+    fn cargo_toml_table_keypaths() {
+        let f = "Cargo.toml";
+        // Subtree-inclusive: workspace runs through workspace.package to the line
+        // before [dependencies].
+        assert_eq!(ws_span(CARGO, f, "workspace"), Some(LineSpan::new(1, 7)));
+        assert_eq!(
+            ws_span(CARGO, f, "workspace.package"),
+            Some(LineSpan::new(5, 7))
+        );
+        assert_eq!(
+            ws_span(CARGO, f, "dependencies"),
+            Some(LineSpan::new(8, 10))
+        );
+        assert_eq!(
+            ws_span(CARGO, f, "package.metadata.oap"),
+            Some(LineSpan::new(11, 12))
+        );
+        // A bare basename match is enough (any path with that basename).
+        assert!(ws_span(CARGO, "crates/x/Cargo.toml", "dependencies").is_some());
+    }
+
+    const PKG: &str = "\
+{
+  \"name\": \"spec-spine\",
+  \"version\": \"0.3.0\",
+  \"scripts\": {
+    \"test\": \"node --test\",
+    \"build\": \"tsc\"
+  },
+  \"dependencies\": {
+    \"left-pad\": \"^1.0.0\"
+  }
+}
+";
+
+    #[test]
+    fn package_json_member_keypaths() {
+        let f = "package.json";
+        assert_eq!(ws_span(PKG, f, "scripts"), Some(LineSpan::new(4, 7)));
+        assert_eq!(ws_span(PKG, f, "dependencies"), Some(LineSpan::new(8, 10)));
+        // One nested level resolves (depth 2).
+        assert_eq!(ws_span(PKG, f, "scripts.test"), Some(LineSpan::new(5, 5)));
+        // No member reached through an array, no over-depth.
+        assert_eq!(ws_span(PKG, f, "scripts.test.shell"), None);
+    }
+
+    const WORKFLOW_BLOCK_SCALAR: &str = "\
+on: push
+notes: |
+  permissions: write-all
+  on: schedule
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu
+    steps:
+      - run: |
+          echo \"jobs: injected\"
+";
+
+    #[test]
+    fn workflow_block_scalar_text_is_not_a_key() {
+        let f = ".github/workflows/ci.yml";
+        // Real top-level keys resolve to their own blocks, never to the literal
+        // text inside a block scalar.
+        assert_eq!(
+            ws_span(WORKFLOW_BLOCK_SCALAR, f, "on"),
+            Some(LineSpan::new(1, 1))
+        );
+        assert_eq!(
+            ws_span(WORKFLOW_BLOCK_SCALAR, f, "permissions"),
+            Some(LineSpan::new(5, 6))
+        );
+        // The block-scalar key itself resolves (its span covers its content).
+        assert_eq!(
+            ws_span(WORKFLOW_BLOCK_SCALAR, f, "notes"),
+            Some(LineSpan::new(2, 4))
+        );
+        // ...but the literal `permissions:` / `on:` lines inside it are text, not
+        // keypaths: no phantom anchor is produced.
+        assert_eq!(ws_span(WORKFLOW_BLOCK_SCALAR, f, "notes.permissions"), None);
+        assert_eq!(ws_span(WORKFLOW_BLOCK_SCALAR, f, "notes.on"), None);
+        // The `- run: |` step content is likewise inert.
+        assert_eq!(ws_span(WORKFLOW_BLOCK_SCALAR, f, "jobs.injected"), None);
+    }
+
+    const CARGO_DOTTED: &str = "\
+[package]
+name = \"x\"
+version.workspace = true
+edition.workspace = true
+
+[package.metadata.spec-spine]
+spec = \"001\"
+
+[dependencies]
+serde = \"1\"
+";
+
+    #[test]
+    fn cargo_toml_skips_dotted_key_pseudo_tables() {
+        let f = "Cargo.toml";
+        // A real [header] table resolves, subtree-inclusive.
+        assert_eq!(
+            ws_span(CARGO_DOTTED, f, "package"),
+            Some(LineSpan::new(1, 8))
+        );
+        // An implicit header table (created by a deeper [a.b.c]) resolves.
+        assert_eq!(
+            ws_span(CARGO_DOTTED, f, "package.metadata.spec-spine"),
+            Some(LineSpan::new(6, 8))
+        );
+        assert_eq!(
+            ws_span(CARGO_DOTTED, f, "dependencies"),
+            Some(LineSpan::new(9, 10))
+        );
+        // A dotted-key assignment (`version.workspace = true`) is NOT a
+        // header-delimited section, so it is not an addressable keypath.
+        assert_eq!(ws_span(CARGO_DOTTED, f, "package.version"), None);
+        assert_eq!(ws_span(CARGO_DOTTED, f, "package.edition"), None);
+    }
+
+    #[test]
+    fn eligibility_boundary_is_hard() {
+        // A dotted anchor on a non-eligible file MUST NOT resolve (§3.2). It
+        // falls through to region markers (deny.toml has `#` comments) / nothing.
+        let deny = "[advisories]\nignore = []\n";
+        assert_eq!(resolve_section(deny, "deny.toml", "advisories"), None);
+        // A non-workflow YAML is not keypath-eligible: the trigger keypath that
+        // resolves inside a governed workflow does not resolve here.
+        assert_eq!(
+            resolve_section(WORKFLOW, "deploy/values.yaml", "on.merge_group"),
+            None
+        );
+        // ...and the eligible workflow path DOES resolve it (proves the predicate).
+        assert!(resolve_section(WORKFLOW, ".github/workflows/ci.yml", "on.merge_group").is_some());
     }
 
     #[test]

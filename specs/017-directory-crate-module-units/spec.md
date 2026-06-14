@@ -1,7 +1,7 @@
 ---
 id: "017-directory-crate-module-units"
 title: "Authority units: resolve the reserved directory / crate / module kinds"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-12"
 implementation: complete

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "1d3bbc78326de1f08719fbf1bb8c75cbcb5b36707843695c80b2ef5057a11e10",
+    "contentHash": "749bf9bc90524ba95676039e153ae2f99fabc012828362c8397147d2455fcb47",
     "indexerId": "spec-spine",
     "indexerVersion": "0.3.0",
     "repoRoot": "."
@@ -1610,7 +1610,7 @@
           }
         ],
         "specId": "015-establishes-wrapper-na-alias",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -1655,7 +1655,7 @@
           }
         ],
         "specId": "016-short-id-resolution",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -1785,7 +1785,7 @@
           }
         ],
         "specId": "017-directory-crate-module-units",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -1899,7 +1899,7 @@
           }
         ],
         "specId": "018-constrains-discriminator-optional-unit",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -2149,7 +2149,7 @@
           }
         ],
         "specId": "019-structured-partial-supersedes",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -2224,6 +2224,35 @@
           }
         ],
         "specId": "021-release-supply-chain-artifacts",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "004-codebase-index",
+          "005-coupling-gate"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-core/src/sections.rs",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/sections.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/sections.rs"
+            }
+          }
+        ],
+        "specId": "022-keypath-section-anchors",
         "specStatus": "approved"
       }
     ],

@@ -1139,6 +1139,7 @@ dependencies = [
  "spec-spine-types",
  "tempfile",
  "toml",
+ "toml_edit",
  "tree-sitter",
  "tree-sitter-rust",
  "tree-sitter-typescript",

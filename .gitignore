@@ -34,3 +34,9 @@ __pycache__/
 .env
 
 .idea/
+
+# Agent tooling (.claude/) is committed: agents/, rules/, skills/ are the
+# curated cross-agent setup CLAUDE.md and AGENTS.md reference. But per-agent
+# learned memory is local, session-generated state (like the user's own memory
+# dir, which lives outside the repo), so it is not version-controlled.
+.claude/agent-memory/
