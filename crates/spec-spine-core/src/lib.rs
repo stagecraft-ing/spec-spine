@@ -12,6 +12,7 @@
 //! [`lint_json`], [`couple_json`], [`scaffold_init_json`], …) is the seam future
 //! FFI bindings wrap.
 
+pub mod attest;
 mod canonical_json;
 pub mod compile;
 pub mod couple;
@@ -28,8 +29,8 @@ pub mod scaffold;
 pub mod sections;
 pub mod symbols;
 
-use serde::Deserialize;
-use spec_spine_types::{Config, Error, Status, load_config};
+use serde::{Deserialize, Serialize};
+use spec_spine_types::{Config, CorpusAttestation, Error, Status, load_config};
 
 // Re-export the type substrate so callers depend on one crate.
 pub use spec_spine_types as types;
@@ -37,6 +38,9 @@ pub use spec_spine_types::{
     CodebaseIndex, Frontmatter, REGISTRY_SCHEMA_VERSION, Registry, SpecRecord, Unit, Violation,
 };
 
+pub use attest::{
+    AttestOptions, AttestOutcome, VerifyOutcome, attest, attestation_hash, verify_recompute,
+};
 pub use compile::{CompileOutcome, MAX_UNDECLARED_EXTRA_FRONTMATTER, compile};
 pub use couple::{
     CoupleReport, DEFAULT_BYPASS_PREFIXES, DiffFile, DiffInput, Waiver, couple, couple_with,
@@ -219,6 +223,66 @@ pub fn couple_json(request_json: &str) -> Result<String, Error> {
 pub fn scaffold_init_json(config_json: &str) -> Result<String, Error> {
     let config = config_from_json(config_json)?;
     to_json(&scaffold_init(&config)?)
+}
+
+/// Build a corpus attestation (spec 023). Returns
+/// `{ "attestation": <CorpusAttestation>, "attestationHash": "<hex>" }`. Pure:
+/// no key (signing is a CLI post-pass), no clock. `with_coupling` records the
+/// in-sync coupling verdict as well (FR-002).
+pub fn attest_json(
+    config_json: &str,
+    repo_root: &str,
+    with_coupling: bool,
+) -> Result<String, Error> {
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Response {
+        attestation: CorpusAttestation,
+        attestation_hash: String,
+    }
+    let config = config_from_json(config_json)?;
+    let outcome = attest(
+        &config,
+        std::path::Path::new(repo_root),
+        AttestOptions { with_coupling },
+    )?;
+    to_json(&Response {
+        attestation: outcome.attestation,
+        attestation_hash: outcome.attestation_hash,
+    })
+}
+
+/// Verify an attestation by recompute (spec 023 FR-004 `--recompute`). Request:
+/// `{ "config"?: Config, "repoRoot": string, "attestation": <CorpusAttestation> }`.
+/// Returns `{ "outcome": "match" }`, `{ "outcome": "versionMismatch", "expected",
+/// "actual" }`, or `{ "outcome": "contentMismatch", "differences": [...] }`. This
+/// mode needs no key and no signature: any third party can run it.
+pub fn verify_attestation_json(request_json: &str) -> Result<String, Error> {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase", deny_unknown_fields)]
+    struct Request {
+        #[serde(default)]
+        config: Config,
+        repo_root: String,
+        attestation: CorpusAttestation,
+    }
+    let request: Request = serde_json::from_str(request_json)
+        .map_err(|e| Error::Parse(format!("invalid verify-attestation request: {e}")))?;
+    let outcome = verify_recompute(
+        &request.config,
+        std::path::Path::new(&request.repo_root),
+        &request.attestation,
+    )?;
+    let value = match outcome {
+        VerifyOutcome::Match => serde_json::json!({ "outcome": "match" }),
+        VerifyOutcome::VersionMismatch { expected, actual } => {
+            serde_json::json!({ "outcome": "versionMismatch", "expected": expected, "actual": actual })
+        }
+        VerifyOutcome::ContentMismatch { differences } => {
+            serde_json::json!({ "outcome": "contentMismatch", "differences": differences })
+        }
+    };
+    Ok(value.to_string())
 }
 
 // --- facade helpers ---

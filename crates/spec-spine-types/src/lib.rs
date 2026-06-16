@@ -19,6 +19,7 @@
 //! - [`version`]: schema-version constants.
 //! - [`error`]: the [`Error`] enum and its exit-code contract.
 
+pub mod attest;
 pub mod codebase;
 pub mod config;
 pub mod edges;
@@ -31,6 +32,10 @@ pub mod version;
 
 // --- curated public prelude (the names callers reach for most) ---
 
+pub use attest::{
+    ATTESTATION_SCHEMA_VERSION, CompileVerdict, CorpusAttestation, CoupleVerdict, LedgerSeal,
+    LintVerdict, ToolStamp, Verdicts,
+};
 pub use codebase::{
     CodebaseIndex, Diagnostic, Diagnostics, ImplementingPath, IndexBuild, LineSpan, PackageKind,
     PackageRecord, ResolvedLocation, ResolvedUnit, SourceField, TraceMapping, TraceSource,
