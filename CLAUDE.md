@@ -104,7 +104,7 @@ emission, expect that gate to be the real test.
 ## Self-governance (dogfood): why `.derived/` is committed
 
 This repo runs its own gates against its own corpus in CI (`.github/workflows/ci.yml`
-`dogfood` job). Consequences:
+`self_governance` job). Consequences:
 
 - `.derived/spec-registry/registry.json` and `.derived/codebase-index/index.json`
   are **committed** (only `build-meta.json` is gitignored). After any change that

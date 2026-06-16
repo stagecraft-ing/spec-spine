@@ -2,7 +2,7 @@
   "build": {
     "compilerId": "spec-spine",
     "compilerVersion": "0.4.0",
-    "contentHash": "151b3ffd22070b1ccada01fb35929ceede25c87a42e0f2cc594bf9c861b959ee",
+    "contentHash": "773dfd68d2f4f6909f16fe600ce024e5379e308e6a57bf914f10e50f022c63f3",
     "inputRoot": "."
   },
   "specVersion": "0.3.0",

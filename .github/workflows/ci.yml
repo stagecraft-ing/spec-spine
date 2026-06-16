@@ -1,7 +1,7 @@
 name: CI
 
-# Build + test + lint, then dogfood: run spec-spine's OWN governance gates against
-# its OWN corpus. A spec-spine that is not itself spec-governed is hypocritical.
+# Build + test + lint, then self-governance: run spec-spine's OWN governance gates
+# against its OWN corpus. A spec-spine that is not itself spec-governed is hypocritical.
 #
 # Cross-triple tree-sitter symbol-span determinism is a Phase-5 release-matrix
 # concern (the resolver is pinned exact; see docs/design/00-architecture.md §10.1),
@@ -43,7 +43,7 @@ jobs:
       - name: Format
         run: cargo fmt --all --check
 
-  dogfood:
+  self_governance:
     name: self-governance (compile · index · lint · couple)
     runs-on: ubuntu-latest
     steps:
@@ -91,15 +91,15 @@ jobs:
   ci-gate:
     name: ci-gate
     if: ${{ always() }}
-    needs: [test, dogfood, determinism]
+    needs: [test, self_governance, determinism]
     runs-on: ubuntu-latest
     steps:
       - name: Require all CI jobs to have passed
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         run: |
           echo "A required CI job failed or was cancelled:"
-          echo "  test=${{ needs.test.result }}  dogfood=${{ needs.dogfood.result }}  determinism=${{ needs.determinism.result }}"
+          echo "  test=${{ needs.test.result }}  self_governance=${{ needs.self_governance.result }}  determinism=${{ needs.determinism.result }}"
           exit 1
       - name: All required CI jobs passed
         run: |
-          echo "ci-gate passed: test, dogfood, and determinism are all green"
+          echo "ci-gate passed: test, self_governance, and determinism are all green"
