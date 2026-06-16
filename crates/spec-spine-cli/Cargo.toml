@@ -28,6 +28,9 @@ clap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 time = { workspace = true }
+# Ed25519 detached seal over a corpus attestation (spec 023, FR-003): signing
+# and signature verification live here so the core stays key-free.
+ed25519-dalek = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3"

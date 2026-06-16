@@ -30,6 +30,9 @@ toml_edit = "0.22"
 sha2 = "0.10"
 clap = { version = "4", features = ["derive"] }
 time = { version = "0.3", features = ["formatting"] }
+# Detached Ed25519 seal over a corpus attestation (spec 023). CLI-only: the pure
+# core and the type substrate stay crypto-free and key-free.
+ed25519-dalek = "2"
 # Internal crates (path + version so the published surface is not path-only).
 spec-spine-types = { version = "0.4.0", path = "crates/spec-spine-types" }
 spec-spine-core = { version = "0.4.0", path = "crates/spec-spine-core" }

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "f2619f3461d0c1bdf8435155bb4dae4bf1d92647afd7f0bc8831d339f06afa2c",
+    "contentHash": "5875c27106572d9703b092482847c9a13e08c4d744ab81aa43d9c7b084a38863",
     "indexerId": "spec-spine",
     "indexerVersion": "0.4.0",
     "repoRoot": "."
@@ -2254,6 +2254,207 @@
         ],
         "specId": "022-keypath-section-anchors",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "001-compile-registry",
+          "003-conformance-lint",
+          "004-codebase-index",
+          "005-coupling-gate"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/spec-spine-cli/Cargo.toml",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-cli/src/cmd_attest.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-cli/src/main.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-cli/src/seal.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-cli/src/verify_attestation.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/attest.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/src/lib.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-core/tests/attest.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/attest.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "crates/spec-spine-types/src/lib.rs",
+            "source": "spec-edge"
+          },
+          {
+            "path": "docs/design/00-architecture.md",
+            "source": "spec-edge"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/cmd_attest.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/cmd_attest.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/seal.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/seal.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/verify_attestation.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/verify_attestation.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/attest.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/attest.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/tests/attest.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/tests/attest.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/attest.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/attest.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/Cargo.toml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/Cargo.toml"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-cli/src/main.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-cli/src/main.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-core/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-core/src/lib.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "crates/spec-spine-types/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/spec-spine-types/src/lib.rs"
+            }
+          },
+          {
+            "locations": [
+              {
+                "file": "docs/design/00-architecture.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/design/00-architecture.md"
+            }
+          }
+        ],
+        "specId": "023-ledger-seal",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [],

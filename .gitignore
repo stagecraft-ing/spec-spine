@@ -25,6 +25,9 @@ __pycache__/
 # The one exception: build-meta.json carries a wall-clock `builtAt` (the sole
 # non-deterministic artifact), so it would churn on every compile; ignore it.
 .derived/**/build-meta.json
+# The ledger-seal attestation (spec 023) is an on-demand artifact (and the seal
+# carries a wall-clock `signedAt`); it is not part of the committed dogfood set.
+.derived/attestation/
 
 # OS / editor cruft
 .DS_Store
