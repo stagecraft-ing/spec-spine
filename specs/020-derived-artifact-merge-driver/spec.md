@@ -116,7 +116,7 @@ it too. The build/test/clippy/fmt job, the self-governance
 `merge_group`.
 
 `ci.yml` ends in a single **`ci-gate`** aggregator job that `needs` every other
-CI job (test, dogfood, determinism) and fails if any of them failed or was
+CI job (test, self_governance, determinism) and fails if any of them failed or was
 cancelled (a skipped job counts as a pass). Branch protection and the merge
 queue require just this one check name, rather than an enumerated, drift-prone
 list of individual job names.
