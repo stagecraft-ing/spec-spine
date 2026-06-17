@@ -222,10 +222,10 @@
       "9. Acceptance criteria"
     ],
     "specPath": "specs/024-index-sharding/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "The two committed artifacts (the spec registry and the codebase index) were each emitted as one file behind one global content-hash line with id-sorted arrays. Because every spec or package PR rewrites that one hash line, two PRs touching different units collide textually, and GitHub's server-side merge (the web button and the merge queue's speculative build) does not run the spec-020 merge driver, so the conflict surfaces there and the merge queue ejects sibling PRs. This spec shards both artifacts by authority unit: per-spec registry shards under spec-registry/by-spec/<id>.json, per-spec traceability shards under codebase-index/by-spec/<id>.json, and per-package inventory shards under codebase-index/by-package/<slug>.json, each carrying its own input hash. The global view (validation, orphans, untraced code, the aggregate content hash) is computed ON READ from the shard set rather than committed, so there is no shared file to conflict on. Two PRs touching different specs then write disjoint files and never conflict, so the merge queue forms clean speculative stacks and auto-merge stops ejecting in-flight PRs. Staleness becomes per-shard (sharper than the broad hash), the committed shards stay present-on-clone, and a MAJOR schema bump (registry + index -> 1.0.0) marks the new on-disk shape. This generalizes spec 012 (index hash slices) from scoped staleness CHECKING to per-unit STORAGE, and it removes the textual-conflict cause spec 020's merge driver only papers over locally.\n",
     "title": "Per-unit shard storage (conflict-free committed registry + index)"
   },
-  "shardHash": "f944e904e4ed272e52061a40eacf6e1628a8e65ebf9fafef7a95b31db06fcf2c",
+  "shardHash": "3ea1d022d7f3cff37f0cb602a8ca5b76157020e27b45388d964fad06ede11c28",
   "specVersion": "1.0.0"
 }
