@@ -1,0 +1,36 @@
+{
+  "record": {
+    "created": "2026-06-09",
+    "dependsOn": [
+      "001-compile-registry"
+    ],
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/lint.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-cli/src/cmd_lint.rs"
+      }
+    ],
+    "id": "003-conformance-lint",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "003: Corpus conformance lint",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 Severity gating",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/003-conformance-lint/spec.md",
+    "status": "approved",
+    "summary": "The conformance lint: corpus well-formedness checks beyond compile's structural validation, emitted as L-codes with error/warning/info tiers. Error-tier always fails; warning-tier fails under --fail-on-warn; info-tier under --fail-on-info. Establishes the lint engine and the `spec-spine lint` CLI subcommand.\n",
+    "title": "Corpus conformance lint"
+  },
+  "shardHash": "be02284a66e38f359de7ac79a51d03d21ed5a9f66eb6fbb933dd9d66129f3a26",
+  "specVersion": "1.0.0"
+}

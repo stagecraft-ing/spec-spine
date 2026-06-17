@@ -1,0 +1,104 @@
+{
+  "record": {
+    "created": "2026-06-11",
+    "dependsOn": [
+      "004-codebase-index"
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/index.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_index.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/config.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/codebase.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/version.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/schemas/codebase-index.schema.json"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/dtos.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/lib.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/tests/cli.rs"
+        }
+      }
+    ],
+    "id": "012-index-hash-slices",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "012: Named hash slices",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 Config",
+      "3.2 Emission",
+      "3.3 `index check --slice <name>`",
+      "3.4 Determinism",
+      "3.5 Tests (minimum)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/012-index-hash-slices/spec.md",
+    "status": "approved",
+    "summary": "Named sub-hashes of the index's input set: an adopter declares glob groups under `[index.slices]`, the indexer emits a per-slice content hash into `build.sliceHashes` (additive index-schema MINOR), and `spec-spine index check --slice <name>` gates on exactly that slice -- fresh (0), stale (2), config/IO error (3). Generalizes the narrow high-value staleness gate OAP runs over its agent-config files (settings/MCP JSON) without hardcoding any adopter's file list into the core.\n",
+    "title": "Index: named hash slices and `index check --slice <name>`"
+  },
+  "shardHash": "6f32352ebc96b9dc307fa10d466d416eb5885ea87e27e9b0e65944c1b8205f9c",
+  "specVersion": "1.0.0"
+}

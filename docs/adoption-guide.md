@@ -73,7 +73,7 @@ spec-spine init --force    # overwrite existing files
 Then compile the corpus and confirm it is well-formed:
 
 ```sh
-spec-spine compile          # → .derived/spec-registry/registry.json
+spec-spine compile          # → .derived/spec-registry/by-spec/ shards
 spec-spine lint             # corpus conformance
 spec-spine registry list    # see your specs
 ```
@@ -118,15 +118,18 @@ the template for the grammar.
 Build the code-as-source view and commit it:
 
 ```sh
-spec-spine index            # → .derived/codebase-index/index.json
+spec-spine index            # → .derived/codebase-index/{by-spec,by-package}/ shards
 git add .derived/           # committed so the staleness + coupling checks can compare
 ```
 
 > **Why commit `.derived/`?** Determinism makes the committed registry/index a
-> reliable baseline. The staleness check (`spec-spine index check`) recomputes the
-> content hash from current inputs and compares it to the committed artifact;
-> the coupling gate joins the committed registry + index against the PR diff.
-> `build-meta.json` (the sole wall-clock artifact) is the one file you `.gitignore`.
+> reliable baseline. Both artifacts are stored **sharded** (one file per
+> authority unit; spec 024), so two PRs touching different specs/packages write
+> disjoint files and never conflict. The staleness check (`spec-spine index
+> check`) recomputes each shard's hash (and the shard set) and compares it to the
+> committed shards; the coupling gate joins the committed registry + index
+> (assembled from shards) against the PR diff. `build-meta.json` (the sole
+> wall-clock artifact) is the one file you `.gitignore`.
 
 ---
 

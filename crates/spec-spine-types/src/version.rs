@@ -10,16 +10,24 @@
 //! `docs/schema-versioning.md`): MINOR = additive only; MAJOR = breaking, and
 //! loaders reject an unknown MAJOR. Under `0.x`, MINOR may break (SemVer `0.x`).
 
-/// `specVersion` emitted in `registry.json`.
+/// `specVersion` emitted in the registry, carried by each registry shard.
 /// `0.2.0`: declared extra-frontmatter values widen to arbitrary JSON (spec 013).
 /// `0.3.0`: structured/partial `supersedes` items (spec 019); full supersession
 /// stays a bare string, so a full-only corpus is byte-identical.
-pub const REGISTRY_SCHEMA_VERSION: &str = "0.3.0";
+/// `1.0.0`: **MAJOR** (spec 024). The committed registry is sharded per-spec
+/// under `by-spec/<id>.json`; the single `registry.json` is no longer emitted.
+/// The aggregate view (validation, content hash) is recomputed on read. Loaders
+/// reject an unknown MAJOR, so a 0.x reader cannot misread a 1.x shard tree.
+pub const REGISTRY_SCHEMA_VERSION: &str = "1.0.0";
 
-/// `schemaVersion` emitted in `index.json`.
+/// `schemaVersion` emitted in the codebase index, carried by each index shard.
 /// `0.2.0`: additive `build.sliceHashes` (spec 012).
 /// `0.3.0`: additive `directory`/`crate`/`module` resolved-unit kinds (spec 017).
-pub const INDEX_SCHEMA_VERSION: &str = "0.3.0";
+/// `1.0.0`: **MAJOR** (spec 024). The committed index is sharded per-spec under
+/// `by-spec/<id>.json` and per-package under `by-package/<slug>.json`; the single
+/// `index.json` is no longer emitted. The aggregate view (orphans, untraced code,
+/// content hash) is recomputed on read; staleness is per-shard.
+pub const INDEX_SCHEMA_VERSION: &str = "1.0.0";
 
 /// `schemaVersion` emitted in `build-meta.json` (the non-deterministic artifact).
 pub const BUILD_META_SCHEMA_VERSION: &str = "0.1.0";

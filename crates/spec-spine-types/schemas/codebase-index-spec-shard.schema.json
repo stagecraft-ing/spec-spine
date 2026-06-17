@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spec-spine.dev/schemas/codebase-index-spec-shard.schema.json",
+  "title": "spec-spine codebase index, per-spec traceability shard (spec 024)",
+  "description": "One file per spec under <derived>/codebase-index/by-spec/<id>.json. The deterministic, conflict-free committed form of one spec's slice of the index. The aggregate index (orphans, untraced code, content hash) is recomputed on read from the shard set and is not committed.",
+  "type": "object",
+  "required": ["schemaVersion", "shardHash", "mapping"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "shardHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "mapping": { "$ref": "#/$defs/traceMapping" },
+    "diagnostics": {
+      "type": "object",
+      "required": ["warnings", "errors"],
+      "additionalProperties": false,
+      "properties": {
+        "warnings": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } },
+        "errors": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }
+      }
+    }
+  },
+  "$defs": {
+    "traceMapping": {
+      "type": "object",
+      "required": ["specId", "implementingPaths"],
+      "properties": {
+        "specId": { "type": "string" },
+        "implementingPaths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "source"],
+            "properties": {
+              "path": { "type": "string" },
+              "source": {
+                "enum": ["spec-edge", "manifest-metadata", "comment-header", "multiple"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string", "pattern": "^I-[0-9]{3}$" },
+        "message": { "type": "string", "minLength": 1 },
+        "path": { "type": "string" }
+      }
+    }
+  }
+}

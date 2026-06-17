@@ -1,0 +1,34 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "001-compile-registry",
+      "004-codebase-index",
+      "005-coupling-gate"
+    ],
+    "implementingPaths": [
+      {
+        "path": ".githooks/",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": ".githooks/"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": ".githooks/"
+        }
+      }
+    ],
+    "specId": "020-derived-artifact-merge-driver",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.0.0",
+  "shardHash": "137375132c3d736bce6cc553bcc6ee22472dd3a8ae1a7826bb20d90157f0bd3b"
+}

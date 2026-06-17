@@ -1,0 +1,47 @@
+{
+  "record": {
+    "created": "2026-06-11",
+    "dependsOn": [
+      "001-compile-registry"
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/compile.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/compile.rs"
+        }
+      }
+    ],
+    "id": "016-short-id-resolution",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "016: resolve short spec ids on `depends_on` and `superseded_by`",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 Resolution policy",
+      "3.2 Scope: which references resolve",
+      "3.3 Ordering, determinism, and the canonical no-op",
+      "3.4 Tests (minimum)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/016-short-id-resolution/spec.md",
+    "status": "approved",
+    "summary": "Lets a `depends_on` or `superseded_by` reference name its target by the leading spec number alone (`109`) and have the compiler resolve it to the full id (`109-slug`) when exactly one spec matches that number, rewriting the reference before validation and emission. An exact id, an ambiguous number, or a number matching nothing is left unchanged, so V-008 (superseded_by must resolve) and V-010 (dangling depends_on) still fire on a genuinely broken reference. The resolution policy is the indexer's existing `resolve_id` (spec 004), applied at compile time so the registry and the index agree. Unblocks adopting a corpus that references specs by number (106 specs in the OAP dry-run) without a mass frontmatter migration; a no-op on any corpus that already uses full ids (such as this repo's own).\n",
+    "title": "Compile: resolve short spec ids on `depends_on` and `superseded_by`"
+  },
+  "shardHash": "8afee33f14bdd0f970e5d52d642260afb7e15e97cdf1229da98d406d57cdf6ad",
+  "specVersion": "1.0.0"
+}

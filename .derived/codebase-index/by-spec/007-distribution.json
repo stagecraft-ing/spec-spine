@@ -1,0 +1,107 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "001-compile-registry"
+    ],
+    "implementingPaths": [
+      {
+        "path": ".github/workflows/release.yml",
+        "source": "spec-edge"
+      },
+      {
+        "path": "docs/releasing.md",
+        "source": "spec-edge"
+      },
+      {
+        "path": "install.sh",
+        "source": "spec-edge"
+      },
+      {
+        "path": "npm",
+        "source": "manifest-metadata"
+      },
+      {
+        "path": "npm/",
+        "source": "spec-edge"
+      },
+      {
+        "path": "npm/bin/spec-spine.js",
+        "source": "comment-header"
+      },
+      {
+        "path": "npm/lib/platform.js",
+        "source": "comment-header"
+      },
+      {
+        "path": "npm/scripts/generate-platform-packages.js",
+        "source": "comment-header"
+      },
+      {
+        "path": "npm/scripts/smoke-test.sh",
+        "source": "comment-header"
+      },
+      {
+        "path": "npm/test/platform.test.js",
+        "source": "comment-header"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": ".github/workflows/release.yml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": ".github/workflows/release.yml"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "docs/releasing.md"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "docs/releasing.md"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "install.sh"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "install.sh"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "npm/"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "npm/"
+        }
+      }
+    ],
+    "specId": "007-distribution",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.0.0",
+  "shardHash": "2afb2bc68c8cac6fa5e227fd8d7edb33788dffa05b6cdc49ced50053430ec28b"
+}

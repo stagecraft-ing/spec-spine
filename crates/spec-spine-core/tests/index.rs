@@ -5,13 +5,26 @@
 use std::fs;
 use std::path::Path;
 
-use spec_spine_core::{Freshness, authorities, check_index_freshness, index};
+use spec_spine_core::shard::{self, BY_PACKAGE_DIR, BY_SPEC_DIR};
+use spec_spine_core::{
+    Freshness, IndexOutcome, authorities, check_index_freshness, index, index_dir,
+    index_shard_files,
+};
 use spec_spine_types::{Config, INDEX_SCHEMA, LineSpan, PackageKind, Unit};
 
 fn write(root: &Path, rel: &str, content: &str) {
     let p = root.join(rel);
     fs::create_dir_all(p.parent().unwrap()).unwrap();
     fs::write(p, content).unwrap();
+}
+
+/// Write an index outcome to disk as the CLI's `spec-spine index` does: the
+/// per-spec/per-package shard tree (spec 024), not a monolithic `index.json`.
+fn emit_index_shards(cfg: &Config, repo: &Path, outcome: &IndexOutcome) {
+    let dir = index_dir(cfg, repo);
+    let (by_spec, by_package) = index_shard_files(&outcome.shards).unwrap();
+    shard::sync_dir(&dir.join(BY_SPEC_DIR), &by_spec).unwrap();
+    shard::sync_dir(&dir.join(BY_PACKAGE_DIR), &by_package).unwrap();
 }
 
 fn spec(id: &str, body: &str) -> String {
@@ -206,14 +219,38 @@ fn conforms_to_embedded_schema() {
 }
 
 #[test]
+fn emitted_index_shards_conform_to_embedded_schema() {
+    use spec_spine_types::{INDEX_PACKAGE_SHARD_SCHEMA, INDEX_SPEC_SHARD_SCHEMA};
+    let fx = mixed_fixture();
+    let outcome = index(&Config::default(), fx.path()).unwrap();
+    let (by_spec, by_package) = index_shard_files(&outcome.shards).unwrap();
+    assert!(!by_spec.is_empty() && !by_package.is_empty());
+
+    let check = |schema_src: &str, files: &[(String, String)]| {
+        let schema: serde_json::Value = serde_json::from_str(schema_src).unwrap();
+        let validator = jsonschema::validator_for(&schema).unwrap();
+        for (name, content) in files {
+            let instance: serde_json::Value = serde_json::from_str(content).unwrap();
+            if !validator.is_valid(&instance) {
+                let errs: Vec<String> = validator
+                    .iter_errors(&instance)
+                    .map(|e| e.to_string())
+                    .collect();
+                panic!("index shard {name} does not conform:\n{}", errs.join("\n"));
+            }
+        }
+    };
+    check(INDEX_SPEC_SHARD_SCHEMA, &by_spec);
+    check(INDEX_PACKAGE_SHARD_SCHEMA, &by_package);
+}
+
+#[test]
 fn staleness_detects_input_change() {
     let fx = mixed_fixture();
     let cfg = Config::default();
     // Write the index to disk as the CLI would.
     let outcome = index(&cfg, fx.path()).unwrap();
-    let out_dir = fx.path().join(".derived/codebase-index");
-    fs::create_dir_all(&out_dir).unwrap();
-    fs::write(out_dir.join("index.json"), &outcome.json).unwrap();
+    emit_index_shards(&cfg, fx.path(), &outcome);
 
     assert_eq!(
         check_index_freshness(&cfg, fx.path()).unwrap(),
@@ -241,9 +278,7 @@ fn staleness_detects_symbol_source_line_shift() {
     let fx = mixed_fixture();
     let cfg = Config::default();
     let outcome = index(&cfg, fx.path()).unwrap();
-    let out_dir = fx.path().join(".derived/codebase-index");
-    fs::create_dir_all(&out_dir).unwrap();
-    fs::write(out_dir.join("index.json"), &outcome.json).unwrap();
+    emit_index_shards(&cfg, fx.path(), &outcome);
 
     // Sanity: the committed index resolved a symbol span into rs-thing/src/lib.rs.
     assert_eq!(

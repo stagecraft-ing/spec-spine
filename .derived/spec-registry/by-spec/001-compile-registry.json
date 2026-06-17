@@ -1,0 +1,60 @@
+{
+  "record": {
+    "created": "2026-06-08",
+    "dependsOn": [
+      "000-spec-spine-bootstrap"
+    ],
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/lib.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/compile.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/hash.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/canonical_json.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/markdown.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-cli/src/main.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-cli/src/cmd_compile.rs"
+      }
+    ],
+    "id": "001-compile-registry",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "001: Compile the spec corpus into a deterministic registry",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 Discovery and parsing",
+      "3.2 Validation (V-codes)",
+      "3.3 The registry record",
+      "3.4 Determinism",
+      "3.5 CLI",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/001-compile-registry/spec.md",
+    "status": "approved",
+    "summary": "The compile capability: read every specs/NNN-slug/spec.md, validate its frontmatter, and emit a deterministic spec-as-source registry.json plus a non-deterministic build-meta.json. Establishes the spec-spine-core engine scaffolding (content hashing, canonical JSON, markdown heading extraction) and the `spec-spine compile` CLI subcommand.\n",
+    "title": "Compile the spec corpus into a deterministic registry"
+  },
+  "shardHash": "58803b08fdf779e5843f33e636689e1f29f677e49494300adc25d1cb42fef5fb",
+  "specVersion": "1.0.0"
+}

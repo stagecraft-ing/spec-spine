@@ -1,0 +1,45 @@
+{
+  "record": {
+    "created": "2026-06-08",
+    "dependsOn": [
+      "001-compile-registry"
+    ],
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/query.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-cli/src/cmd_registry.rs"
+      }
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/lib.rs"
+        }
+      }
+    ],
+    "id": "002-registry-query",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "002: Typed read-only query over the registry",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/002-registry-query/spec.md",
+    "status": "approved",
+    "summary": "The query capability: typed, read-only access over a loaded registry: list, show, status-report, and relationships; plus load_registry (which rejects an unknown MAJOR schema version). Establishes the query module and the `spec-spine registry` CLI subcommands; extends 001's public surface additively.\n",
+    "title": "Typed read-only query over the registry"
+  },
+  "shardHash": "e075b2ad750b46d7fa9b2a29b6a1b5583d32c61861e3e874c47a6568aa8ce0de",
+  "specVersion": "1.0.0"
+}

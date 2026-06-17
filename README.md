@@ -13,9 +13,14 @@ other specs and the authority units it owns (**file / section / symbol /
 directory / crate / module**). Two
 deterministic views are emitted and joined by a coupling gate:
 
-- **`registry.json`**: the *spec-as-source* view (the compiler's output).
-- **`index.json`**: the *code-as-source* view (the indexer's output), with a
-  content-hash staleness mechanism.
+- **the registry**: the *spec-as-source* view (the compiler's output).
+- **the index**: the *code-as-source* view (the indexer's output), with a
+  per-shard staleness mechanism.
+
+Both are committed as **per-unit shard trees** (`by-spec/<id>.json`,
+`by-package/<slug>.json`; spec 024), so two PRs touching different specs or
+packages write disjoint files and never conflict on a shared hash line. The
+aggregate view is recomputed from the shards on read.
 
 Every artifact-producing function is a **pure function of `(config, file
 contents)`**: same inputs, byte-identical output, on every platform.

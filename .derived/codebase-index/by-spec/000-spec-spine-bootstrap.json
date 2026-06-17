@@ -1,0 +1,14 @@
+{
+  "mapping": {
+    "implementingPaths": [
+      {
+        "path": "crates/spec-spine-types",
+        "source": "manifest-metadata"
+      }
+    ],
+    "specId": "000-spec-spine-bootstrap",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.0.0",
+  "shardHash": "1a95c8e30ba019b3688ca5a232ca32a5cb1b9bb2e44c1a997b04de05f3b48711"
+}

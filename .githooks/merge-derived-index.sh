@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 # Spec: 020-derived-artifact-merge-driver
 #
-# Git merge driver `spec-spine-derived-regen` for the two committed derived
-# artifacts:
-#   .derived/spec-registry/registry.json   (compiler output)
-#   .derived/codebase-index/index.json      (indexer output)
+# Git merge driver `spec-spine-derived-regen` for the committed derived
+# artifacts, which since spec 024 are sharded per authority unit:
+#   .derived/spec-registry/by-spec/<id>.json        (compiler output)
+#   .derived/codebase-index/by-spec/<id>.json        (indexer output)
+#   .derived/codebase-index/by-package/<slug>.json   (indexer output)
 #
-# Both carry a global content hash, so two branches that each regenerated them
-# conflict textually on the hash line. This driver resolves that conflict
-# deterministically: it regenerates BOTH artifacts from the merged working tree
-# and hands the fresh artifact named by %P back to git as the resolution, so a
-# rebase onto a merged PR no longer leaves a derived-artifact conflict to fix by
-# hand.
+# Sharding means two PRs that touch DIFFERENT specs/packages write disjoint
+# files and no longer conflict at all. This driver covers the residual RARE
+# same-shard conflict (two PRs editing the same spec/package): it regenerates
+# BOTH artifacts from the merged working tree and hands the fresh shard named by
+# %P back to git as the resolution, so a rebase onto a merged PR no longer leaves
+# a derived-artifact conflict to fix by hand.
 #
 # Enable in this clone (opt-in, one command):
 #   ./.githooks/enable-merge-driver.sh
@@ -24,9 +25,10 @@
 #   git config --unset merge.spec-spine-derived-regen.driver
 #   git config --unset merge.spec-spine-derived-regen.name
 #
-# Path assignment lives in committed .gitattributes:
-#   .derived/spec-registry/registry.json   merge=spec-spine-derived-regen
-#   .derived/codebase-index/index.json      merge=spec-spine-derived-regen
+# Path assignment lives in committed .gitattributes (the shard globs):
+#   .derived/spec-registry/by-spec/*.json    merge=spec-spine-derived-regen
+#   .derived/codebase-index/by-spec/*.json    merge=spec-spine-derived-regen
+#   .derived/codebase-index/by-package/*.json merge=spec-spine-derived-regen
 #
 # Git invokes:  <driver> %O %A %B %P
 #   $1 = %O  ancestor version  (unused: both artifacts are fully derived)

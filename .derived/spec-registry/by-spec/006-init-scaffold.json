@@ -1,0 +1,65 @@
+{
+  "record": {
+    "created": "2026-06-09",
+    "dependsOn": [
+      "001-compile-registry"
+    ],
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/scaffold.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-cli/src/cmd_init.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/tests/scaffold.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-cli/tests/init.rs"
+      }
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/lib.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/main.rs"
+        }
+      }
+    ],
+    "id": "006-init-scaffold",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "006: init: scaffold a new adopter",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 Files as data (core stays IO-light)",
+      "3.2 What is scaffolded",
+      "3.3 `--force`",
+      "3.4 Exit codes",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/006-init-scaffold/spec.md",
+    "status": "approved",
+    "summary": "The adoption UX: `spec-spine init` scaffolds a fresh repo so it can be governed with zero source edits to the library: a starter spec-spine.toml, a standards/spec/ constitution + contract + templates, a bootstrap specs/000-* spec.md, and the .claude/rules/ agent rule files. Core stays IO-light: scaffold_init returns the files as data (rel_path, contents, overwrite); the CLI writes them, with --force to overwrite existing files. Establishes the scaffold generator and the `spec-spine init` CLI subcommand.\n",
+    "title": "init: scaffold a new adopter"
+  },
+  "shardHash": "2a90e685c63337303451b94eed70100a33e049f30f9f180e3091bd7d213668ca",
+  "specVersion": "1.0.0"
+}

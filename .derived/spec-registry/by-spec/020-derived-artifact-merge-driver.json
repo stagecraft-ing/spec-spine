@@ -1,0 +1,36 @@
+{
+  "record": {
+    "created": "2026-06-13",
+    "dependsOn": [
+      "001-compile-registry",
+      "004-codebase-index",
+      "005-coupling-gate"
+    ],
+    "establishes": [
+      {
+        "kind": "file",
+        "path": ".githooks/"
+      }
+    ],
+    "id": "020-derived-artifact-merge-driver",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "020: Derived-artifact merge driver and merge-queue serialization",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 The merge driver",
+      "3.2 Registration (opt-in, per clone)",
+      "3.3 Merge queue and the `ci-gate` check",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/020-derived-artifact-merge-driver/spec.md",
+    "status": "approved",
+    "summary": "This repo commits two deterministic derived artifacts, registry.json and index.json, each carrying a global content hash. Two branches that both regenerate them conflict textually on the hash line, and rebasing onto a freshly merged PR forces a regenerate-and-recommit cycle. This spec adds an opt-in, per-clone git merge driver (spec-spine-derived-regen) that resolves such a conflict by regenerating both artifacts from the merged working tree and handing the fresh bytes back to git, plus a one-command registrar and the committed .gitattributes path assignments. It also turns on the GitHub merge queue (the merge_group event) for the build/test and determinism workflows so every queued PR is validated against the speculative merged tree; the coupling gate stays pull_request-only because it reads the PR-body waiver, which the merge_group event does not carry. The driver is a convenience over the conflict and is never a substitute for the index-staleness gate (spec 004), which remains the freshness source of truth.\n",
+    "title": "Derived-artifact merge driver and merge-queue serialization"
+  },
+  "shardHash": "f451c26d859ab652c9455b462c6667701c863533fa1e47b01f6a7e846c15c9fd",
+  "specVersion": "1.0.0"
+}

@@ -27,10 +27,12 @@ A markdown spec corpus becomes a typed, hash-verifiable authority ledger. Each
 `specs/NNN-slug/spec.md` declares, in YAML frontmatter, **typed edges** to other
 specs (`establishes`/`extends`/`refines`/`supersedes`/`amends`/`co_authority`/
 `constrains`/`references`) and the **authority units** it owns (file / section /
-symbol). A deterministic **compiler** emits the spec-as-source `registry.json`; a
-deterministic **indexer** emits the code-as-source `index.json` (with a
-content-hash staleness mechanism); a **coupling gate** joins the two views at PR
-time and refuses drift; a **lint** enforces corpus well-formedness; a **refusal
+symbol). A deterministic **compiler** emits the spec-as-source registry; a
+deterministic **indexer** emits the code-as-source index (with a per-shard
+staleness mechanism). Since spec 024 both are stored as per-unit shard trees
+(`by-spec/`, `by-package/`), not monolithic files. A **coupling gate** joins the
+two views (assembled from the shards) at PR time and refuses drift; a **lint**
+enforces corpus well-formedness; a **refusal
 rule** (agent-facing, shipped as a rules file) stops an agent from "resolving"
 drift by rewriting the contract. Everything is a pure function of
 `(config, file contents)` so the same inputs produce byte-identical output.
@@ -439,8 +441,8 @@ pub fn scaffold_init_json  (config_json: &str)                  -> Result<String
 ### 5.2 CLI: one multi-call `spec-spine` binary (recommended; no blocker found)
 
 ```
-spec-spine compile                                  # → .derived/spec-registry/registry.json (+ build-meta.json)
-spec-spine index   [check | render | orphans]       # check = staleness gate; default subcmd writes index.json
+spec-spine compile                                  # → .derived/spec-registry/by-spec/ shards (+ build-meta.json)
+spec-spine index   [check | render | orphans]       # check = per-shard staleness gate; default subcmd writes the index shard trees
 spec-spine registry list|show|status-report|relationships
 spec-spine lint    [--fail-on-warn] [--fail-on-info]
 spec-spine couple  [--base origin/main] [--head HEAD] [--pr-body FILE] [--paths-from FILE]
@@ -485,10 +487,16 @@ hash slices, 013 passthrough, 017 unit kinds, 019 structured supersedes).
 
 | Artifact | Field | Current value | Owner |
 |---|---|---|---|
-| `registry.json` | `specVersion` | `0.3.0` | library |
-| `index.json` | `schemaVersion` | `0.3.0` | library |
+| registry shards (`spec-registry/by-spec/<id>.json`) | `specVersion` | `1.0.0` | library |
+| index shards (`codebase-index/by-spec/<id>.json`, `by-package/<slug>.json`) | `schemaVersion` | `1.0.0` | library |
 | `spec-spine.toml` | `config_version` (optional) | `0.1.0` | library |
 | `build-meta.json` | `schemaVersion` | `0.1.0` | library (non-deterministic; excluded from golden) |
+
+Since spec 024 both artifacts are sharded (one committed file per authority unit;
+the monolithic `registry.json` / `index.json` is no longer emitted). The `1.0.0`
+MAJOR marks that on-disk shape; a 0.x reader rejects a 1.x shard. The aggregate
+view (validation, orphans, untraced code, content hash) is recomputed from the
+shard set on read.
 
 **Policy (documented in `docs/schema-versioning.md`):**
 

@@ -12,13 +12,15 @@ use std::path::{Path, PathBuf};
 
 use spec_spine_types::{
     CodebaseIndex, Diagnostic, Diagnostics, Error, INDEX_SCHEMA_VERSION, ImplementingPath,
-    IndexBuild, ResolvedLocation, ResolvedUnit, SourceField, TraceMapping, TraceSource,
-    Traceability, Unit, parse_frontmatter_with,
+    IndexBuild, IndexPackageShard, IndexSpecShard, PackageKind, PackageRecord, ResolvedLocation,
+    ResolvedUnit, SourceField, TraceMapping, TraceSource, Traceability, Unit,
+    parse_frontmatter_with,
 };
 
 use crate::manifest;
 use crate::pathutil::{is_excluded, rel_posix};
 use crate::sections;
+use crate::shard;
 use crate::symbols::{self, ModuleIndex, SymbolIndex};
 use crate::{canonical_json, hash};
 
@@ -28,9 +30,22 @@ const BLOCKING_CODES: &[&str] = &[
 ];
 
 /// The result of an index run.
+///
+/// `index` + `json` are the aggregate in-memory view (the universal currency:
+/// consumed by `attest`, the JSON facade, and the conformance test). `shards` is
+/// the per-unit committed projection the CLI writes to disk (spec 024); it is a
+/// pure reshaping of the same data, so the two never disagree.
 pub struct IndexOutcome {
     pub index: CodebaseIndex,
     pub json: String,
+    pub shards: IndexShardSet,
+}
+
+/// The committed-form projection of an index: one shard per spec and one per
+/// package (spec 024). Sorted (specs by id, packages by path) for determinism.
+pub struct IndexShardSet {
+    pub spec_shards: Vec<IndexSpecShard>,
+    pub package_shards: Vec<IndexPackageShard>,
 }
 
 /// Index freshness relative to current inputs.
@@ -97,11 +112,23 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
         ModuleIndex::default()
     };
 
-    // --- traceability mappings ---
-    let mut mappings: Vec<TraceMapping> = Vec::new();
+    // The scalar folded into every shard hash so a config / extra-input change
+    // restamps all shards (spec 024); two PRs touching only disjoint specs never
+    // touch it, so the conflict-free property holds.
+    let global_inputs = shard::global_inputs_hash(cfg, repo_root);
+
+    // --- traceability mappings (per spec, with per-spec resolver diagnostics) ---
+    // Resolver diagnostics are scoped to the spec they concern (they name its
+    // id), so each spec's shard carries its own; the aggregate `diagnostics` is
+    // their union plus the manifest-discovery diagnostics. Manifest diagnostics
+    // (I-001/I-002) have no owning spec and are an emit-time error state (a
+    // malformed manifest the operator fixes before committing), so they are
+    // surfaced here but not persisted in any shard.
+    let mut spec_entries: Vec<(TraceMapping, Diagnostics)> = Vec::new();
     for spec in &specs {
         let mut paths: BTreeMap<String, BTreeSet<TraceSource>> = BTreeMap::new();
         let mut resolved_units: Vec<ResolvedUnit> = Vec::new();
+        let mut spec_diags = Diagnostics::default();
 
         // Source 3: spec edges (units).
         for (field, unit, ownership) in &spec.units {
@@ -112,7 +139,7 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
                 &symbol_index,
                 &module_index,
                 &spec.id,
-                &mut diagnostics,
+                &mut spec_diags,
             );
             for loc in &locations {
                 paths
@@ -161,7 +188,7 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
                 .cmp(&(b.source_field as u8, canonical_unit(&b.unit)))
         });
 
-        mappings.push(TraceMapping {
+        let mapping = TraceMapping {
             spec_id: spec.id.clone(),
             spec_status: Some(spec.status.clone()),
             depends_on: spec.depends_on.clone(),
@@ -173,9 +200,15 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
             amendment_record: None,
             implementing_paths,
             resolved_units,
-        });
+        };
+        diagnostics
+            .warnings
+            .extend(spec_diags.warnings.iter().cloned());
+        diagnostics.errors.extend(spec_diags.errors.iter().cloned());
+        spec_entries.push((mapping, spec_diags));
     }
-    mappings.sort_by(|a, b| a.spec_id.cmp(&b.spec_id));
+    spec_entries.sort_by(|a, b| a.0.spec_id.cmp(&b.0.spec_id));
+    let mappings: Vec<TraceMapping> = spec_entries.iter().map(|(m, _)| m.clone()).collect();
 
     // orphaned specs: claim nothing that resolves anywhere.
     let orphaned_specs: Vec<String> = mappings
@@ -202,15 +235,35 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
         .collect();
     untraced_code.sort();
 
-    // --- content hash over path-sorted manifests + specs + extra inputs +
-    // every source file backing a resolved symbol/section span (spec 004 §3.5) ---
-    let span_files = resolved_span_files(&mappings);
-    let content_hash = hash::content_hash(collect_hash_inputs(
-        cfg,
-        repo_root,
-        &discovered.manifest_paths,
-        &span_files,
-    )?);
+    // --- shard projection + aggregate content hash (spec 024) ---
+    // Each shard self-describes its input hash; the aggregate `build.contentHash`
+    // is the fold of those hashes (recomputable on read from the shard set, never
+    // committed to a shared file).
+    let mut keyed: Vec<(String, String)> = Vec::new();
+    let mut spec_shards: Vec<IndexSpecShard> = Vec::new();
+    for (mapping, diags) in &spec_entries {
+        let spec_md = spec_md_rel(&cfg.layout.specs_dir, &mapping.spec_id);
+        let span_files = span_files_for_mapping(mapping);
+        let shard_hash = spec_shard_hash(repo_root, &spec_md, &span_files, &global_inputs);
+        keyed.push((format!("spec:{}", mapping.spec_id), shard_hash.clone()));
+        spec_shards.push(IndexSpecShard {
+            schema_version: INDEX_SCHEMA_VERSION.to_string(),
+            shard_hash,
+            mapping: mapping.clone(),
+            diagnostics: diags.clone(),
+        });
+    }
+    let mut package_shards: Vec<IndexPackageShard> = Vec::new();
+    for pkg in &discovered.packages {
+        let shard_hash = package_shard_hash(repo_root, pkg, cfg, &global_inputs);
+        keyed.push((format!("package:{}", pkg.path), shard_hash.clone()));
+        package_shards.push(IndexPackageShard {
+            schema_version: INDEX_SCHEMA_VERSION.to_string(),
+            shard_hash,
+            package: pkg.clone(),
+        });
+    }
+    let content_hash = shard::aggregate_content_hash(&keyed);
 
     let codebase_index = CodebaseIndex {
         schema_version: INDEX_SCHEMA_VERSION.to_string(),
@@ -233,46 +286,99 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
     Ok(IndexOutcome {
         index: codebase_index,
         json,
+        shards: IndexShardSet {
+            spec_shards,
+            package_shards,
+        },
     })
 }
 
-/// Recompute the content hash and compare it to the committed `index.json`.
+/// Per-shard staleness (spec 024 FR-003): each committed shard is verified
+/// against its current inputs and the shard *set* is compared to the current
+/// authority set. A shard is stale when its recomputed hash differs, when it
+/// carries a blocking resolver diagnostic, or when a spec/package was added or
+/// removed (a set-membership change). Reports the stale shard ids; replaces the
+/// pre-shard single global-hash comparison. The recompute reads each committed
+/// shard's own span-backing files (from its `resolvedUnits`), so it stays cheap
+/// (no re-resolution) while still catching a span-shifting edit (spec 004 §3.5).
 pub fn check_index_freshness(
     cfg: &spec_spine_types::Config,
     repo_root: &Path,
 ) -> Result<Freshness, Error> {
-    let committed = read_committed_index(cfg, repo_root)?;
+    let (spec_shards, package_shards) = read_committed_index_shards(cfg, repo_root)?;
+    let global_inputs = shard::global_inputs_hash(cfg, repo_root);
 
-    // Blocking resolver diagnostics also fail freshness.
-    if committed
-        .diagnostics
-        .errors
+    let mut stale: Vec<String> = Vec::new();
+
+    // Set membership: a spec added or removed (its dir gained/lost spec.md), or a
+    // package added/removed (manifest discovery), restamps the shard set. Caught
+    // here because a per-shard hash alone cannot see a sibling that appeared.
+    let committed_spec_ids: BTreeSet<String> = spec_shards
         .iter()
-        .any(|d| BLOCKING_CODES.contains(&d.code.as_str()))
-    {
-        return Ok(Freshness::Stale {
-            expected: "no blocking diagnostics".to_string(),
-            actual: "blocking resolver diagnostics present".to_string(),
-        });
+        .map(|s| s.mapping.spec_id.clone())
+        .collect();
+    let current_spec_ids: BTreeSet<String> = discover_specs(cfg, repo_root)?
+        .into_iter()
+        .map(|s| s.id)
+        .collect();
+    for added in current_spec_ids.difference(&committed_spec_ids) {
+        stale.push(format!("by-spec/{added} (new spec)"));
+    }
+    for removed in committed_spec_ids.difference(&current_spec_ids) {
+        stale.push(format!("by-spec/{removed} (removed spec)"));
     }
 
     let discovered = manifest::discover(cfg, repo_root);
-    // The span-backing source set is read from the committed index's own
-    // resolvedUnits, so editing such a file (shifting a committed span) changes
-    // the recomputed hash and reports Stale (spec 004 §3.5).
-    let span_files = resolved_span_files(&committed.traceability.mappings);
-    let actual = hash::content_hash(collect_hash_inputs(
-        cfg,
-        repo_root,
-        &discovered.manifest_paths,
-        &span_files,
-    )?);
-    if actual == committed.build.content_hash {
+    let committed_pkgs: BTreeSet<String> = package_shards
+        .iter()
+        .map(|s| s.package.path.clone())
+        .collect();
+    let current_pkgs: BTreeSet<String> =
+        discovered.packages.iter().map(|p| p.path.clone()).collect();
+    for added in current_pkgs.difference(&committed_pkgs) {
+        stale.push(format!("by-package (new package at {added})"));
+    }
+    for removed in committed_pkgs.difference(&current_pkgs) {
+        stale.push(format!("by-package (removed package at {removed})"));
+    }
+
+    // Per-shard hash + blocking-diagnostic checks.
+    for sh in &spec_shards {
+        let id = &sh.mapping.spec_id;
+        if sh
+            .diagnostics
+            .errors
+            .iter()
+            .any(|d| BLOCKING_CODES.contains(&d.code.as_str()))
+        {
+            stale.push(format!("by-spec/{id} (blocking diagnostics)"));
+            continue;
+        }
+        let spec_md = spec_md_rel(&cfg.layout.specs_dir, id);
+        let span_files = span_files_for_mapping(&sh.mapping);
+        let actual = spec_shard_hash(repo_root, &spec_md, &span_files, &global_inputs);
+        if actual != sh.shard_hash {
+            stale.push(format!("by-spec/{id}"));
+        }
+    }
+    for sh in &package_shards {
+        let actual = package_shard_hash(repo_root, &sh.package, cfg, &global_inputs);
+        if actual != sh.shard_hash {
+            stale.push(format!(
+                "by-package/{}",
+                shard::package_slug(&sh.package.name)
+            ));
+        }
+    }
+
+    if stale.is_empty() {
         Ok(Freshness::Fresh)
     } else {
+        stale.sort();
+        stale.dedup();
         Ok(Freshness::Stale {
-            expected: committed.build.content_hash,
-            actual,
+            expected: "all shards fresh".to_string(),
+            actual: format!("stale shard(s): {}", stale.join(", ")),
         })
     }
 }
@@ -293,9 +399,9 @@ pub fn check_slice_freshness(
             "unknown slice '{name}' (declare it under [index.slices] in spec-spine.toml)"
         )));
     };
-    let committed = read_committed_index(cfg, repo_root)?;
+    let committed = read_committed_slice_hashes(cfg, repo_root);
     let actual = slice_hash(repo_root, patterns);
-    match committed.build.slice_hashes.get(name) {
+    match committed.get(name) {
         Some(expected) if *expected == actual => Ok(Freshness::Fresh),
         Some(expected) => Ok(Freshness::Stale {
             expected: expected.clone(),
@@ -326,24 +432,174 @@ pub fn authorities(index: &CodebaseIndex, unit: &Unit) -> Vec<String> {
     owners.into_iter().collect()
 }
 
-// ===== helpers =====
+// ===== committed-shard IO + assembly (spec 024) =====
 
-/// Read and parse the committed `index.json`.
-fn read_committed_index(
+/// The committed codebase-index directory: `<derived>/codebase-index`.
+pub fn index_dir(cfg: &spec_spine_types::Config, repo_root: &Path) -> PathBuf {
+    repo_root
+        .join(&cfg.layout.derived_dir)
+        .join("codebase-index")
+}
+
+/// Serialize the index shards to canonical-JSON files, returned as
+/// `(by_spec, by_package)` lists of `(filename, content)`. Canonical (sorted
+/// keys, 2-space, trailing LF) so each shard is byte-identical across platforms.
+/// The CLI writes them under `<index_dir>/by-spec/` and `<index_dir>/by-package/`.
+pub fn index_shard_files(
+    shards: &IndexShardSet,
+) -> Result<(shard::ShardFiles, shard::ShardFiles), Error> {
+    let by_spec = shards
+        .spec_shards
+        .iter()
+        .map(|s| {
+            Ok((
+                format!("{}.json", s.mapping.spec_id),
+                canonical_json::to_string(s)?,
+            ))
+        })
+        .collect::<Result<Vec<_>, Error>>()?;
+    let by_package = shards
+        .package_shards
+        .iter()
+        .map(|s| {
+            Ok((
+                format!("{}.json", shard::package_slug(&s.package.name)),
+                canonical_json::to_string(s)?,
+            ))
+        })
+        .collect::<Result<Vec<_>, Error>>()?;
+    Ok((by_spec, by_package))
+}
+
+/// The per-slice sidecar (spec 012, relocated by spec 024): `slices.json`. The
+/// index slices live in their own small file (emitted only when `[index.slices]`
+/// is configured) rather than a global `index.json` build block, so a corpus
+/// with no slices commits no such file.
+pub fn slices_path(cfg: &spec_spine_types::Config, repo_root: &Path) -> PathBuf {
+    index_dir(cfg, repo_root).join("slices.json")
+}
+
+/// Read and parse the committed index shards. Each shard's MAJOR is gated at the
+/// read boundary. An unbuilt index (no shard dirs) yields empty vectors.
+fn read_committed_index_shards(
+    cfg: &spec_spine_types::Config,
+    repo_root: &Path,
+) -> Result<(Vec<IndexSpecShard>, Vec<IndexPackageShard>), Error> {
+    let dir = index_dir(cfg, repo_root);
+    if !dir.exists() {
+        return Err(Error::Io(format!(
+            "read {} (run `spec-spine index` first?): not found",
+            dir.display()
+        )));
+    }
+    let mut spec_shards = Vec::new();
+    for (name, bytes) in shard::read_shard_files(&dir.join(shard::BY_SPEC_DIR))? {
+        let sh: IndexSpecShard = serde_json::from_slice(&bytes)
+            .map_err(|e| Error::Parse(format!("invalid index shard {name}: {e}")))?;
+        shard::check_major("index", &sh.schema_version, INDEX_SCHEMA_VERSION)?;
+        spec_shards.push(sh);
+    }
+    let mut package_shards = Vec::new();
+    for (name, bytes) in shard::read_shard_files(&dir.join(shard::BY_PACKAGE_DIR))? {
+        let sh: IndexPackageShard = serde_json::from_slice(&bytes)
+            .map_err(|e| Error::Parse(format!("invalid index shard {name}: {e}")))?;
+        shard::check_major("index", &sh.schema_version, INDEX_SCHEMA_VERSION)?;
+        package_shards.push(sh);
+    }
+    Ok((spec_shards, package_shards))
+}
+
+/// Assemble the aggregate [`CodebaseIndex`] from the committed shard set (spec
+/// 024). The global view (orphaned specs, untraced code, the aggregate content
+/// hash) is recomputed from the shards on read, never read from a committed
+/// global file. This is the single committed-index reader: `render`, `orphans`,
+/// and the coupling gate all route through it, so they keep their
+/// `&CodebaseIndex` contract unchanged.
+pub fn load_committed_index(
     cfg: &spec_spine_types::Config,
     repo_root: &Path,
 ) -> Result<CodebaseIndex, Error> {
-    let index_path = repo_root
-        .join(&cfg.layout.derived_dir)
-        .join("codebase-index")
-        .join("index.json");
-    let bytes = fs::read(&index_path).map_err(|e| {
-        Error::Io(format!(
-            "read {} (run `spec-spine index` first?): {e}",
-            index_path.display()
-        ))
-    })?;
-    crate::load_index(&bytes)
+    let (spec_shards, package_shards) = read_committed_index_shards(cfg, repo_root)?;
+
+    let mut mappings: Vec<TraceMapping> = Vec::new();
+    let mut diagnostics = Diagnostics::default();
+    let mut keyed: Vec<(String, String)> = Vec::new();
+    for sh in &spec_shards {
+        diagnostics
+            .warnings
+            .extend(sh.diagnostics.warnings.iter().cloned());
+        diagnostics
+            .errors
+            .extend(sh.diagnostics.errors.iter().cloned());
+        keyed.push((
+            format!("spec:{}", sh.mapping.spec_id),
+            sh.shard_hash.clone(),
+        ));
+        mappings.push(sh.mapping.clone());
+    }
+    mappings.sort_by(|a, b| a.spec_id.cmp(&b.spec_id));
+
+    let mut packages: Vec<PackageRecord> = Vec::new();
+    for sh in &package_shards {
+        keyed.push((
+            format!("package:{}", sh.package.path),
+            sh.shard_hash.clone(),
+        ));
+        packages.push(sh.package.clone());
+    }
+    packages.sort_by(|a, b| a.path.cmp(&b.path));
+
+    // orphaned specs / untraced code: pure functions of the assembled shards.
+    let orphaned_specs: Vec<String> = mappings
+        .iter()
+        .filter(|m| m.implementing_paths.is_empty())
+        .map(|m| m.spec_id.clone())
+        .collect();
+    let claimed: BTreeSet<&str> = mappings
+        .iter()
+        .flat_map(|m| m.implementing_paths.iter().map(|p| p.path.as_str()))
+        .collect();
+    let mut untraced_code: Vec<String> = packages
+        .iter()
+        .filter(|p| {
+            p.spec_ref.is_none()
+                && !claimed
+                    .iter()
+                    .any(|c| c == &p.path || c.starts_with(&format!("{}/", p.path)))
+        })
+        .map(|p| p.path.clone())
+        .collect();
+    untraced_code.sort();
+
+    Ok(CodebaseIndex {
+        schema_version: INDEX_SCHEMA_VERSION.to_string(),
+        build: IndexBuild {
+            indexer_id: cfg.branding.indexer_id.clone(),
+            indexer_version: env!("CARGO_PKG_VERSION").to_string(),
+            repo_root: ".".to_string(),
+            content_hash: shard::aggregate_content_hash(&keyed),
+            slice_hashes: read_committed_slice_hashes(cfg, repo_root),
+        },
+        packages,
+        traceability: Traceability {
+            mappings,
+            orphaned_specs,
+            untraced_code,
+        },
+        diagnostics,
+    })
+}
+
+/// Read the committed per-slice hashes from the `slices.json` sidecar (spec
+/// 012/024). Absent file ⇒ empty map (no slices configured, or pre-slice index).
+fn read_committed_slice_hashes(
+    cfg: &spec_spine_types::Config,
+    repo_root: &Path,
+) -> BTreeMap<String, String> {
+    fs::read(slices_path(cfg, repo_root))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+        .unwrap_or_default()
 }
 
 /// One `build.sliceHashes` entry per configured slice (spec 012 §3.2).
@@ -613,97 +869,98 @@ fn spec_id_from_path(reference: &str, all_ids: &BTreeSet<String>) -> Option<Stri
     all_ids.contains(candidate).then(|| candidate.to_string())
 }
 
-fn collect_hash_inputs(
-    cfg: &spec_spine_types::Config,
-    repo_root: &Path,
-    manifest_paths: &[PathBuf],
-    span_files: &BTreeSet<String>,
-) -> Result<Vec<(String, String)>, Error> {
-    let mut pieces: Vec<(String, String)> = Vec::new();
-    let push = |abs: &Path, pieces: &mut Vec<(String, String)>| {
-        if let Ok(content) = fs::read_to_string(abs) {
-            pieces.push((rel_posix(repo_root, abs), content));
-        }
-    };
+/// The sort key prefixing the global-inputs scalar inside a shard hash. A
+/// leading NUL sorts it ahead of every real repo path and cannot collide with
+/// one.
+const GLOBAL_INPUTS_KEY: &str = "\u{0}global-inputs";
 
-    // Manifests. npm manifests fold as their governance projection (spec 004
-    // §3.5 amendment): dependency tables are not a governed input, so a
-    // dependabot-class version bump leaves the committed index fresh while
-    // a name / workspaces / spec-metadata change still stales it. Parse
-    // failure falls back to raw bytes (over-hashing is fail-closed).
-    for m in manifest_paths {
-        if m.file_name().is_some_and(|f| f == "package.json") {
-            if let Ok(content) = fs::read_to_string(m) {
-                let piece = crate::manifest::npm_hash_projection(
-                    &content,
-                    &cfg.manifest.metadata_namespace,
-                )
-                .unwrap_or(content);
-                pieces.push((rel_posix(repo_root, m), piece));
-            }
-        } else {
-            push(m, &mut pieces);
-        }
-    }
-    // Every spec.md.
-    let specs_dir = repo_root.join(&cfg.layout.specs_dir);
-    if let Ok(entries) = fs::read_dir(&specs_dir) {
-        for entry in entries.filter_map(std::result::Result::ok) {
-            let spec_md = entry.path().join("spec.md");
-            if spec_md.is_file() {
-                push(&spec_md, &mut pieces);
-            }
-        }
-    }
-    // The config itself.
-    let cfg_path = repo_root.join("spec-spine.toml");
-    if cfg_path.is_file() {
-        push(&cfg_path, &mut pieces);
-    }
-    // Adopter-declared extra inputs.
-    for pattern in &cfg.index.extra_hashed_inputs {
-        for file in glob_files(repo_root, pattern) {
-            push(&file, &mut pieces);
-        }
-    }
-    // Source files backing a resolved symbol/section span (spec 004 §3.5).
-    // `span_files` are repo-relative POSIX paths from the index's resolvedUnits.
-    for rel in span_files {
-        push(&repo_root.join(rel), &mut pieces);
-    }
-    // De-duplicate by path so an input folded by two routes (e.g. a section unit
-    // in a file also matched by extra_hashed_inputs) is hashed once; content for
-    // a given path is identical, so the hash stays a pure function of the set.
-    pieces.sort_by(|a, b| a.0.cmp(&b.0));
-    pieces.dedup_by(|a, b| a.0 == b.0);
-    Ok(pieces)
+/// Repo-relative POSIX path of a spec's `spec.md` (the dir name equals the id,
+/// enforced by compile's V-001), e.g. `specs/024-index-sharding/spec.md`.
+fn spec_md_rel(specs_dir: &str, id: &str) -> String {
+    format!("{specs_dir}/{id}/spec.md")
 }
 
-/// The set of repo-relative source files backing a resolved `symbol`/`section`
-/// unit's span. These are folded into the content hash so a source-line shift
-/// that moves a committed span forces the index `Stale` (spec 004 §3.5). `file`
-/// units carry no span and are intentionally excluded: a file-unit-only corpus
-/// contributes nothing here.
-fn resolved_span_files(mappings: &[TraceMapping]) -> BTreeSet<String> {
+/// The source files backing this mapping's resolved `symbol`/`section`/`module`
+/// spans (spec 004 §3.5). They are folded into the spec shard hash so a
+/// source-line shift that moves a committed span stales exactly that spec's
+/// shard. `file`/`directory`/`crate` units carry no span and contribute nothing.
+fn span_files_for_mapping(m: &TraceMapping) -> BTreeSet<String> {
     let mut out = BTreeSet::new();
-    for m in mappings {
-        for ru in &m.resolved_units {
-            // Span-backed kinds: section, symbol, and the inline-`mod` form of a
-            // module unit (spec 017). File/directory/crate units are whole-file
-            // or whole-subtree (span `None`) and contribute nothing here.
-            if matches!(
-                ru.unit,
-                Unit::Section { .. } | Unit::Symbol { .. } | Unit::Module { .. }
-            ) {
-                for loc in &ru.locations {
-                    if loc.span.is_some() {
-                        out.insert(loc.file.clone());
-                    }
+    for ru in &m.resolved_units {
+        if matches!(
+            ru.unit,
+            Unit::Section { .. } | Unit::Symbol { .. } | Unit::Module { .. }
+        ) {
+            for loc in &ru.locations {
+                if loc.span.is_some() {
+                    out.insert(loc.file.clone());
                 }
             }
         }
     }
     out
+}
+
+/// The hash a per-spec index shard self-describes: its `spec.md`, its span-
+/// backing source files, and the global-inputs scalar (config + extra inputs).
+/// Recomputed identically at emit and at `index check`, so an edit to any of
+/// those inputs stales exactly this shard.
+fn spec_shard_hash(
+    repo_root: &Path,
+    spec_md_rel: &str,
+    span_files: &BTreeSet<String>,
+    global_inputs: &str,
+) -> String {
+    let mut pieces: Vec<(String, String)> = Vec::new();
+    if let Ok(content) = fs::read_to_string(repo_root.join(spec_md_rel)) {
+        pieces.push((spec_md_rel.to_string(), content));
+    }
+    for rel in span_files {
+        if let Ok(content) = fs::read_to_string(repo_root.join(rel)) {
+            pieces.push((rel.clone(), content));
+        }
+    }
+    pieces.push((GLOBAL_INPUTS_KEY.to_string(), global_inputs.to_string()));
+    hash::content_hash(pieces)
+}
+
+/// The manifest path for a discovered package (`<path>/Cargo.toml` for Rust,
+/// `<path>/package.json` for npm), repo-relative POSIX.
+fn package_manifest_rel(package: &PackageRecord) -> String {
+    let file = match package.kind {
+        PackageKind::RustLib | PackageKind::RustBin | PackageKind::RustLibBin => "Cargo.toml",
+        PackageKind::NpmPackage | PackageKind::NpmWorkspace => "package.json",
+    };
+    if package.path == "." || package.path.is_empty() {
+        file.to_string()
+    } else {
+        format!("{}/{file}", package.path)
+    }
+}
+
+/// The hash a per-package index shard self-describes: its manifest folded with
+/// the global-inputs scalar. npm manifests fold as their governance projection
+/// (spec 004 §3.5): a dependabot-class dependency bump leaves the shard fresh,
+/// while a name / workspaces / spec-metadata change stales it.
+fn package_shard_hash(
+    repo_root: &Path,
+    package: &PackageRecord,
+    cfg: &spec_spine_types::Config,
+    global_inputs: &str,
+) -> String {
+    let manifest_rel = package_manifest_rel(package);
+    let mut pieces: Vec<(String, String)> = Vec::new();
+    if let Ok(content) = fs::read_to_string(repo_root.join(&manifest_rel)) {
+        let piece = if manifest_rel.ends_with("package.json") {
+            crate::manifest::npm_hash_projection(&content, &cfg.manifest.metadata_namespace)
+                .unwrap_or(content)
+        } else {
+            content
+        };
+        pieces.push((manifest_rel, piece));
+    }
+    pieces.push((GLOBAL_INPUTS_KEY.to_string(), global_inputs.to_string()));
+    hash::content_hash(pieces)
 }
 
 fn glob_files(repo_root: &Path, pattern: &str) -> Vec<PathBuf> {

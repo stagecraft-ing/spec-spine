@@ -1,0 +1,88 @@
+{
+  "record": {
+    "created": "2026-06-12",
+    "dependsOn": [
+      "004-codebase-index"
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/unit.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/index.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/symbols.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/index.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/grammar.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/version.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/dtos.rs"
+        }
+      }
+    ],
+    "id": "017-directory-crate-module-units",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "017: directory / crate / module authority units",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 Grammar",
+      "3.2 Resolution (in the indexer)",
+      "3.3 Staleness",
+      "3.4 Diagnostic codes",
+      "3.5 Tests (minimum)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/017-directory-crate-module-units/spec.md",
+    "status": "approved",
+    "summary": "Lifts the v1 unit-grammar limitation (`docs/design/00-architecture.md` §2.2, Q5): the three reserved kinds (`directory`, `crate`, and `module`) are now parsed and resolved alongside `file`/`section`/`symbol`. A `directory` unit resolves to its subtree (existence-checked, I-007 on miss); a `crate` unit resolves a manifest name against the discovered package inventory to that package's directory subtree (I-003 on miss, hyphen/underscore interchangeable); a `module` unit resolves a `::`-qualified Rust module path via a new module index; file-modules whole-file, top-level inline `mod` blocks to their span (I-008 on miss). The registry/index schemas are permissive on the unit payload, so this is an additive MINOR (`INDEX_SCHEMA_VERSION` 0.2.0 → 0.3.0) with no schema-file edit. Unblocks adopting the OAP corpus, which authors these three kinds across ~192 unit declarations (93 `directory`, 99 `crate`, 1 `module`) with no mass frontmatter migration.\n",
+    "title": "Authority units: resolve the reserved directory / crate / module kinds"
+  },
+  "shardHash": "94f909f1a86ecc36103aa32f3ba13a5c7b0d32fd5aae939a30ceebe61603b368",
+  "specVersion": "1.0.0"
+}

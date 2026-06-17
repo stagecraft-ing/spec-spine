@@ -87,10 +87,12 @@ fn adoption_loop_with_non_default_namespace_and_domains() {
     assert_eq!(code(&run(root, &["compile"])), 0, "compile clean");
     let idx = run(root, &["index"]);
     assert_eq!(code(&idx), 0, "index clean");
-    // The non-default namespace drove the manifest read.
-    let index_json = fs::read_to_string(root.join(".derived/codebase-index/index.json")).unwrap();
+    // The non-default namespace drove the manifest read (spec 024: the package
+    // inventory lives in its per-package shard).
+    let pkg_shard =
+        fs::read_to_string(root.join(".derived/codebase-index/by-package/tool-x.json")).unwrap();
     assert!(
-        index_json.contains("\"specRef\": \"010-feature\""),
+        pkg_shard.contains("\"specRef\": \"010-feature\""),
         "acme namespace must link tool-x → 010-feature"
     );
     assert_eq!(code(&run(root, &["lint"])), 0, "lint runs");

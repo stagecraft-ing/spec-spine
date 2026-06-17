@@ -1,0 +1,71 @@
+{
+  "record": {
+    "created": "2026-06-11",
+    "dependsOn": [
+      "001-compile-registry"
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/edges.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/compile.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/frontmatter.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/grammar.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/compile.rs"
+        }
+      }
+    ],
+    "id": "014-edge-paths-grammar-sugar",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "014: `paths:` list sugar on extends/refines items",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 Accepted forms",
+      "3.2 Normalization (the sugar never escapes)",
+      "3.3 Equivalence guarantee",
+      "3.4 Tests (minimum)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/014-edge-paths-grammar-sugar/spec.md",
+    "status": "approved",
+    "summary": "Authoring sugar for the predecessor dialect: an `extends:` or `refines:` item may declare `paths: [<file>, ...]` instead of a single `unit:`; the compiler expands each path to a file unit at parse time, emitting N normalized single-unit edges into the registry. Consumers see exactly one edge shape -- `paths:` never reaches registry.json. `unit:` and `paths:` on the same item is malformed (V-002). Unblocks adopting a corpus authored in the OAP dialect (140+ extends-bearing specs) without a mass frontmatter migration.\n",
+    "title": "Edge grammar: `paths:` list sugar on extends/refines items"
+  },
+  "shardHash": "1b4b94a2fa4356c421601553521fdd8ec9ef8f26268169d75c524f1093cdd61c",
+  "specVersion": "1.0.0"
+}

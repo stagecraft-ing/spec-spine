@@ -12,7 +12,7 @@ use std::process::Command;
 
 use spec_spine_core::{
     DiffFile, DiffInput, FileContents, couple, dependency_only_waiver, is_bypassed_path,
-    load_index, parse_waiver,
+    load_committed_index, parse_waiver,
 };
 use spec_spine_types::{Config, Error, LineSpan};
 
@@ -104,25 +104,18 @@ fn build_diff_input(repo: &Path, args: &CoupleArgs) -> Result<DiffInput, Error> 
 /// base branch tip) and at `head`. Any git failure refuses the auto-waiver
 /// fail-closed rather than erroring the gate.
 ///
-/// The bypass verdict is claim-aware (spec 009): it reads the committed
-/// index so a claim-overridden floor path counts as a candidate and refuses
-/// the waiver, matching exactly the path set the gate evaluates. An
-/// unreadable index refuses fail-closed (the gate itself will report the
-/// real error).
+/// The bypass verdict is claim-aware (spec 009): it assembles the committed
+/// index from its shard set so a claim-overridden floor path counts as a
+/// candidate and refuses the waiver, matching exactly the path set the gate
+/// evaluates. An unreadable index refuses fail-closed (the gate itself will
+/// report the real error).
 fn try_dependency_only_waiver(
     repo: &Path,
     cfg: &Config,
     args: &CoupleArgs,
     diff: &DiffInput,
 ) -> Result<Option<spec_spine_core::Waiver>, Error> {
-    let index_path = repo
-        .join(&cfg.layout.derived_dir)
-        .join("codebase-index")
-        .join("index.json");
-    let Some(index) = std::fs::read(&index_path)
-        .ok()
-        .and_then(|bytes| load_index(&bytes).ok())
-    else {
+    let Ok(index) = load_committed_index(cfg, repo) else {
         return Ok(None);
     };
     let candidates: Vec<&DiffFile> = diff

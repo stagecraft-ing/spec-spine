@@ -9,7 +9,7 @@ use spec_spine_types::Config;
 /// Packages, mappings, orphans and diagnostics deliberately unsorted in the
 /// fixture: the render order below is the projection's doing.
 const FULL_FIXTURE: &str = r#"{
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "1.0.0",
   "build": {
     "indexerId": "spec-spine",
     "indexerVersion": "0.2.0",
@@ -54,7 +54,7 @@ const FULL_FIXTURE: &str = r#"{
 
 const FULL_EXPECTED: &str = "# spec-spine codebase index\n\
 \n\
-- schemaVersion: 0.1.0\n\
+- schemaVersion: 1.0.0\n\
 - contentHash: cafe1234\n\
 \n\
 ## Packages\n\
@@ -88,7 +88,7 @@ const FULL_EXPECTED: &str = "# spec-spine codebase index\n\
 /// No orphans, no untraced code, no diagnostics: those sections are omitted
 /// entirely (spec 011 §3.2 / §3.4).
 const EMPTY_SECTIONS_FIXTURE: &str = r#"{
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "1.0.0",
   "build": {
     "indexerId": "spec-spine",
     "indexerVersion": "0.2.0",
@@ -113,7 +113,7 @@ const EMPTY_SECTIONS_FIXTURE: &str = r#"{
 
 const EMPTY_SECTIONS_EXPECTED: &str = "# spec-spine codebase index\n\
 \n\
-- schemaVersion: 0.1.0\n\
+- schemaVersion: 1.0.0\n\
 - contentHash: beef5678\n\
 \n\
 ## Packages\n\

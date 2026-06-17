@@ -1,0 +1,63 @@
+{
+  "record": {
+    "created": "2026-06-11",
+    "dependsOn": [
+      "002-registry-query"
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "002-registry-query",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/query.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "002-registry-query",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_registry.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/lib.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/tests/cli.rs"
+        }
+      }
+    ],
+    "id": "010-registry-query-projection-flags",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "010: Query projection flags",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 `registry list --ids-only`",
+      "3.2 `registry status-report --nonzero-only`",
+      "3.3 Contract",
+      "3.4 Tests (minimum)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/010-registry-query-projection-flags/spec.md",
+    "status": "approved",
+    "summary": "Two additive projection flags on the spec 002 query verbs: `registry list --ids-only` (newline-delimited spec ids; a JSON string array under --json) and `registry status-report --nonzero-only` (omit zero-count statuses). Both are load-bearing in adopter session-init protocols (OAP's /init and /setup read exactly these projections); neither changes any existing output shape when absent.\n",
+    "title": "Registry query: --ids-only and --nonzero-only projection flags"
+  },
+  "shardHash": "7c052714a9855c12a3fa56438af2c744611b6c86880ca92d6b9c0ccdbb556c01",
+  "specVersion": "1.0.0"
+}

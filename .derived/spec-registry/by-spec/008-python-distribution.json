@@ -1,0 +1,52 @@
+{
+  "record": {
+    "created": "2026-06-11",
+    "dependsOn": [
+      "007-distribution"
+    ],
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "py/"
+      },
+      {
+        "kind": "file",
+        "path": "py/scripts/generate_wheels.py"
+      }
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "007-distribution",
+        "unit": {
+          "kind": "file",
+          "path": ".github/workflows/release.yml"
+        }
+      }
+    ],
+    "id": "008-python-distribution",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "008: Distribution, uvx/PyPI wheel shim",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 The pattern: per-platform wheels, not download-on-first-use",
+      "3.2 Platform map (the same five triples)",
+      "3.3 The launcher (there isn't one)",
+      "3.4 Unsupported hosts fail clearly",
+      "3.5 Version lock",
+      "3.6 Release integration",
+      "4. Out of scope",
+      "Release log"
+    ],
+    "specPath": "specs/008-python-distribution/spec.md",
+    "status": "approved",
+    "summary": "The Python parallel of 007's npm shim: a uvx/PyPI channel so a Python or polyglot team can `uvx spec-spine ...` (or `uv tool install spec-spine`) and get the CLI with no Rust toolchain. Where npm uses a main launcher package + five os/cpu-gated platform packages, Python collapses the same idea into one PyPI project + five per-platform wheels (+ one sdist): the wheel platform tag IS the selector, and the prebuilt binary ships in the wheel's data/scripts dir so pip/uv place it directly on PATH. There is no Python in the run path, no postinstall, no network at install, and no archive extraction at install: it works offline and under --no-build-isolation. Unsupported hosts (musl/Alpine, win-arm64, 32-bit) match no wheel and fall to the sdist, whose only artifact is a `spec-spine` console entry point that names the host and points at `cargo install spec-spine-cli` -- exact parity with 007 §3.4. Wheels are assembled from the same release archives the build job already produces (no second Rust build), are byte-reproducible, and are version-locked to the tag.\n",
+    "title": "Distribution: uvx/PyPI wheel shim"
+  },
+  "shardHash": "5ed99bc4931788962a6f03cb1ca3063d6e7ac0fc813747a18bc6ed401dccb0e7",
+  "specVersion": "1.0.0"
+}

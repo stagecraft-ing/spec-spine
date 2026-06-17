@@ -1,0 +1,112 @@
+{
+  "record": {
+    "created": "2026-06-11",
+    "dependsOn": [
+      "001-compile-registry"
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/frontmatter.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/registry.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/compile.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/index.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/lib.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/version.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/schemas/registry.schema.json"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/dtos.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/frontmatter.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/compile.rs"
+        }
+      }
+    ],
+    "id": "013-declared-extra-frontmatter-passthrough",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "013: Declared extra-frontmatter passthrough",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 The declared/undeclared split",
+      "3.2 Normalization (determinism)",
+      "3.3 Unrepresentable values: `V-013`",
+      "3.4 Schema impact",
+      "3.5 Tests (minimum)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/013-declared-extra-frontmatter-passthrough/spec.md",
+    "status": "approved",
+    "summary": "Widens the value domain of DECLARED extra-frontmatter keys (`config.frontmatter.extra_known_keys`) from scalars + string-lists to any JSON-representable YAML value (nested maps, mixed lists), carried verbatim into SpecRecord.extra_frontmatter under canonical-JSON normalization. Undeclared keys keep the existing scalar/string-list restriction and the V-007 cap -- the anti-bulk-YAML guard is untouched. Registry schema MINOR. This is the load-bearing half of the overlay contract: overlays cannot consume domain frontmatter the compiler drops.\n",
+    "title": "Frontmatter: declared extra keys carry arbitrary YAML, verbatim"
+  },
+  "shardHash": "28a565c9fc06090cfd714cce3d0e952cda85479819639a38eacfd3acd6859385",
+  "specVersion": "1.0.0"
+}

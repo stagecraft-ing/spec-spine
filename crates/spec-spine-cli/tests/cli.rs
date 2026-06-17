@@ -34,12 +34,15 @@ fn index_slice_hashes_and_check() {
         let out = bin().arg("--repo").arg(tmp.path()).args(args).output();
         out.unwrap()
     };
-    let index_json =
-        || fs::read_to_string(tmp.path().join(".derived/codebase-index/index.json")).unwrap();
+    // Slices live in their own sidecar since spec 024 (no monolithic index.json).
+    let slices_file = tmp.path().join(".derived/codebase-index/slices.json");
 
-    // No slices configured: field absent; --slice is a config error (3).
+    // No slices configured: no sidecar; --slice is a config error (3).
     assert_eq!(code(&run(&["index"])), 0);
-    assert!(!index_json().contains("sliceHashes"));
+    assert!(
+        !slices_file.exists(),
+        "no slices configured -> no slices.json sidecar"
+    );
     assert_eq!(
         code(&run(&["index", "check", "--slice", "agent-config"])),
         3,
@@ -60,11 +63,10 @@ fn index_slice_hashes_and_check() {
 
     // Rebuild: entries emitted key-sorted; both slices fresh.
     assert_eq!(code(&run(&["index"])), 0);
-    let raw = index_json();
-    assert!(raw.contains("sliceHashes"));
+    let raw = fs::read_to_string(&slices_file).unwrap();
     assert!(
         raw.find("agent-config").unwrap() < raw.find("zz-last").unwrap(),
-        "sliceHashes keys are sorted"
+        "slice hash keys are sorted"
     );
     assert_eq!(
         code(&run(&["index", "check", "--slice", "agent-config"])),
@@ -156,10 +158,16 @@ fn compile_ok_then_queries() {
         .output()
         .unwrap();
     assert_eq!(code(&compile), 0, "clean compile exits 0");
+    // Sharded committed form (spec 024): one file per spec, no monolithic registry.json.
     assert!(
         tmp.path()
-            .join(".derived/spec-registry/registry.json")
+            .join(".derived/spec-registry/by-spec/001-a.json")
             .is_file()
+    );
+    assert!(
+        !tmp.path()
+            .join(".derived/spec-registry/registry.json")
+            .exists()
     );
 
     let list = bin()
@@ -366,9 +374,10 @@ fn index_then_check_fresh_then_stale() {
         .output()
         .unwrap();
     assert_eq!(code(&built), 0, "index writes -> 0");
+    // Sharded committed form (spec 024): per-spec shard, no monolithic index.json.
     assert!(
         tmp.path()
-            .join(".derived/codebase-index/index.json")
+            .join(".derived/codebase-index/by-spec/001-a.json")
             .is_file()
     );
 
