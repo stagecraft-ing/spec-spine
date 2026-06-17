@@ -1,0 +1,43 @@
+{
+  "record": {
+    "authors": [
+      "The spec-spine Authors"
+    ],
+    "created": "2026-06-08",
+    "id": "000-spec-spine-bootstrap",
+    "kind": "constitutional-bootstrap",
+    "origin": {
+      "retroactive": true
+    },
+    "sectionHeadings": [
+      "000: Bootstrap spec system",
+      "1. The authoring/derived boundary",
+      "2. Identity: directory name equals id",
+      "3. Frontmatter grammar",
+      "4. The typed authority graph",
+      "4.1 Edges: eight types, seven ownership-bearing",
+      "4.2 Authority units: file, section, symbol, directory, crate, module",
+      "4.3 Resolution and amends-awareness",
+      "5. The compiled artifacts",
+      "6. Determinism",
+      "7. The guardrails",
+      "8. Bootstrap order",
+      "9. Status",
+      "Amendments received"
+    ],
+    "specPath": "specs/000-spec-spine-bootstrap/spec.md",
+    "status": "approved",
+    "summary": "Foundational contract for spec-spine. Authored truth lives only in markdown (with YAML frontmatter); machine-consumable truth is compiler-emitted JSON only; the corpus compiles in full from day one; every artifact-producing step is a pure, deterministic function of (config, file contents); and a typed authority graph, not a flat pile of claims, governs who may change what. This spec defines what a spec IS. It is tier-1: its `unamendable` anchors are non-overridable, and it bootstraps the corpus by declaring authority it has held since before the graph existed (`origin.retroactive`).\n",
+    "title": "Bootstrap spec system (markdown → compiled JSON authority ledger)",
+    "unamendable": [
+      "markdown-truth-boundary",
+      "json-truth-boundary",
+      "determinism-requirement",
+      "directory-name-equals-id",
+      "typed-authority-graph",
+      "refusal-rule"
+    ]
+  },
+  "shardHash": "8a81c6d20b380f4f2c8beee60b6520a2044beaffd853f3b149f2059164e6357d",
+  "specVersion": "1.0.0"
+}

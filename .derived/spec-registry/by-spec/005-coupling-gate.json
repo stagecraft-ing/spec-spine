@@ -1,0 +1,75 @@
+{
+  "record": {
+    "created": "2026-06-09",
+    "dependsOn": [
+      "001-compile-registry",
+      "002-registry-query",
+      "004-codebase-index"
+    ],
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/couple.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/dep_only.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-cli/src/cmd_couple.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/tests/couple.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-cli/tests/couple.rs"
+      }
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/lib.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/main.rs"
+        }
+      }
+    ],
+    "id": "005-coupling-gate",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "005: The coupling gate",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 The boundary: git stays out of core",
+      "3.2 Owner derivation: three granularities",
+      "3.3 Amends-awareness and the strict-expansion guard (FR-005)",
+      "3.4 Supersedes: authority transfer",
+      "3.5 Clearance, waivers, and bypass",
+      "3.6 Granularity reconciliation (the crate-spec vs file-establishes question)",
+      "3.7 Exit codes",
+      "3.8 Determinism",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/005-coupling-gate/spec.md",
+    "status": "approved",
+    "summary": "The PR-time coupling gate (spec-spine.md guardrail 2): cross-reference every changed code path against the authority graph and refuse the merge when code drifts from the spec that owns it. A pure function of (config, registry, index, diff, waiver); the CLI parses `git diff --no-color -U0 base...head` into a typed DiffInput so git stays out of core. Matches a diff hunk to its owning unit at file, section, and symbol granularity; is amends-aware with the FR-005 strict-expansion guard; transfers authority across supersedes; honors PR-body waivers and an additive bypass list. Establishes the couple engine and the `spec-spine couple` subcommand.\n",
+    "title": "The coupling gate: join the two views and refuse drift"
+  },
+  "shardHash": "1dacea3dce23b7365013b65489a254ea55751b20017a86ed5a6b3056a6c4d5f9",
+  "specVersion": "1.0.0"
+}

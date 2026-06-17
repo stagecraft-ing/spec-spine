@@ -11,23 +11,40 @@ use std::path::{Path, PathBuf};
 
 use spec_spine_types::{
     Build, Config, Error, Frontmatter, FrontmatterIssue, REGISTRY_SCHEMA_VERSION, Registry,
-    Severity, SpecRecord, Status, ValidationReport, Violation, parse_frontmatter_with,
-    split_frontmatter,
+    RegistrySpecShard, Severity, SpecRecord, Status, ValidationReport, Violation,
+    parse_frontmatter_with, split_frontmatter,
 };
 
-use crate::{canonical_json, hash, markdown};
+use crate::{canonical_json, hash, markdown, shard};
+
+/// Validation codes whose verdict depends on the whole corpus, not one spec:
+/// duplicate id/prefix and dangling/unresolved edge targets. They are NOT
+/// stored per registry shard (storing them would let a sibling spec's PR stale
+/// this shard); they are recomputed from the assembled record set on read.
+const CROSS_SPEC_CODES: &[&str] = &["V-003", "V-004", "V-008", "V-010"];
 
 /// The cap on **undeclared** `extra_frontmatter` keys before `V-007` fires.
 /// Keys listed in `frontmatter.extra_known_keys` are intentional and exempt;
 /// the cap targets escape-hatch abuse (ported from OAP's ~8-entry V-002 cap).
 pub const MAX_UNDECLARED_EXTRA_FRONTMATTER: usize = 8;
 
-/// The result of a compile: the typed registry, its canonical JSON bytes, and
-/// the validation flag the CLI maps to an exit code.
+/// The result of a compile: the typed registry, its canonical JSON bytes, the
+/// validation flag the CLI maps to an exit code, and the per-spec shard
+/// projection the CLI writes to disk (spec 024).
+///
+/// `registry` + `json` are the aggregate in-memory view (consumed by `attest`,
+/// the JSON facade, and the conformance test); `shards` is the committed form.
 pub struct CompileOutcome {
     pub registry: Registry,
     pub json: String,
     pub validation_passed: bool,
+    pub shards: RegistryShardSet,
+}
+
+/// The committed-form projection of a registry: one shard per spec (spec 024),
+/// sorted by id for determinism.
+pub struct RegistryShardSet {
+    pub spec_shards: Vec<RegistrySpecShard>,
 }
 
 /// Compile the spec corpus under `repo_root` into a registry.
@@ -137,6 +154,7 @@ pub fn compile(cfg: &Config, repo_root: &Path) -> Result<CompileOutcome, Error> 
     }
 
     // --- per-spec validation + record construction ---
+    let raw_by_path: BTreeMap<String, String> = hash_pieces.iter().cloned().collect();
     let mut records: Vec<SpecRecord> = Vec::new();
     for p in parsed {
         validate_spec(
@@ -151,6 +169,37 @@ pub fn compile(cfg: &Config, repo_root: &Path) -> Result<CompileOutcome, Error> 
     }
     records.sort_by(|a, b| a.id.cmp(&b.id));
 
+    // --- shard projection + aggregate content hash (spec 024) ---
+    // One shard per spec, each carrying its compiled record, its corpus-
+    // independent ("local") violations, and a hash over its `spec.md` (the
+    // registry's only hashed input, matching the pre-shard `build.contentHash`).
+    // The aggregate `build.contentHash` is the fold of those per-shard hashes,
+    // recomputable on read from the shard set and never committed to one file.
+    let mut spec_shards: Vec<RegistrySpecShard> = Vec::new();
+    let mut keyed: Vec<(String, String)> = Vec::new();
+    for record in &records {
+        let raw = raw_by_path
+            .get(&record.spec_path)
+            .cloned()
+            .unwrap_or_default();
+        let shard_hash = hash::content_hash(vec![(record.spec_path.clone(), raw)]);
+        let local_violations: Vec<Violation> = violations
+            .iter()
+            .filter(|v| {
+                !CROSS_SPEC_CODES.contains(&v.code.as_str())
+                    && v.path.as_deref() == Some(record.spec_path.as_str())
+            })
+            .cloned()
+            .collect();
+        keyed.push((format!("spec:{}", record.id), shard_hash.clone()));
+        spec_shards.push(RegistrySpecShard {
+            spec_version: REGISTRY_SCHEMA_VERSION.to_string(),
+            shard_hash,
+            record: record.clone(),
+            local_violations,
+        });
+    }
+
     // --- assemble registry ---
     let validation = ValidationReport::from_violations(violations);
     let validation_passed = validation.passed;
@@ -160,7 +209,7 @@ pub fn compile(cfg: &Config, repo_root: &Path) -> Result<CompileOutcome, Error> 
             compiler_id: cfg.branding.compiler_id.clone(),
             compiler_version: env!("CARGO_PKG_VERSION").to_string(),
             input_root: ".".to_string(),
-            content_hash: hash::content_hash(hash_pieces),
+            content_hash: shard::aggregate_content_hash(&keyed),
         },
         specs: records,
         validation,
@@ -171,6 +220,7 @@ pub fn compile(cfg: &Config, repo_root: &Path) -> Result<CompileOutcome, Error> 
         registry,
         json,
         validation_passed,
+        shards: RegistryShardSet { spec_shards },
     })
 }
 
@@ -353,6 +403,131 @@ fn build_record(fm: Frontmatter, spec_path: String, body: &str) -> SpecRecord {
         origin: fm.origin,
         extra_frontmatter: fm.extra_frontmatter,
     }
+}
+
+// ===== committed-shard IO + assembly (spec 024) =====
+
+/// The committed spec-registry directory: `<derived>/spec-registry`.
+pub fn registry_dir(cfg: &Config, repo_root: &Path) -> PathBuf {
+    repo_root
+        .join(&cfg.layout.derived_dir)
+        .join("spec-registry")
+}
+
+/// Serialize each registry shard to its canonical-JSON file, `(<id>.json,
+/// content)`. Canonical (sorted keys, 2-space, trailing LF) so a shard is
+/// byte-identical across platforms. The CLI writes these under
+/// `<registry_dir>/by-spec/`.
+pub fn registry_shard_files(shards: &RegistryShardSet) -> Result<Vec<(String, String)>, Error> {
+    shards
+        .spec_shards
+        .iter()
+        .map(|s| {
+            Ok((
+                format!("{}.json", s.record.id),
+                canonical_json::to_string(s)?,
+            ))
+        })
+        .collect()
+}
+
+/// Read and parse the committed registry shards (gating each shard's MAJOR at
+/// the read boundary). An unbuilt registry (no `by-spec` dir) yields an empty
+/// vector.
+fn read_committed_registry_shards(
+    cfg: &Config,
+    repo_root: &Path,
+) -> Result<Vec<RegistrySpecShard>, Error> {
+    let base = registry_dir(cfg, repo_root);
+    if !base.exists() {
+        return Err(Error::Io(format!(
+            "read {} (run `spec-spine compile` first?): not found",
+            base.display()
+        )));
+    }
+    let dir = base.join(shard::BY_SPEC_DIR);
+    let mut shards = Vec::new();
+    for (name, bytes) in shard::read_shard_files(&dir)? {
+        let sh: RegistrySpecShard = serde_json::from_slice(&bytes)
+            .map_err(|e| Error::Parse(format!("invalid registry shard {name}: {e}")))?;
+        shard::check_major("registry", &sh.spec_version, REGISTRY_SCHEMA_VERSION)?;
+        shards.push(sh);
+    }
+    Ok(shards)
+}
+
+/// Assemble the aggregate [`Registry`] from the committed shard set (spec 024).
+/// The aggregate validation and content hash are recomputed on read: per-shard
+/// "local" violations are merged, the corpus-wide checks (duplicate id/prefix,
+/// dangling edges) are re-derived from the assembled records, and the content
+/// hash is the fold of the shard hashes. This is the single committed-registry
+/// reader; the `registry` queries and the coupling gate route through it, so
+/// they keep their `&Registry` contract unchanged.
+pub fn load_committed_registry(cfg: &Config, repo_root: &Path) -> Result<Registry, Error> {
+    let shards = read_committed_registry_shards(cfg, repo_root)?;
+    let mut records: Vec<SpecRecord> = Vec::new();
+    let mut violations: Vec<Violation> = Vec::new();
+    let mut keyed: Vec<(String, String)> = Vec::new();
+    for sh in &shards {
+        keyed.push((format!("spec:{}", sh.record.id), sh.shard_hash.clone()));
+        violations.extend(sh.local_violations.iter().cloned());
+        records.push(sh.record.clone());
+    }
+    records.sort_by(|a, b| a.id.cmp(&b.id));
+    violations.extend(recompute_cross_spec_violations(&records));
+    Ok(Registry {
+        spec_version: REGISTRY_SCHEMA_VERSION.to_string(),
+        build: Build {
+            compiler_id: cfg.branding.compiler_id.clone(),
+            compiler_version: env!("CARGO_PKG_VERSION").to_string(),
+            input_root: ".".to_string(),
+            content_hash: shard::aggregate_content_hash(&keyed),
+        },
+        specs: records,
+        validation: ValidationReport::from_violations(violations),
+    })
+}
+
+/// Re-derive the corpus-wide validation findings (V-003/004/008/010) from the
+/// assembled records. A local mirror of the cross-spec checks in [`compile`]
+/// (kept equal by value, not linkage), so the assembled registry's validation
+/// matches a fresh compile's for a corpus that has any. Records are id-sorted,
+/// which equals compile's discovery order, so V-004's "shared by" pairing agrees.
+fn recompute_cross_spec_violations(records: &[SpecRecord]) -> Vec<Violation> {
+    let mut out: Vec<Violation> = Vec::new();
+    let id_paths: Vec<(String, String)> = records
+        .iter()
+        .map(|r| (r.id.clone(), r.spec_path.clone()))
+        .collect();
+    detect_duplicates(&id_paths, &mut out);
+    let all_ids: std::collections::BTreeSet<&str> = records.iter().map(|r| r.id.as_str()).collect();
+    for r in records {
+        if r.status == Status::Superseded {
+            match &r.superseded_by {
+                Some(by) if all_ids.contains(by.as_str()) => {}
+                Some(by) => out.push(error(
+                    "V-008",
+                    format!("superseded_by '{by}' does not resolve to an existing spec"),
+                    Some(r.spec_path.clone()),
+                )),
+                None => out.push(error(
+                    "V-008",
+                    "status is 'superseded' but superseded_by is missing".into(),
+                    Some(r.spec_path.clone()),
+                )),
+            }
+        }
+        for dep in &r.depends_on {
+            if !all_ids.contains(dep.as_str()) {
+                out.push(warning(
+                    "V-010",
+                    format!("depends_on '{dep}' does not resolve to an existing spec"),
+                    Some(r.spec_path.clone()),
+                ));
+            }
+        }
+    }
+    out
 }
 
 /// Resolve a short spec reference (`109`) to the full id (`109-slug`) by its

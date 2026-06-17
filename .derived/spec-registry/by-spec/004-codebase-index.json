@@ -1,0 +1,63 @@
+{
+  "record": {
+    "created": "2026-06-09",
+    "dependsOn": [
+      "001-compile-registry",
+      "002-registry-query"
+    ],
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/index.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/manifest.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/sections.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/symbols.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/pathutil.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/tests/index.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-cli/src/cmd_index.rs"
+      }
+    ],
+    "id": "004-codebase-index",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "004: Codebase index and the unit grammar",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 Package discovery (manifest scan)",
+      "3.2 Linkage (code → spec), three sources",
+      "3.3 Unit resolution (the grammar → physical locations)",
+      "3.4 Determinism",
+      "3.5 Content hash & staleness",
+      "3.6 Traceability and diagnostics",
+      "3.7 authorities(unit)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/004-codebase-index/spec.md",
+    "status": "approved",
+    "summary": "The codebase indexer (code-as-source view): discover compilation units via the configurable manifest namespace, link code to specs three ways, resolve the file/section/symbol unit grammar to physical (file, line-span) locations (tree-sitter for symbols, Rust + TypeScript in v1), emit a deterministic index.json with a content-hash staleness mechanism, and answer authorities(unit). Establishes the manifest/section/symbol resolution layer and the `spec-spine index` CLI subcommand.\n",
+    "title": "Codebase index and the file/section/symbol unit grammar"
+  },
+  "shardHash": "c39532ea6057b9b570aab1c24eb948c1d7402e47b1aac71ae108b7bb889762f7",
+  "specVersion": "1.0.0"
+}

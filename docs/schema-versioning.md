@@ -10,10 +10,16 @@
 
 | Artifact | Field | Current | Owner |
 |---|---|---|---|
-| `registry.json` | `specVersion` | `0.3.0` | library |
-| `index.json` | `schemaVersion` | `0.3.0` | library |
+| registry shards (`spec-registry/by-spec/<id>.json`) | `specVersion` | `1.0.0` | library |
+| index shards (`codebase-index/by-spec/<id>.json`, `by-package/<slug>.json`) | `schemaVersion` | `1.0.0` | library |
 | `build-meta.json` | `schemaVersion` | `0.1.0` | library (non-deterministic; excluded from goldens) |
 | `spec-spine.toml` | `config_version` (optional) | `0.1.0` | library |
+
+Since spec 024 both artifacts are **sharded** (one committed file per authority
+unit; no monolithic `registry.json` / `index.json`). Each shard carries its
+artifact's schema version; a reader gates the MAJOR per shard. The in-memory
+aggregate DTOs (`Registry`, `CodebaseIndex`) are unchanged and carry the same
+version.
 
 MINOR history:
 
@@ -34,6 +40,19 @@ MINOR history:
   still emits a bare string, so a full-only corpus is byte-identical; only a
   `partial` item emits an object. Readers that assumed `supersedes: string[]`
   must accept `string | object` entries.
+
+MAJOR history:
+
+- registry + index `1.0.0` (spec 024): **breaking on-disk shape.** The committed
+  artifacts move from one monolithic file behind a global content-hash line to a
+  per-unit shard tree (`by-spec/<id>.json`, `by-package/<slug>.json`), so two PRs
+  touching different units write disjoint files and never conflict. The aggregate
+  view (validation, orphans, untraced code, content hash) is recomputed from the
+  shard set on read, never committed. The in-memory DTOs are unchanged; only the
+  storage shape and the version line move. A 0.x reader rejects a 1.x shard
+  (unknown MAJOR), so adopters re-run `compile` + `index` once on upgrade. The
+  spec 012 `[index.slices]` hashes move to a small `codebase-index/slices.json`
+  sidecar.
 
 Each is a **compile-time `const`** in `spec-spine-types`
 (`REGISTRY_SCHEMA_VERSION`, `INDEX_SCHEMA_VERSION`, `BUILD_META_SCHEMA_VERSION`,

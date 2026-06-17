@@ -14,14 +14,12 @@
 //! algorithm is re-derived, not reinvented.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 use spec_spine_types::{CodebaseIndex, Config, Error, LineSpan, Registry, Severity, Violation};
 
 use crate::index::{Freshness, check_index_freshness};
-use crate::query::{load_index, load_registry};
 
 /// The hardcoded generic bypass floor (spec 005 §3.5): the **single built-in
 /// source** of bypass entries. The adopter's `config.coupling.bypass_prefixes`
@@ -386,33 +384,18 @@ fn spec_id_for_spec_md_path(path: &str) -> Option<&str> {
 }
 
 // ===== committed-artifact loaders (the IO half of `couple`) =====
+//
+// Both artifacts are stored as a per-spec/per-package shard tree (spec 024);
+// these delegate to the single assembler each producer owns, which reconstructs
+// the aggregate `Registry` / `CodebaseIndex` from the shard set. The gate logic
+// in [`couple_with`] consumes those aggregates unchanged.
 
 fn load_committed_registry(cfg: &Config, repo_root: &Path) -> Result<Registry, Error> {
-    let path = repo_root
-        .join(&cfg.layout.derived_dir)
-        .join("spec-registry")
-        .join("registry.json");
-    let bytes = fs::read(&path).map_err(|e| {
-        Error::Io(format!(
-            "read {} (run `spec-spine compile` first?): {e}",
-            path.display()
-        ))
-    })?;
-    load_registry(&bytes)
+    crate::compile::load_committed_registry(cfg, repo_root)
 }
 
 fn load_committed_index(cfg: &Config, repo_root: &Path) -> Result<CodebaseIndex, Error> {
-    let path = repo_root
-        .join(&cfg.layout.derived_dir)
-        .join("codebase-index")
-        .join("index.json");
-    let bytes = fs::read(&path).map_err(|e| {
-        Error::Io(format!(
-            "read {} (run `spec-spine index` first?): {e}",
-            path.display()
-        ))
-    })?;
-    load_index(&bytes)
+    crate::index::load_committed_index(cfg, repo_root)
 }
 
 #[cfg(test)]

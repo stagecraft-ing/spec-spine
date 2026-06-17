@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spec-spine.dev/schemas/codebase-index-package-shard.schema.json",
+  "title": "spec-spine codebase index, per-package inventory shard (spec 024)",
+  "description": "One file per discovered package under <derived>/codebase-index/by-package/<slug>.json. The deterministic, conflict-free committed form of one package's inventory record.",
+  "type": "object",
+  "required": ["schemaVersion", "shardHash", "package"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "shardHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "package": { "$ref": "#/$defs/packageRecord" }
+  },
+  "$defs": {
+    "packageRecord": {
+      "type": "object",
+      "required": ["name", "path", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "path": { "type": "string" },
+        "kind": {
+          "enum": ["rust-lib", "rust-bin", "rust-lib-bin", "npm-package", "npm-workspace"]
+        },
+        "version": { "type": "string" },
+        "edition": { "type": "string" },
+        "specRef": { "type": "string" }
+      }
+    }
+  }
+}

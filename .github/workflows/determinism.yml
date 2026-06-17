@@ -2,11 +2,12 @@ name: determinism
 
 # Cross-triple determinism GOLDEN. spec-spine's central claim is that every
 # artifact-producing step is a pure function of (config, file contents): so the
-# emitted registry.json and index.json (including tree-sitter symbol line-spans)
-# are byte-identical on every platform. This workflow PROVES that empirically
-# instead of merely asserting it from the exact-pinned grammars: each leg
-# compiles + indexes this repo's own corpus and publishes the digests; the gather
-# job fails if any digest differs.
+# emitted registry + index shard trees (including tree-sitter symbol line-spans)
+# are byte-identical on every platform. Since spec 024 both artifacts are sharded
+# directories (`by-spec/`, `by-package/`), so each leg publishes a TREE digest
+# that folds every shard's path and content into one hash; the gather job fails
+# if any digest differs. This proves determinism empirically instead of merely
+# asserting it from the exact-pinned grammars.
 #
 # Coverage spans both CPU arches and three OSes: x86_64 (Linux + Windows) and
 # aarch64 (Linux + macOS). x86_64-apple-darwin is intentionally omitted: its two
@@ -66,10 +67,28 @@ jobs:
             elif command -v shasum    >/dev/null 2>&1; then shasum -a 256 "$1" | awk '{print $1}'
             else openssl dgst -sha256 "$1" | awk '{print $NF}'; fi
           }
+          # Spec 024: the committed artifacts are sharded directories, not single
+          # files. A tree digest folds every shard's path AND content into one
+          # hash: list every *.json under the dir (except the wall-clock
+          # build-meta.json), sort POSIX, hash each, then hash the manifest. So a
+          # changed shard, an added/removed shard, or a renamed shard all move the
+          # digest, and it is byte-stable across platforms (the per-shard content,
+          # including tree-sitter symbol line-spans, is the determinism subject).
+          digest_tree() {
+            local root="$1" manifest
+            manifest="$(mktemp)"
+            if [ -d "$root" ]; then
+              find "$root" -type f -name '*.json' ! -name 'build-meta.json' \
+                | LC_ALL=C sort \
+                | while IFS= read -r f; do printf '%s %s\n' "${f#"$root"/}" "$(sha256 "$f")"; done \
+                > "$manifest"
+            fi
+            sha256 "$manifest"
+          }
           mkdir -p digests
           {
-            echo "${{ matrix.triple }} registry $(sha256 .derived/spec-registry/registry.json)"
-            echo "${{ matrix.triple }} index    $(sha256 .derived/codebase-index/index.json)"
+            echo "${{ matrix.triple }} registry $(digest_tree .derived/spec-registry)"
+            echo "${{ matrix.triple }} index    $(digest_tree .derived/codebase-index)"
           } | tee "digests/${{ matrix.triple }}.txt"
       - uses: actions/upload-artifact@v4
         with:

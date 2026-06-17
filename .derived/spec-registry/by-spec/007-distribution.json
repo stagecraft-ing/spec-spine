@@ -1,0 +1,50 @@
+{
+  "record": {
+    "created": "2026-06-09",
+    "dependsOn": [
+      "001-compile-registry"
+    ],
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "npm/"
+      },
+      {
+        "kind": "file",
+        "path": "install.sh"
+      },
+      {
+        "kind": "file",
+        "path": ".github/workflows/release.yml"
+      },
+      {
+        "kind": "file",
+        "path": "docs/releasing.md"
+      }
+    ],
+    "id": "007-distribution",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "007: Distribution",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 The pattern: optional-dependencies platform packages",
+      "3.2 Platform map (the five triples)",
+      "3.3 The launcher",
+      "3.4 Unsupported hosts fail clearly",
+      "3.5 Version lock",
+      "3.6 Release integration",
+      "4. Out of scope",
+      "Release log"
+    ],
+    "specPath": "specs/007-distribution/spec.md",
+    "status": "approved",
+    "summary": "How the spec-spine CLI reaches users who do not have a Rust toolchain. Two channels already existed but were unspecced: the tag-gated GitHub release pipeline (release.yml) that builds the five per-triple archives, and install.sh (curl | sh) that consumes them. This spec adopts both as governed territory and adds a third channel: an npm binary-distribution shim under npm/ so a TS/JS repo can `npm i -D spec-spine` and get the CLI with no Rust. The shim is a launcher, not a native addon: the main package's bin resolves a per-triple platform package (optionalDependencies, os/cpu-gated) and exec's the prebuilt binary, forwarding argv and exit code. No postinstall, no network at install, no archive extraction; it works under `npm ci --ignore-scripts` and offline. Version-locked to the binary release tag (npm 0.1.0 ships the v0.1.0 assets).\n",
+    "title": "Distribution: npm binary shim + the release pipeline"
+  },
+  "shardHash": "94fa8ee4358e9f6c07f7dec2d23976b7a03ee3fa2e3ed5f7a066ba41f26e62eb",
+  "specVersion": "1.0.0"
+}

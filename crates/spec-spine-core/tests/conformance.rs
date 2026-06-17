@@ -4,8 +4,8 @@
 use std::fs;
 use std::path::Path;
 
-use spec_spine_core::compile;
-use spec_spine_types::{Config, REGISTRY_SCHEMA};
+use spec_spine_core::{compile, registry_shard_files};
+use spec_spine_types::{Config, REGISTRY_SCHEMA, REGISTRY_SPEC_SHARD_SCHEMA};
 
 fn write_spec(root: &Path, id: &str, extra: &str) {
     let spec_dir = root.join("specs").join(id);
@@ -45,6 +45,39 @@ fn emitted_registry_conforms_to_embedded_schema() {
             "registry.json does not conform to the schema:\n{}",
             errors.join("\n")
         );
+    }
+}
+
+#[test]
+fn emitted_registry_shards_conform_to_embedded_schema() {
+    // Spec 024: every committed per-spec registry shard must validate against the
+    // embedded shard schema, so a DTO/schema drift fails the build.
+    let tmp = tempfile::tempdir().unwrap();
+    write_spec(tmp.path(), "000-root", "origin:\n  retroactive: true\n");
+    write_spec(
+        tmp.path(),
+        "001-child",
+        "depends_on: [\"000-root\"]\nestablishes:\n  - \"src/lib.rs\"\nx_extra: \"v\"\nrisk: medium\nimplementation: complete\n",
+    );
+    let outcome = compile(&Config::default(), tmp.path()).unwrap();
+    let files = registry_shard_files(&outcome.shards).unwrap();
+    assert_eq!(files.len(), 2, "one shard per spec");
+
+    let schema: serde_json::Value =
+        serde_json::from_str(REGISTRY_SPEC_SHARD_SCHEMA).expect("embedded shard schema is JSON");
+    let validator = jsonschema::validator_for(&schema).expect("schema compiles");
+    for (name, content) in &files {
+        let instance: serde_json::Value = serde_json::from_str(content).expect("shard is JSON");
+        if !validator.is_valid(&instance) {
+            let errors: Vec<String> = validator
+                .iter_errors(&instance)
+                .map(|e| e.to_string())
+                .collect();
+            panic!(
+                "registry shard {name} does not conform:\n{}",
+                errors.join("\n")
+            );
+        }
     }
 }
 

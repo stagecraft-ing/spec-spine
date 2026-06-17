@@ -1,0 +1,63 @@
+{
+  "record": {
+    "created": "2026-06-11",
+    "dependsOn": [
+      "000-spec-spine-bootstrap"
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/unit.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/frontmatter.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/grammar.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/compile.rs"
+        }
+      }
+    ],
+    "id": "015-establishes-wrapper-na-alias",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "015: `unit:`-wrapped establishes items and the `n/a` implementation alias",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 The `unit:` wrapper (a third 1:1 unit representation)",
+      "3.2 The `n/a` implementation alias",
+      "3.3 Normalization and equivalence (the sugar never escapes)",
+      "3.4 Tests (minimum)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/015-establishes-wrapper-na-alias/spec.md",
+    "status": "approved",
+    "summary": "Two pieces of authoring sugar for the predecessor dialect, both normalized away at parse so nothing new reaches registry.json. (1) An authority unit may be written as a single-key `{ unit: <unit> }` wrapper -- a third 1:1 representation alongside the existing bare-string and tagged-map forms -- which the Unit deserializer unwraps to its inner unit. The corpus uses this on `establishes` items (one wrapper per item, `unit` the only field). (2) `implementation: n/a` is accepted as a deserialize-only alias for the canonical `n-a`, which stays the only spelling ever emitted. Neither changes the registry schema or any consumer; both unblock adopting a corpus authored in the OAP dialect (389 wrapped establishes items across ~97 specs; 5 specs using `n/a`) without a mass frontmatter migration.\n",
+    "title": "Frontmatter sugar: `unit:`-wrapped establishes items and the `n/a` implementation alias"
+  },
+  "shardHash": "c49bb5976c14cfc6af0568ab731c22ed80339d22e2a9950add91dfcec1063b3d",
+  "specVersion": "1.0.0"
+}

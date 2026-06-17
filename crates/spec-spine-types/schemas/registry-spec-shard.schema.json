@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spec-spine.dev/schemas/registry-spec-shard.schema.json",
+  "title": "spec-spine registry, per-spec shard (spec 024)",
+  "description": "One file per spec under <derived>/spec-registry/by-spec/<id>.json. The deterministic, conflict-free committed form of one spec's compiled record. The aggregate registry (validation, content hash) is recomputed on read from the shard set and is not committed. The record payload is intentionally permissive (additionalProperties) so an additive minor can extend it, matching registry.schema.json.",
+  "type": "object",
+  "required": ["specVersion", "shardHash", "record"],
+  "additionalProperties": false,
+  "properties": {
+    "specVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "shardHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "record": { "$ref": "#/$defs/specRecord" },
+    "localViolations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/violation" }
+    }
+  },
+  "$defs": {
+    "specRecord": {
+      "type": "object",
+      "required": ["id", "title", "status", "created", "summary", "specPath"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[0-9]{3}-[a-z0-9]+(-[a-z0-9]+)*$" },
+        "title": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["draft", "approved", "superseded", "retired"] },
+        "created": { "type": "string" },
+        "summary": { "type": "string" },
+        "specPath": { "type": "string", "pattern": "^.+/spec\\.md$" },
+        "risk": { "enum": ["low", "medium", "high", "critical"] },
+        "implementation": {
+          "enum": ["pending", "in-progress", "complete", "n-a", "deferred"]
+        },
+        "extraFrontmatter": {
+          "type": "object",
+          "description": "Adopter frontmatter transported by the compiler (spec 013)."
+        }
+      }
+    },
+    "violation": {
+      "type": "object",
+      "required": ["code", "severity", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string", "pattern": "^[A-Z]-[0-9]{3}$" },
+        "severity": { "enum": ["error", "warning", "info"] },
+        "message": { "type": "string", "minLength": 1 },
+        "path": { "type": "string" }
+      }
+    }
+  }
+}

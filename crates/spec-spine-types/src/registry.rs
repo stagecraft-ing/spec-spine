@@ -121,6 +121,38 @@ pub struct SpecRecord {
     pub extra_frontmatter: BTreeMap<String, serde_json::Value>,
 }
 
+// ===== sharded committed form (spec 024) =====
+//
+// The committed registry is stored as one file per spec so two PRs that add or
+// edit different specs write disjoint files and never conflict textually on a
+// shared content-hash line. The aggregate [`Registry`] above stays the universal
+// in-memory currency: the compiler projects it to shards, and a reader assembles
+// it back from the shard set. The aggregate `validation` and `build.contentHash`
+// are recomputed on read (cross-spec checks like duplicate-id / dangling edges
+// are pure functions of the assembled record set), never committed.
+
+/// One spec's registry shard: `<derived>/spec-registry/by-spec/<id>.json`.
+/// A PR that adds or edits spec X rewrites only X's shard (spec 024 FR-002).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegistrySpecShard {
+    /// `specVersion`; see [`crate::version::REGISTRY_SCHEMA_VERSION`].
+    pub spec_version: String,
+    /// SHA-256 over this spec's `spec.md` (the registry's only hashed input,
+    /// matching the pre-shard `build.contentHash` input set). Self-describing
+    /// per-shard staleness.
+    pub shard_hash: String,
+    /// This spec's compiled record.
+    pub record: SpecRecord,
+    /// Validation findings that are a pure function of THIS spec (V-001/002/
+    /// 005/006/007/011/012/013). Cross-spec findings (duplicate id/prefix,
+    /// dangling edges) are recomputed on read from the assembled record set, so
+    /// they are never stored here (storing them would make a sibling spec's PR
+    /// stale this shard). Omitted when empty: a clean spec carries none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub local_violations: Vec<Violation>,
+}
+
 /// Non-deterministic build metadata sidecar (`build-meta.json`). The wall-clock
 /// `built_at` lives here, never in `registry.json`, and is excluded from every
 /// determinism/golden check. The CLI populates `built_at`; the library never

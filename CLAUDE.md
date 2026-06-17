@@ -30,7 +30,7 @@ cargo test -p spec-spine-core compile::                # tests matching a path
 cargo test --workspace emitted_registry_conforms       # one test by name
 
 # Run the CLI from the checkout (the dogfood gate chain):
-cargo run -p spec-spine-cli -- compile                 # writes .derived/spec-registry/registry.json
+cargo run -p spec-spine-cli -- compile                 # writes .derived/spec-registry/by-spec/<id>.json shards
 cargo run -p spec-spine-cli -- index check             # staleness gate (exit 2 if stale)
 cargo run -p spec-spine-cli -- lint --fail-on-warn
 cargo run -p spec-spine-cli -- couple --base origin/main --head HEAD
@@ -84,9 +84,13 @@ code as `file` (bare string = file shorthand; trailing `/` = subtree), `section`
 (`{file, anchor}`), or `symbol` (`{id}`, resolved by tree-sitter, Rust + TS in
 v1; Python deferred). `crate`/`module`/`directory` kinds are reserved.
 
-Two views, joined by the gate: `compile` emits `registry.json` (spec-as-source);
-`index` emits `index.json` (code-as-source, with a content-hash staleness
-mechanism). The **gate chain is `compile → index → lint → couple`**. The
+Two views, joined by the gate: `compile` emits the spec-as-source registry;
+`index` emits the code-as-source index (with a per-shard staleness mechanism).
+Since spec 024 both are stored **sharded** (one committed file per authority unit:
+`spec-registry/by-spec/<id>.json`, `codebase-index/by-spec/<id>.json`,
+`codebase-index/by-package/<slug>.json`); the aggregate view is recomputed from
+the shard set on read, never committed. The **gate chain is `compile → index →
+lint → couple`**. The
 coupling clearance algorithm (amends-awareness, the strict-expansion guard,
 waiver parsing, bypass matching) is ported behaviorally intact from OAP. Modules
 cite their source; preserve the cited semantics when editing `couple.rs`.
@@ -96,30 +100,35 @@ cite their source; preserve the cited semantics when editing `couple.rs`.
 Emitted JSON is sorted-key, pretty-printed (2-space), LF, trailing newline.
 Content hashes are SHA-256 over `<repo-relative-POSIX-path>\0<normalized-bytes>`
 sorted by path, where normalization strips the BOM and converts CRLF/CR to LF
-(`.gitattributes` also enforces LF on checkout). `.github/workflows/determinism.yml`
-proves `registry.json` + `index.json` are **byte-identical across four release
-triples** (incl. tree-sitter symbol line-spans), not just locally. If you change
-emission, expect that gate to be the real test.
+(`.gitattributes` also enforces LF on checkout). Each shard self-describes a
+`shardHash`; the aggregate content hash is the fold of those.
+`.github/workflows/determinism.yml` proves the registry + index **shard trees**
+are **byte-identical across four release triples** (it folds every shard's path
+and content into one tree digest; incl. tree-sitter symbol line-spans), not just
+locally. If you change emission, expect that gate to be the real test.
 
 ## Self-governance (dogfood): why `.derived/` is committed
 
 This repo runs its own gates against its own corpus in CI (`.github/workflows/ci.yml`
 `self_governance` job). Consequences:
 
-- `.derived/spec-registry/registry.json` and `.derived/codebase-index/index.json`
-  are **committed** (only `build-meta.json` is gitignored). After any change that
-  affects them, regenerate and commit: `cargo run -p spec-spine-cli -- compile`
-  then `... index`. The `index check` step fails CI (exit 2) if the committed
-  index is stale; the coupling gate (PR-only) fails if code drifts from its spec.
+- The `.derived/spec-registry/by-spec/` and `.derived/codebase-index/{by-spec,by-package}/`
+  shard trees are **committed** (only `build-meta.json` is gitignored). After any
+  change that affects them, regenerate and commit: `cargo run -p spec-spine-cli -- compile`
+  then `... index`. The `index check` step fails CI (exit 2) if any committed
+  shard is stale or the shard set changed; the coupling gate (PR-only) fails if
+  code drifts from its spec.
 - Editing code under a path owned by a spec generally requires also editing that
   spec's `spec.md` (or adding a `Spec-Drift-Waiver:` line to the PR body). The
   bypass floor (docs, lockfiles, `.derived/`, per `couple.rs::DEFAULT_BYPASS_PREFIXES`,
   extended by `spec-spine.toml [coupling] bypass_prefixes`) exempts non-code paths.
-- **Merge conflicts on the committed artifacts (spec 020).** Because both carry a
-  global content hash, two branches that regenerated them conflict textually. An
-  opt-in per-clone git merge driver resolves this by regenerating from the merged
-  tree. Enable it once per clone: `./.githooks/enable-merge-driver.sh` (build the
-  binary first; the driver shells out to `spec-spine compile && index`). It is
+- **Merge conflicts on the committed artifacts (spec 020, narrowed by spec 024).**
+  Sharding (spec 024) removes the common conflict: two PRs touching different
+  specs/packages now write disjoint shard files. The opt-in per-clone git merge
+  driver remains for the rare same-shard conflict (two PRs editing the same unit),
+  regenerating from the merged tree. Enable it once per clone:
+  `./.githooks/enable-merge-driver.sh` (build the binary first; the driver shells
+  out to `spec-spine compile && index`). It is
   inert until registered, and never replaces the `index check` staleness gate.
 
 When working on a feature, add or amend the governing spec under `specs/` in the

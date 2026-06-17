@@ -1,0 +1,231 @@
+{
+  "record": {
+    "authors": [
+      "The spec-spine Authors"
+    ],
+    "created": "2026-06-16",
+    "dependsOn": [
+      "001-compile-registry",
+      "002-registry-query",
+      "004-codebase-index",
+      "005-coupling-gate",
+      "012-index-hash-slices",
+      "020-derived-artifact-merge-driver"
+    ],
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/shard.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-types/schemas/codebase-index-spec-shard.schema.json"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-types/schemas/codebase-index-package-shard.schema.json"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-types/schemas/registry-spec-shard.schema.json"
+      }
+    ],
+    "extends": [
+      {
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/index.rs"
+        }
+      },
+      {
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/codebase.rs"
+        }
+      },
+      {
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_index.rs"
+        }
+      },
+      {
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/index.rs"
+        }
+      },
+      {
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/compile.rs"
+        }
+      },
+      {
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/registry.rs"
+        }
+      },
+      {
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_compile.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/lib.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/tests/cli.rs"
+        }
+      },
+      {
+        "spec": "002-registry-query",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_registry.rs"
+        }
+      },
+      {
+        "spec": "005-coupling-gate",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/couple.rs"
+        }
+      },
+      {
+        "spec": "005-coupling-gate",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_couple.rs"
+        }
+      },
+      {
+        "spec": "012-index-hash-slices",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/version.rs"
+        }
+      },
+      {
+        "spec": "012-index-hash-slices",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/schema.rs"
+        }
+      },
+      {
+        "spec": "012-index-hash-slices",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/dtos.rs"
+        }
+      },
+      {
+        "spec": "012-index-hash-slices",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/conformance.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/lib.rs"
+        }
+      },
+      {
+        "spec": "011-index-render-orphans",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/render.rs"
+        }
+      },
+      {
+        "spec": "006-init-scaffold",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/tests/init.rs"
+        }
+      },
+      {
+        "spec": "020-derived-artifact-merge-driver",
+        "unit": {
+          "kind": "file",
+          "path": ".githooks/merge-derived-index.sh"
+        }
+      },
+      {
+        "spec": "020-derived-artifact-merge-driver",
+        "unit": {
+          "kind": "file",
+          "path": ".githooks/enable-merge-driver.sh"
+        }
+      }
+    ],
+    "id": "024-index-sharding",
+    "implementation": "complete",
+    "kind": "tooling",
+    "references": [
+      {
+        "role": "context",
+        "unit": {
+          "kind": "file",
+          "path": "docs/design/00-architecture.md"
+        }
+      },
+      {
+        "role": "context",
+        "unit": {
+          "kind": "file",
+          "path": "specs/020-derived-artifact-merge-driver/spec.md"
+        }
+      },
+      {
+        "role": "context",
+        "unit": {
+          "kind": "file",
+          "path": "specs/012-index-hash-slices/spec.md"
+        }
+      }
+    ],
+    "risk": "medium",
+    "sectionHeadings": [
+      "024: Per-unit shard storage",
+      "1. Purpose",
+      "2. Territory",
+      "3. The shard model",
+      "4. Behavior (MUST / SHOULD)",
+      "5. Staleness fidelity (a deliberate, bounded trade)",
+      "6. Migration",
+      "7. Relationship to the merge queue (complement, not replacement)",
+      "8. Out of scope",
+      "9. Acceptance criteria"
+    ],
+    "specPath": "specs/024-index-sharding/spec.md",
+    "status": "draft",
+    "summary": "The two committed artifacts (the spec registry and the codebase index) were each emitted as one file behind one global content-hash line with id-sorted arrays. Because every spec or package PR rewrites that one hash line, two PRs touching different units collide textually, and GitHub's server-side merge (the web button and the merge queue's speculative build) does not run the spec-020 merge driver, so the conflict surfaces there and the merge queue ejects sibling PRs. This spec shards both artifacts by authority unit: per-spec registry shards under spec-registry/by-spec/<id>.json, per-spec traceability shards under codebase-index/by-spec/<id>.json, and per-package inventory shards under codebase-index/by-package/<slug>.json, each carrying its own input hash. The global view (validation, orphans, untraced code, the aggregate content hash) is computed ON READ from the shard set rather than committed, so there is no shared file to conflict on. Two PRs touching different specs then write disjoint files and never conflict, so the merge queue forms clean speculative stacks and auto-merge stops ejecting in-flight PRs. Staleness becomes per-shard (sharper than the broad hash), the committed shards stay present-on-clone, and a MAJOR schema bump (registry + index -> 1.0.0) marks the new on-disk shape. This generalizes spec 012 (index hash slices) from scoped staleness CHECKING to per-unit STORAGE, and it removes the textual-conflict cause spec 020's merge driver only papers over locally.\n",
+    "title": "Per-unit shard storage (conflict-free committed registry + index)"
+  },
+  "shardHash": "f944e904e4ed272e52061a40eacf6e1628a8e65ebf9fafef7a95b31db06fcf2c",
+  "specVersion": "1.0.0"
+}

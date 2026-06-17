@@ -1,0 +1,68 @@
+{
+  "record": {
+    "amends": [
+      "005-coupling-gate"
+    ],
+    "created": "2026-06-11",
+    "dependsOn": [
+      "005-coupling-gate"
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "005-coupling-gate",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/couple.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "005-coupling-gate",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/couple.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "005-coupling-gate",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_couple.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "005-coupling-gate",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/tests/couple.rs"
+        }
+      }
+    ],
+    "id": "009-coupling-floor-claim-precedence",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "009: Explicit unit claims take precedence over the bypass floor",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 The precedence rule",
+      "3.2 What does NOT override bypass",
+      "3.3 Precedence over adopter additions too",
+      "3.4 Effect on this repo's own corpus",
+      "3.5 Determinism and report shape",
+      "3.6 Tests (minimum)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/009-coupling-floor-claim-precedence/spec.md",
+    "status": "approved",
+    "summary": "Amends 005 §3.5: a path covered by an explicit unit claim (a file, section, or symbol declared in some spec's ownership-bearing edge and resolved into the index) is NEVER bypassed, even when it matches the hardcoded floor or an adopter's additive bypass list. Implicit path-level ownership (manifest floors, comment headers) keeps deferring to bypass. Closes the silent- weakening hole where an adopter who governs workflow YAML or specific docs by explicit claim would have those claims ignored because `.github/` and `docs/` sit on the immutable floor.\n",
+    "title": "Coupling gate: explicit unit claims take precedence over the bypass floor"
+  },
+  "shardHash": "fafe4b8775e6cffee0338ce5f7facbefbc9bce0b681a6cfcecdd167bb085b2c8",
+  "specVersion": "1.0.0"
+}

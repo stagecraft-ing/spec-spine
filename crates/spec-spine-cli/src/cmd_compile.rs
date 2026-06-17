@@ -1,9 +1,14 @@
-//! `spec-spine compile`: write `registry.json` (deterministic) and
-//! `build-meta.json` (wall-clock sidecar) under `<derived_dir>/spec-registry/`.
+//! `spec-spine compile`: write the per-spec registry shards (deterministic;
+//! spec 024) under `<derived_dir>/spec-registry/by-spec/`, plus the wall-clock
+//! `build-meta.json` sidecar. The single monolithic `registry.json` is no
+//! longer emitted, so two PRs that add or edit different specs write disjoint
+//! files and never conflict on a global content-hash line.
 
 use std::fs;
 use std::path::Path;
 
+use spec_spine_core::shard::{self, BY_SPEC_DIR};
+use spec_spine_core::{registry_dir, registry_shard_files};
 use spec_spine_types::{BUILD_META_SCHEMA_VERSION, BuildMeta, Error, Severity};
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
@@ -15,13 +20,23 @@ pub fn run(repo: &Path) -> Result<u8, Error> {
     let cfg = load_repo_config(repo)?;
     let outcome = spec_spine_core::compile(&cfg, repo)?;
 
-    let out_dir = repo.join(&cfg.layout.derived_dir).join("spec-registry");
+    let out_dir = registry_dir(&cfg, repo);
     fs::create_dir_all(&out_dir)
         .map_err(|e| Error::Io(format!("create {}: {e}", out_dir.display())))?;
 
-    let registry_path = out_dir.join("registry.json");
-    fs::write(&registry_path, &outcome.json)
-        .map_err(|e| Error::Io(format!("write {}: {e}", registry_path.display())))?;
+    // Per-spec shards. `sync_dir` prunes a removed spec's shard, so the shard set
+    // always equals the current corpus.
+    let shard_files = registry_shard_files(&outcome.shards)?;
+    let by_spec = out_dir.join(BY_SPEC_DIR);
+    shard::sync_dir(&by_spec, &shard_files)?;
+
+    // Drop a pre-024 monolithic registry.json on upgrade (it is no longer the
+    // committed form; the shard tree supersedes it).
+    let legacy = out_dir.join("registry.json");
+    if legacy.exists() {
+        fs::remove_file(&legacy)
+            .map_err(|e| Error::Io(format!("remove {}: {e}", legacy.display())))?;
+    }
 
     // build-meta.json carries the wall clock; the CLI owns it. Excluded from
     // determinism/golden checks and from version control (see .gitignore).
@@ -56,7 +71,7 @@ pub fn run(repo: &Path) -> Result<u8, Error> {
         println!(
             "compiled {} spec(s) -> {} ({} warning(s))",
             outcome.registry.specs.len(),
-            registry_path.display(),
+            by_spec.display(),
             warnings
         );
         Ok(0)

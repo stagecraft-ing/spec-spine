@@ -69,10 +69,10 @@ fn validation_passed_follows_error_tier() {
 
 #[test]
 fn schema_versions_are_pinned() {
-    // 0.3.0: structured/partial `supersedes` items (spec 019).
-    assert_eq!(REGISTRY_SCHEMA_VERSION, "0.3.0");
-    // 0.3.0: additive `directory`/`crate`/`module` resolved-unit kinds (spec 017).
-    assert_eq!(INDEX_SCHEMA_VERSION, "0.3.0");
+    // 1.0.0: MAJOR; the committed registry is sharded per-spec (spec 024).
+    assert_eq!(REGISTRY_SCHEMA_VERSION, "1.0.0");
+    // 1.0.0: MAJOR; the committed index is sharded per-spec/per-package (spec 024).
+    assert_eq!(INDEX_SCHEMA_VERSION, "1.0.0");
     assert_eq!(BUILD_META_SCHEMA_VERSION, "0.1.0");
     assert_eq!(CONFIG_VERSION, "0.1.0");
 }

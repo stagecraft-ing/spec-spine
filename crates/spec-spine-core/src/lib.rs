@@ -27,6 +27,7 @@ pub mod query;
 pub mod render;
 pub mod scaffold;
 pub mod sections;
+pub mod shard;
 pub mod symbols;
 
 use serde::{Deserialize, Serialize};
@@ -41,7 +42,10 @@ pub use spec_spine_types::{
 pub use attest::{
     AttestOptions, AttestOutcome, VerifyOutcome, attest, attestation_hash, verify_recompute,
 };
-pub use compile::{CompileOutcome, MAX_UNDECLARED_EXTRA_FRONTMATTER, compile};
+pub use compile::{
+    CompileOutcome, MAX_UNDECLARED_EXTRA_FRONTMATTER, RegistryShardSet, compile,
+    load_committed_registry, registry_dir, registry_shard_files,
+};
 pub use couple::{
     CoupleReport, DEFAULT_BYPASS_PREFIXES, DiffFile, DiffInput, Waiver, couple, couple_with,
     is_bypassed_path, parse_waiver,
@@ -51,7 +55,8 @@ pub use dep_only::{
     is_package_json,
 };
 pub use index::{
-    Freshness, IndexOutcome, authorities, check_index_freshness, check_slice_freshness, index,
+    Freshness, IndexOutcome, IndexShardSet, authorities, check_index_freshness,
+    check_slice_freshness, index, index_dir, index_shard_files, load_committed_index, slices_path,
 };
 pub use lint::{LintReport, lint};
 pub use query::{

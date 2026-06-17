@@ -1,0 +1,145 @@
+{
+  "record": {
+    "created": "2026-06-12",
+    "dependsOn": [
+      "001-compile-registry",
+      "005-coupling-gate"
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/edges.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/frontmatter.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/lib.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/grammar.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/dtos.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/registry.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/version.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/compile.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/compile.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "002-registry-query",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/query.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "003-conformance-lint",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/lint.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/index.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "005-coupling-gate",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/couple.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "005-coupling-gate",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/couple.rs"
+        }
+      }
+    ],
+    "id": "019-structured-partial-supersedes",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "019: structured and partial supersedes",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 Grammar",
+      "3.2 Normalization & wire (the full form never escapes)",
+      "3.3 Authority transfer",
+      "3.4 Short-id resolution",
+      "3.5 Tests (minimum)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/019-structured-partial-supersedes/spec.md",
+    "status": "approved",
+    "summary": "Implements Option A from `docs/design/01-partial-supersession.md`: a `supersedes` item may be a bare predecessor id (full) or a structured `{ spec, scope, unit?, note?, rationale? }`. A full item (bare id or `scope: full`) normalizes to the bare-string form, so a full-only corpus emits a byte-identical registry; the wire is unchanged for every existing adopter; only a partial item serializes as an object. `scope: partial` with a `unit` transfers authority over that unit alone (additive, the predecessor keeps it and everything else), threaded through the index as a `supersedes` resolved unit so the gate already treats the successor as an owner of that unit's paths; `build_superseders` therefore contributes only **full** supersession to the whole-spec transfer. A partial item with no unit (a documentary lifecycle marker) transfers nothing. Short ids on the predecessor resolve like `depends_on` (spec 016). Unblocks the OAP corpus shapes 073 (`scope: full`), 108 (bare short id), 114 (`partial` + unit), and 199 (`partial` + note).\n",
+    "title": "Supersedes grammar: structured items and partial (unit-scoped) transfer"
+  },
+  "shardHash": "60e1fc1e10a19cb2865cbdabdcd6acec3216048e97251d503f71fb4cc8903206",
+  "specVersion": "1.0.0"
+}

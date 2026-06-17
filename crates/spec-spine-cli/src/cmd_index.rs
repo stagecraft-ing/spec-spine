@@ -1,16 +1,20 @@
-//! `spec-spine index`: write `index.json`; `spec-spine index check`: staleness;
-//! `spec-spine index render` / `index orphans`: read-side projections of the
-//! committed artifact (spec 011; never recompute, never check freshness).
+//! `spec-spine index`: write the per-spec/per-package index shards (spec 024)
+//! under `<derived>/codebase-index/{by-spec,by-package}/`; `spec-spine index
+//! check`: per-shard staleness; `spec-spine index render` / `index orphans`:
+//! read-side projections of the committed shard set (spec 011; never recompute,
+//! never check freshness). The single monolithic `index.json` is no longer
+//! emitted, so PRs touching different specs/packages write disjoint files.
 
 use std::fs;
 use std::path::Path;
 
 use clap::Subcommand;
+use spec_spine_core::shard::{self, BY_PACKAGE_DIR, BY_SPEC_DIR};
 use spec_spine_core::{
-    Freshness, check_index_freshness, check_slice_freshness, index, load_index, orphans,
-    render_markdown,
+    Freshness, check_index_freshness, check_slice_freshness, index, index_dir, index_shard_files,
+    load_committed_index, orphans, render_markdown, slices_path,
 };
-use spec_spine_types::{CodebaseIndex, Config, Error};
+use spec_spine_types::{Config, Error};
 
 use crate::load_repo_config;
 
@@ -18,7 +22,7 @@ use crate::load_repo_config;
 pub enum IndexAction {
     /// Check the committed index against current inputs (the staleness gate).
     Check {
-        /// Gate one named [index.slices] slice instead of the global hash.
+        /// Gate one named [index.slices] slice instead of the shard set.
         #[arg(long, value_name = "NAME")]
         slice: Option<String>,
     },
@@ -31,34 +35,18 @@ pub enum IndexAction {
     },
 }
 
-/// Read and parse the committed `index.json` (spec 011 §3.1: the projections
-/// read the artifact, never the working tree).
-fn load_committed_index(repo: &Path, cfg: &Config) -> Result<CodebaseIndex, Error> {
-    let path = repo
-        .join(&cfg.layout.derived_dir)
-        .join("codebase-index")
-        .join("index.json");
-    let bytes = fs::read(&path).map_err(|e| {
-        Error::Io(format!(
-            "read {} (run `spec-spine index` first?): {e}",
-            path.display()
-        ))
-    })?;
-    load_index(&bytes)
-}
-
-/// `index` (no action) writes the index; `index check` verifies freshness.
+/// `index` (no action) writes the shard tree; `index check` verifies freshness.
 pub fn run(repo: &Path, action: Option<&IndexAction>) -> Result<u8, Error> {
     let cfg = load_repo_config(repo)?;
 
     match action {
         Some(IndexAction::Render) => {
-            let idx = load_committed_index(repo, &cfg)?;
+            let idx = load_committed_index(&cfg, repo)?;
             print!("{}", render_markdown(&cfg, &idx));
             Ok(0)
         }
         Some(IndexAction::Orphans { json }) => {
-            let idx = load_committed_index(repo, &cfg)?;
+            let idx = load_committed_index(&cfg, repo)?;
             let ids = orphans(&idx);
             if *json {
                 let s =
@@ -86,20 +74,31 @@ pub fn run(repo: &Path, action: Option<&IndexAction>) -> Result<u8, Error> {
                 }
                 Freshness::Stale { expected, actual } => {
                     eprintln!("{subject} is STALE (run `spec-spine index` to refresh)");
-                    eprintln!("  expected content-hash: {expected}");
-                    eprintln!("  actual content-hash:   {actual}");
+                    eprintln!("  expected: {expected}");
+                    eprintln!("  actual:   {actual}");
                     Ok(2)
                 }
             }
         }
         None => {
             let outcome = index(&cfg, repo)?;
-            let out_dir = repo.join(&cfg.layout.derived_dir).join("codebase-index");
-            fs::create_dir_all(&out_dir)
-                .map_err(|e| Error::Io(format!("create {}: {e}", out_dir.display())))?;
-            let path = out_dir.join("index.json");
-            fs::write(&path, &outcome.json)
-                .map_err(|e| Error::Io(format!("write {}: {e}", path.display())))?;
+            let dir = index_dir(&cfg, repo);
+            fs::create_dir_all(&dir)
+                .map_err(|e| Error::Io(format!("create {}: {e}", dir.display())))?;
+
+            // Per-spec + per-package shards; `sync_dir` prunes a removed unit's
+            // shard so the shard set always equals the current corpus.
+            let (by_spec, by_package) = index_shard_files(&outcome.shards)?;
+            shard::sync_dir(&dir.join(BY_SPEC_DIR), &by_spec)?;
+            shard::sync_dir(&dir.join(BY_PACKAGE_DIR), &by_package)?;
+            write_slices(&cfg, repo, &outcome.index.build.slice_hashes)?;
+
+            // Drop a pre-024 monolithic index.json on upgrade.
+            let legacy = dir.join("index.json");
+            if legacy.exists() {
+                fs::remove_file(&legacy)
+                    .map_err(|e| Error::Io(format!("remove {}: {e}", legacy.display())))?;
+            }
 
             let idx = &outcome.index;
             for diag in &idx.diagnostics.errors {
@@ -110,10 +109,34 @@ pub fn run(repo: &Path, action: Option<&IndexAction>) -> Result<u8, Error> {
                 "indexed {} package(s), {} mapping(s) -> {} ({} error diagnostic(s))",
                 idx.packages.len(),
                 idx.traceability.mappings.len(),
-                path.display(),
+                dir.display(),
                 idx.diagnostics.errors.len()
             );
             Ok(0)
         }
     }
+}
+
+/// Write (or remove) the per-slice sidecar `slices.json` (spec 012/024). The
+/// slices live in their own small file emitted only when `[index.slices]` is
+/// configured, so a corpus with no slices commits no such file. Canonical
+/// (`BTreeMap` ⇒ sorted keys, 2-space, trailing LF).
+fn write_slices(
+    cfg: &Config,
+    repo: &Path,
+    slice_hashes: &std::collections::BTreeMap<String, String>,
+) -> Result<(), Error> {
+    let path = slices_path(cfg, repo);
+    if slice_hashes.is_empty() {
+        if path.exists() {
+            fs::remove_file(&path)
+                .map_err(|e| Error::Io(format!("remove {}: {e}", path.display())))?;
+        }
+        return Ok(());
+    }
+    let json = serde_json::to_string_pretty(slice_hashes)
+        .map_err(|e| Error::Schema(e.to_string()))?
+        + "\n";
+    fs::write(&path, json).map_err(|e| Error::Io(format!("write {}: {e}", path.display())))?;
+    Ok(())
 }

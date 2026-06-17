@@ -37,9 +37,9 @@ pub use attest::{
     LintVerdict, ToolStamp, Verdicts,
 };
 pub use codebase::{
-    CodebaseIndex, Diagnostic, Diagnostics, ImplementingPath, IndexBuild, LineSpan, PackageKind,
-    PackageRecord, ResolvedLocation, ResolvedUnit, SourceField, TraceMapping, TraceSource,
-    Traceability,
+    CodebaseIndex, Diagnostic, Diagnostics, ImplementingPath, IndexBuild, IndexPackageShard,
+    IndexSpecShard, LineSpan, PackageKind, PackageRecord, ResolvedLocation, ResolvedUnit,
+    SourceField, TraceMapping, TraceSource, Traceability,
 };
 pub use config::{
     AllowlistConfig, BrandingConfig, Config, CouplingConfig, FrontmatterConfig, IndexConfig,
@@ -54,8 +54,14 @@ pub use frontmatter::{
     Frontmatter, FrontmatterIssue, Implementation, KNOWN_KEYS, Risk, Status, parse_frontmatter,
     parse_frontmatter_with, split_frontmatter,
 };
-pub use registry::{Build, BuildMeta, Registry, Severity, SpecRecord, ValidationReport, Violation};
-pub use schema::{BUILD_META_SCHEMA, INDEX_SCHEMA, REGISTRY_SCHEMA};
+pub use registry::{
+    Build, BuildMeta, Registry, RegistrySpecShard, Severity, SpecRecord, ValidationReport,
+    Violation,
+};
+pub use schema::{
+    BUILD_META_SCHEMA, INDEX_PACKAGE_SHARD_SCHEMA, INDEX_SCHEMA, INDEX_SPEC_SHARD_SCHEMA,
+    REGISTRY_SCHEMA, REGISTRY_SPEC_SHARD_SCHEMA,
+};
 pub use unit::Unit;
 pub use version::{
     BUILD_META_SCHEMA_VERSION, CONFIG_VERSION, INDEX_SCHEMA_VERSION, REGISTRY_SCHEMA_VERSION,

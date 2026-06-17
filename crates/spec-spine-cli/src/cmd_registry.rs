@@ -1,13 +1,13 @@
 //! `spec-spine registry …`: typed, read-only queries over the compiled
-//! registry. Reads `registry.json` via the library loader (never ad-hoc parsing,
-//! per spec 000 §1).
+//! registry. Assembles the registry from its committed per-spec shards via the
+//! library (never ad-hoc parsing, per spec 000 §1; the shard tree replaces the
+//! monolithic `registry.json` since spec 024).
 
-use std::fs;
 use std::path::Path;
 
 use clap::Subcommand;
 use spec_spine_core::{
-    ListFilter, list, list_ids, load_registry, relationships, show, status_report,
+    ListFilter, list, list_ids, load_committed_registry, relationships, show, status_report,
 };
 use spec_spine_types::{Error, Status};
 
@@ -51,17 +51,7 @@ pub enum RegistryQuery {
 /// caller's exit-code mapping.
 pub fn run(repo: &Path, query: &RegistryQuery) -> Result<u8, Error> {
     let cfg = load_repo_config(repo)?;
-    let registry_path = repo
-        .join(&cfg.layout.derived_dir)
-        .join("spec-registry")
-        .join("registry.json");
-    let bytes = fs::read(&registry_path).map_err(|e| {
-        Error::Io(format!(
-            "read {} (run `spec-spine compile` first?): {e}",
-            registry_path.display()
-        ))
-    })?;
-    let registry = load_registry(&bytes)?;
+    let registry = load_committed_registry(&cfg, repo)?;
 
     match query {
         RegistryQuery::List {

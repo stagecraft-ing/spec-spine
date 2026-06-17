@@ -188,6 +188,55 @@ pub struct Diagnostics {
     pub errors: Vec<Diagnostic>,
 }
 
+impl Diagnostics {
+    /// No diagnostics of either tier (used to omit an empty block from a shard).
+    pub fn is_empty(&self) -> bool {
+        self.warnings.is_empty() && self.errors.is_empty()
+    }
+}
+
+// ===== sharded committed form (spec 024) =====
+//
+// The committed index is stored as one file per authority unit so two PRs that
+// touch different specs/packages write disjoint files and never conflict
+// textually. The aggregate [`CodebaseIndex`] above stays the universal in-memory
+// currency: the emitter projects it to shards, and a reader assembles it back
+// from the shard set (orphans / untraced code / `build.contentHash` are pure
+// functions of the shards, recomputed on read, never committed).
+
+/// One spec's traceability shard: `<derived>/codebase-index/by-spec/<id>.json`.
+/// A PR confined to spec X's inputs rewrites only X's shard (spec 024 FR-002).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IndexSpecShard {
+    /// `schemaVersion`; see [`crate::version::INDEX_SCHEMA_VERSION`].
+    pub schema_version: String,
+    /// SHA-256 over this spec's inputs: its `spec.md`, the source files backing
+    /// its resolved symbol/section/module spans, and the global-inputs scalar
+    /// (config + `extra_hashed_inputs`). Self-describing per-shard staleness.
+    pub shard_hash: String,
+    /// This spec's mapping onto the code.
+    pub mapping: TraceMapping,
+    /// Resolver diagnostics scoped to this spec (`I-003`..`I-009` block `check`).
+    /// Omitted when empty, so a clean spec's shard carries no diagnostics block.
+    #[serde(default, skip_serializing_if = "Diagnostics::is_empty")]
+    pub diagnostics: Diagnostics,
+}
+
+/// One package's inventory shard: `<derived>/codebase-index/by-package/<slug>.json`.
+/// A PR confined to a package's manifest rewrites only that package's shard.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IndexPackageShard {
+    /// `schemaVersion`; see [`crate::version::INDEX_SCHEMA_VERSION`].
+    pub schema_version: String,
+    /// SHA-256 over this package's manifest (governance projection) folded with
+    /// the global-inputs scalar.
+    pub shard_hash: String,
+    /// The discovered compilation unit.
+    pub package: PackageRecord,
+}
+
 /// A single index diagnostic (`I-###`).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

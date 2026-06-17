@@ -1,0 +1,65 @@
+{
+  "record": {
+    "created": "2026-06-11",
+    "dependsOn": [
+      "004-codebase-index"
+    ],
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/src/render.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/spec-spine-core/tests/render.rs"
+      }
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/src/cmd_index.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/lib.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-cli/tests/cli.rs"
+        }
+      }
+    ],
+    "id": "011-index-render-orphans",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "011: `index render` and `index orphans`",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 Common contract",
+      "3.2 `index render` -- the markdown projection",
+      "3.3 `index orphans`",
+      "3.4 Tests (minimum)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/011-index-render-orphans/spec.md",
+    "status": "approved",
+    "summary": "Implements the two subcommands spec 004's CLI reserved but stubbed: `spec-spine index render` (a deterministic human-shaped markdown projection of the committed index.json -- package inventory, traceability, diagnostics) and `spec-spine index orphans` (the orphanedSpecs list, newline ids or a --json array). Both are pure read-side projections of the committed artifact; neither recomputes the index. Establishes the render module; extends the index CLI dispatch.\n",
+    "title": "Index: implement the reserved render and orphans subcommands"
+  },
+  "shardHash": "6d8ae06d93216cdeb1367f2476b2a9754c73a6aebb9ec57f9c6f350d877fd0be",
+  "specVersion": "1.0.0"
+}

@@ -13,9 +13,9 @@
 #   git config --unset merge.spec-spine-derived-regen.driver
 #   git config --unset merge.spec-spine-derived-regen.name
 #
-# The path to driver assignment (`.derived/spec-registry/registry.json` and
-# `.derived/codebase-index/index.json` -> `merge=spec-spine-derived-regen`) lives
-# in committed `.gitattributes`, and the driver itself is
+# The path to driver assignment (the sharded `.derived/**/by-spec/*.json` and
+# `.derived/codebase-index/by-package/*.json` globs -> `merge=spec-spine-derived-regen`,
+# spec 024) lives in committed `.gitattributes`, and the driver itself is
 # `.githooks/merge-derived-index.sh`; both travel with the repo. This script only
 # wires the non-committed registration that connects them. Safe to re-run;
 # `git config` overwrites idempotently.
@@ -31,6 +31,6 @@ git config merge.spec-spine-derived-regen.driver ".githooks/merge-derived-index.
 echo "[enable-merge-driver] spec-spine-derived-regen registered in $root/.git/config"
 echo "  name:      $(git config --get merge.spec-spine-derived-regen.name)"
 echo "  driver:    $(git config --get merge.spec-spine-derived-regen.driver)"
-echo "  registry:  $(git check-attr merge .derived/spec-registry/registry.json)"
-echo "  index:     $(git check-attr merge .derived/codebase-index/index.json)"
+echo "  registry:  $(git check-attr merge .derived/spec-registry/by-spec/000-x.json)"
+echo "  index:     $(git check-attr merge .derived/codebase-index/by-spec/000-x.json)"
 echo "[enable-merge-driver] derived-artifact conflicts will now auto-regenerate on merge/rebase."

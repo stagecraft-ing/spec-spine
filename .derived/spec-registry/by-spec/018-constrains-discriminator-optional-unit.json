@@ -1,0 +1,80 @@
+{
+  "record": {
+    "created": "2026-06-12",
+    "dependsOn": [
+      "001-compile-registry",
+      "004-codebase-index"
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/edges.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "000-spec-spine-bootstrap",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/grammar.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/compile.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "001-compile-registry",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/compile.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/index.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/index.rs"
+        }
+      }
+    ],
+    "id": "018-constrains-discriminator-optional-unit",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "sectionHeadings": [
+      "018: constrains discriminator and optional unit",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 Grammar",
+      "3.2 Index projection",
+      "3.3 Validation: V-011",
+      "3.4 Tests (minimum)",
+      "4. Out of scope"
+    ],
+    "specPath": "specs/018-constrains-discriminator-optional-unit/spec.md",
+    "status": "approved",
+    "summary": "Widens the `constrains` item grammar to the two shapes the predecessor dialect authors: a **path-scoped** constraint (`unit:`, the canonical `invariant-freeze` over a file or schema) and a **spec-scoped** constraint (`target_specs:`, a sequencing/ordering plan over other specs with no code unit). Two changes: `unit` becomes optional, and an optional documentary discriminator is accepted under either spelling `flavor:` or `kind:` (synonyms, not gate-load-bearing). A new V-011 requires every item to scope at least one of `unit` / `target_specs`. A spec-scoped item contributes no resolved unit to the index. Unblocks the OAP corpus, which authors `{ flavor: invariant-freeze, unit }` (spec 130) and `{ kind: <plan>, target_specs }` (specs 078, 089), both rejected by the unit-required, discriminator-less v1 grammar.\n",
+    "title": "Constrains grammar: classification discriminator and optional unit"
+  },
+  "shardHash": "245f184e4d47adc3dc2d9193cd9049eab928f2d44aea33c5d0cb2b0a4077e35b",
+  "specVersion": "1.0.0"
+}
