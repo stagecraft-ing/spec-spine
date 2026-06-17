@@ -1,7 +1,7 @@
 ---
 id: "023-ledger-seal"
 title: "Ledger Seal (signed, reproducible attestation over the spec corpus)"
-status: draft
+status: approved
 created: "2026-06-16"
 authors: ["The spec-spine Authors"]
 kind: tooling
