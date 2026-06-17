@@ -1,7 +1,7 @@
 ---
 id: "024-index-sharding"
 title: "Per-unit shard storage (conflict-free committed registry + index)"
-status: draft
+status: approved
 created: "2026-06-16"
 authors: ["The spec-spine Authors"]
 kind: tooling
