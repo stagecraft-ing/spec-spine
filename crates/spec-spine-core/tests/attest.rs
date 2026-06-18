@@ -97,13 +97,17 @@ fn ac5_a_different_tool_version_is_a_named_version_mismatch() {
 #[test]
 fn ac3_with_coupling_verdict_is_independently_checkable() {
     let tmp = tempfile::tempdir().unwrap();
-    // A spec that claims a code unit via a file establishes edge.
-    write_spec(
-        tmp.path(),
-        "001-a",
-        "001-a",
-        "establishes:\n  - \"code.txt\"\n",
-    );
+    // A spec that claims a code unit via a file establishes edge. It must be
+    // settled (approved + complete): under spec 025 a missing owning unit only
+    // blocks the coupling verdict for a settled spec; a draft/pending spec's
+    // unbuilt unit is a non-blocking W-001 (legitimate in-flight work).
+    let spec_dir = tmp.path().join("specs").join("001-a");
+    fs::create_dir_all(&spec_dir).unwrap();
+    fs::write(
+        spec_dir.join("spec.md"),
+        "---\nid: \"001-a\"\ntitle: \"Title 001-a\"\nstatus: approved\nimplementation: complete\ncreated: \"2026-06-08\"\nsummary: \"s\"\nestablishes:\n  - \"code.txt\"\n---\n# 001-a\n",
+    )
+    .unwrap();
     fs::write(tmp.path().join("code.txt"), "fn main() {}\n").unwrap();
     let cfg = Config::default();
 

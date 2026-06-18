@@ -44,6 +44,6 @@
     "specId": "003-conformance-lint",
     "specStatus": "approved"
   },
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "shardHash": "59d5518573e23ea8b68925255c10fa945f3f61957eca451212889d40b9e9f3de"
 }

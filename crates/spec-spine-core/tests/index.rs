@@ -33,6 +33,14 @@ fn spec(id: &str, body: &str) -> String {
     )
 }
 
+/// Like [`spec`] but with an explicit lifecycle `status` (spec 025 fixtures need
+/// `draft` corpora; the default helper hardcodes `approved`).
+fn spec_with_status(id: &str, status: &str, body: &str) -> String {
+    format!(
+        "---\nid: \"{id}\"\ntitle: \"T\"\nstatus: {status}\ncreated: \"2026-06-09\"\nsummary: \"s\"\n{body}---\n# {id}\n"
+    )
+}
+
 /// A mixed Rust + npm fixture exercising manifest discovery, the encore fix, and
 /// symbol resolution in both languages.
 fn mixed_fixture() -> tempfile::TempDir {
@@ -173,6 +181,153 @@ fn missing_file_unit_is_blocking_diagnostic_i004() {
     );
     let idx = index(&Config::default(), tmp.path()).unwrap().index;
     assert!(idx.diagnostics.errors.iter().any(|d| d.code == "I-004"));
+}
+
+// ===== spec 025: lifecycle- and edge-aware unresolved-unit severity =====
+
+/// AC-1: an unresolved unit on a non-owning `references` edge is a counted
+/// `W-002` warning, never a blocking error, regardless of lifecycle.
+#[test]
+fn ac1_unresolved_reference_is_w002_warning_not_error() {
+    let tmp = tempfile::tempdir().unwrap();
+    write(tmp.path(), "Cargo.toml", "[workspace]\nmembers = []\n");
+    write(
+        tmp.path(),
+        "specs/001-x/spec.md",
+        &spec(
+            "001-x",
+            "implementation: complete\nreferences:\n  - { unit: { kind: file, path: \"docs/gone.md\" }, role: context }\n",
+        ),
+    );
+    let idx = index(&Config::default(), tmp.path()).unwrap().index;
+    assert!(
+        idx.diagnostics.errors.is_empty(),
+        "a dangling reference must not block: {:?}",
+        idx.diagnostics.errors
+    );
+    assert_eq!(
+        idx.diagnostics
+            .warnings
+            .iter()
+            .filter(|d| d.code == "W-002")
+            .count(),
+        1,
+        "exactly one W-002 for the unresolved reference"
+    );
+}
+
+/// AC-2: an unresolved owning unit on a `draft` spec is a counted `W-001`
+/// warning, never a blocking error (legitimate in-flight work).
+#[test]
+fn ac2_draft_owning_unit_is_w001_warning_not_error() {
+    let tmp = tempfile::tempdir().unwrap();
+    write(tmp.path(), "Cargo.toml", "[workspace]\nmembers = []\n");
+    write(
+        tmp.path(),
+        "specs/001-x/spec.md",
+        &spec_with_status(
+            "001-x",
+            "draft",
+            "establishes:\n  - \"src/not_built_yet.rs\"\n",
+        ),
+    );
+    let idx = index(&Config::default(), tmp.path()).unwrap().index;
+    assert!(
+        idx.diagnostics.errors.is_empty(),
+        "a draft spec's unbuilt owning unit must not block: {:?}",
+        idx.diagnostics.errors
+    );
+    assert_eq!(
+        idx.diagnostics
+            .warnings
+            .iter()
+            .filter(|d| d.code == "W-001")
+            .count(),
+        1
+    );
+}
+
+/// AC-3: `status: approved` but `implementation: pending` is in-flight, so an
+/// unresolved owning unit is `W-001` (spec 025 §3.1 arm 2 keys on either signal).
+#[test]
+fn ac3_pending_owning_unit_is_w001_warning_not_error() {
+    let tmp = tempfile::tempdir().unwrap();
+    write(tmp.path(), "Cargo.toml", "[workspace]\nmembers = []\n");
+    write(
+        tmp.path(),
+        "specs/001-x/spec.md",
+        &spec(
+            "001-x",
+            "implementation: pending\nestablishes:\n  - \"src/not_built_yet.rs\"\n",
+        ),
+    );
+    let idx = index(&Config::default(), tmp.path()).unwrap().index;
+    assert!(
+        idx.diagnostics.errors.is_empty(),
+        "a pending spec's unbuilt owning unit must not block: {:?}",
+        idx.diagnostics.errors
+    );
+    assert_eq!(
+        idx.diagnostics
+            .warnings
+            .iter()
+            .filter(|d| d.code == "W-001")
+            .count(),
+        1
+    );
+}
+
+/// AC-4: a settled (`approved` + `complete`) spec's missing owning unit stays a
+/// hard `I-004` error, unchanged by spec 025 (the complement of AC-2 / AC-3).
+#[test]
+fn ac4_settled_owning_unit_still_errors_i004() {
+    let tmp = tempfile::tempdir().unwrap();
+    write(tmp.path(), "Cargo.toml", "[workspace]\nmembers = []\n");
+    write(
+        tmp.path(),
+        "specs/001-x/spec.md",
+        &spec(
+            "001-x",
+            "implementation: complete\nestablishes:\n  - \"src/gone.rs\"\n",
+        ),
+    );
+    let idx = index(&Config::default(), tmp.path()).unwrap().index;
+    assert!(idx.diagnostics.errors.iter().any(|d| d.code == "I-004"));
+    assert!(
+        idx.diagnostics.warnings.iter().all(|d| d.code != "W-001"),
+        "a settled spec is not downgraded"
+    );
+}
+
+/// AC-5: edge-type precedence. A `references` edge on a `draft` spec is `W-002`
+/// (arm 1), not `W-001`: edge authority is evaluated before lifecycle.
+#[test]
+fn ac5_reference_on_draft_spec_is_w002_edge_type_precedence() {
+    let tmp = tempfile::tempdir().unwrap();
+    write(tmp.path(), "Cargo.toml", "[workspace]\nmembers = []\n");
+    write(
+        tmp.path(),
+        "specs/001-x/spec.md",
+        &spec_with_status(
+            "001-x",
+            "draft",
+            "references:\n  - { unit: { kind: file, path: \"docs/gone.md\" }, role: context }\n",
+        ),
+    );
+    let idx = index(&Config::default(), tmp.path()).unwrap().index;
+    assert!(idx.diagnostics.errors.is_empty());
+    assert_eq!(
+        idx.diagnostics
+            .warnings
+            .iter()
+            .filter(|d| d.code == "W-002")
+            .count(),
+        1
+    );
+    assert!(
+        idx.diagnostics.warnings.iter().all(|d| d.code != "W-001"),
+        "edge-type wins: an unresolved reference is W-002 even on a draft spec"
+    );
 }
 
 #[test]

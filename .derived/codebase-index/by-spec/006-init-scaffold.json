@@ -112,6 +112,6 @@
     "specId": "006-init-scaffold",
     "specStatus": "approved"
   },
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "shardHash": "637ee2b3b0a22746e6bba35e0bc10748c17614a37f9d7672e41fe066ca9acc8c"
 }

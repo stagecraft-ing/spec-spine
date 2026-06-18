@@ -81,6 +81,6 @@
     "specId": "009-coupling-floor-claim-precedence",
     "specStatus": "approved"
   },
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "shardHash": "38a7671efca99cd333111d643d3bdcb2a9e3f72b4c9abdb8d48f003a6de35f21"
 }

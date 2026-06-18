@@ -78,6 +78,6 @@
     "specId": "015-establishes-wrapper-na-alias",
     "specStatus": "approved"
   },
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "shardHash": "a78bd57d984fc5cf0dd79bb103bbb37a01855bf5763f4a7ef5e213055d1c02b3"
 }

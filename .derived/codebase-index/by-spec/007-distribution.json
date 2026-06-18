@@ -102,6 +102,6 @@
     "specId": "007-distribution",
     "specStatus": "approved"
   },
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "shardHash": "2afb2bc68c8cac6fa5e227fd8d7edb33788dffa05b6cdc49ced50053430ec28b"
 }

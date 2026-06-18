@@ -1,7 +1,12 @@
 {
   "mapping": {
-    "dependsOn": [
+    "amends": [
       "004-codebase-index"
+    ],
+    "dependsOn": [
+      "001-compile-registry",
+      "004-codebase-index",
+      "005-coupling-gate"
     ],
     "implementingPaths": [
       {
@@ -9,15 +14,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "crates/spec-spine-core/src/symbols.rs",
-        "source": "spec-edge"
-      },
-      {
         "path": "crates/spec-spine-core/tests/index.rs",
-        "source": "spec-edge"
-      },
-      {
-        "path": "crates/spec-spine-types/src/unit.rs",
         "source": "spec-edge"
       },
       {
@@ -29,7 +26,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "crates/spec-spine-types/tests/grammar.rs",
+        "path": "docs/design/00-architecture.md",
         "source": "spec-edge"
       }
     ],
@@ -50,19 +47,6 @@
       {
         "locations": [
           {
-            "file": "crates/spec-spine-core/src/symbols.rs"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "extends",
-        "unit": {
-          "kind": "file",
-          "path": "crates/spec-spine-core/src/symbols.rs"
-        }
-      },
-      {
-        "locations": [
-          {
             "file": "crates/spec-spine-core/tests/index.rs"
           }
         ],
@@ -71,19 +55,6 @@
         "unit": {
           "kind": "file",
           "path": "crates/spec-spine-core/tests/index.rs"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "crates/spec-spine-types/src/unit.rs"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "extends",
-        "unit": {
-          "kind": "file",
-          "path": "crates/spec-spine-types/src/unit.rs"
         }
       },
       {
@@ -115,20 +86,20 @@
       {
         "locations": [
           {
-            "file": "crates/spec-spine-types/tests/grammar.rs"
+            "file": "docs/design/00-architecture.md"
           }
         ],
-        "ownership": true,
-        "sourceField": "extends",
+        "ownership": false,
+        "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "crates/spec-spine-types/tests/grammar.rs"
+          "path": "docs/design/00-architecture.md"
         }
       }
     ],
-    "specId": "017-directory-crate-module-units",
-    "specStatus": "approved"
+    "specId": "025-unresolved-unit-severity",
+    "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "511fb5b28164d20424c2889a2a06448b0c613d6b7ad8f61b5de07673732ca82b"
+  "shardHash": "b614214ba4905c3de68893227744744e3edf5e9d09c7900d1012a920f9a2f2ba"
 }
