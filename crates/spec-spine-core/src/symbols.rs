@@ -6,15 +6,29 @@
 //! (spec 017) additionally resolves top-level inline `mod X { ... }` blocks to
 //! their block spans. The tree-sitter core and grammar crates are pinned exactly
 //! so spans are identical across platforms.
+//!
+//! The tree-sitter machinery (the `build_*` functions and their parse helpers) is
+//! gated behind the default `symbol-resolution` feature (spec 027). The
+//! [`SymbolIndex`] / [`ModuleIndex`] types and their `resolve` lookups carry no
+//! tree-sitter dependency and are always compiled, so the index resolver and its
+//! committed-shard readers build with the feature off; symbol/module units then
+//! resolve to nothing (the same path a corpus declaring no such units takes).
 
 use std::collections::BTreeMap;
+
+use spec_spine_types::ResolvedLocation;
+
+#[cfg(feature = "symbol-resolution")]
 use std::fs;
+#[cfg(feature = "symbol-resolution")]
 use std::path::{Path, PathBuf};
 
-use spec_spine_types::{LineSpan, PackageKind, PackageRecord, ResolvedLocation};
-use tree_sitter::{Language, Node, Parser};
-
+#[cfg(feature = "symbol-resolution")]
 use crate::pathutil::{is_excluded, rel_posix};
+#[cfg(feature = "symbol-resolution")]
+use spec_spine_types::{LineSpan, PackageKind, PackageRecord};
+#[cfg(feature = "symbol-resolution")]
+use tree_sitter::{Language, Node, Parser};
 
 /// A resolved symbol index: qualified id → sorted physical locations.
 #[derive(Debug, Default)]
@@ -52,6 +66,7 @@ impl ModuleIndex {
 
 /// Build the Rust module index across all Rust packages. Deterministic: packages
 /// and files are processed in sorted order and every id's locations are sorted.
+#[cfg(feature = "symbol-resolution")]
 pub fn build_module_index(
     repo_root: &Path,
     packages: &[PackageRecord],
@@ -103,6 +118,7 @@ pub fn build_module_index(
 }
 
 /// `crate::seg::…::seg` for a module path; the crate root is the bare crate name.
+#[cfg(feature = "symbol-resolution")]
 fn qualify_module(crate_name: &str, module: &[String]) -> String {
     let mut parts = Vec::with_capacity(module.len() + 1);
     parts.push(crate_name.to_string());
@@ -112,6 +128,7 @@ fn qualify_module(crate_name: &str, module: &[String]) -> String {
 
 /// Top-level `mod X { ... }` blocks (those with a body) and their spans. A
 /// bodyless `mod X;` is skipped: the file-module entry for its file covers it.
+#[cfg(feature = "symbol-resolution")]
 fn extract_inline_mods(src: &str) -> Vec<(String, LineSpan)> {
     let mut parser = Parser::new();
     if parser
@@ -138,6 +155,7 @@ fn extract_inline_mods(src: &str) -> Vec<(String, LineSpan)> {
 
 /// Build the symbol index across all packages. Deterministic: packages and
 /// files are processed in sorted order and every id's locations are sorted.
+#[cfg(feature = "symbol-resolution")]
 pub fn build_symbol_index(
     repo_root: &Path,
     packages: &[PackageRecord],
@@ -167,6 +185,7 @@ pub fn build_symbol_index(
 
 // ===== Rust =====
 
+#[cfg(feature = "symbol-resolution")]
 const RUST_KINDS: &[&str] = &[
     "function_item",
     "struct_item",
@@ -179,6 +198,7 @@ const RUST_KINDS: &[&str] = &[
     "mod_item",
 ];
 
+#[cfg(feature = "symbol-resolution")]
 fn index_rust(
     repo_root: &Path,
     pkg: &PackageRecord,
@@ -206,6 +226,7 @@ fn index_rust(
 
 /// Rust module path from a file under `src/`: `src/lib.rs`/`main.rs`/`mod.rs`
 /// → crate root (`[]`); `src/foo.rs` → `["foo"]`; `src/foo/bar.rs` → `["foo","bar"]`.
+#[cfg(feature = "symbol-resolution")]
 fn rust_module_path(src_dir: &Path, file: &Path) -> Vec<String> {
     let rel = file.strip_prefix(src_dir).unwrap_or(file);
     let mut parts: Vec<String> = rel
@@ -223,6 +244,7 @@ fn rust_module_path(src_dir: &Path, file: &Path) -> Vec<String> {
 
 // ===== TypeScript =====
 
+#[cfg(feature = "symbol-resolution")]
 const TS_KINDS: &[&str] = &[
     "function_declaration",
     "class_declaration",
@@ -231,6 +253,7 @@ const TS_KINDS: &[&str] = &[
     "enum_declaration",
 ];
 
+#[cfg(feature = "symbol-resolution")]
 fn index_ts(
     repo_root: &Path,
     pkg: &PackageRecord,
@@ -264,6 +287,7 @@ fn index_ts(
 
 /// TS module path from a file under the package dir: components minus extension,
 /// dropping a trailing `index`.
+#[cfg(feature = "symbol-resolution")]
 fn ts_module_path(pkg_dir: &Path, file: &Path) -> Vec<String> {
     let rel = file.strip_prefix(pkg_dir).unwrap_or(file);
     let mut parts: Vec<String> = rel
@@ -282,6 +306,7 @@ fn ts_module_path(pkg_dir: &Path, file: &Path) -> Vec<String> {
 // ===== shared =====
 
 /// `prefix::module::...::name` (module segments omitted when empty).
+#[cfg(feature = "symbol-resolution")]
 fn qualify(prefix: &str, module: &[String], name: &str) -> String {
     let mut parts = Vec::with_capacity(module.len() + 2);
     parts.push(prefix.to_string());
@@ -292,6 +317,7 @@ fn qualify(prefix: &str, module: &[String], name: &str) -> String {
 
 /// Parse `src` and return `(item_name, span)` for each top-level node whose kind
 /// is in `kinds`, unwrapping a TS `export_statement` to reach its declaration.
+#[cfg(feature = "symbol-resolution")]
 fn extract(src: &str, language: Language, kinds: &[&str]) -> Vec<(String, LineSpan)> {
     let mut parser = Parser::new();
     if parser.set_language(&language).is_err() {
@@ -318,6 +344,7 @@ fn extract(src: &str, language: Language, kinds: &[&str]) -> Vec<(String, LineSp
     out
 }
 
+#[cfg(feature = "symbol-resolution")]
 fn symbol_of(node: Node, src: &str) -> Option<(String, LineSpan)> {
     let name = node
         .child_by_field_name("name")?
@@ -332,6 +359,7 @@ fn symbol_of(node: Node, src: &str) -> Option<(String, LineSpan)> {
 
 /// Recursively collect files with one of `exts` under `root`, sorted, skipping
 /// excluded directories.
+#[cfg(feature = "symbol-resolution")]
 fn walk_files(root: &Path, exts: &[&str], repo_root: &Path, exclusions: &[String]) -> Vec<PathBuf> {
     let mut out = Vec::new();
     walk(root, exts, repo_root, exclusions, &mut out);
@@ -339,6 +367,7 @@ fn walk_files(root: &Path, exts: &[&str], repo_root: &Path, exclusions: &[String
     out
 }
 
+#[cfg(feature = "symbol-resolution")]
 fn walk(
     dir: &Path,
     exts: &[&str],
@@ -368,7 +397,7 @@ fn walk(
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "symbol-resolution"))]
 mod tests {
     use super::*;
 
