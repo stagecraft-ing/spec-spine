@@ -1,7 +1,7 @@
 ---
 id: "025-unresolved-unit-severity"
 title: "Severity tiers for unresolved units: lifecycle- and edge-aware (warn, count, never skip)"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-17"
 owner: "The spec-spine Authors"
