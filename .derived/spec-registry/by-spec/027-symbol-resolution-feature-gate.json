@@ -62,10 +62,10 @@
       "6. Out of scope"
     ],
     "specPath": "specs/027-symbol-resolution-feature-gate/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "Adds a default-enabled `symbol-resolution` cargo feature to `spec-spine-core` that gates the tree-sitter dependency tree (tree-sitter + the Rust/TypeScript grammars) and the symbol/module resolution code. The CLI and `spec-spine index` keep default features, so adopter and self-governance behavior is byte-for-byte unchanged. Library consumers that read only the committed shards (`load_committed_registry` / `load_committed_index`) can build with `default-features = false` to drop tree-sitter entirely, which removes a hard blocker: tree-sitter declares `links = \"tree-sitter\"`, so a host workspace that pins a different tree-sitter (e.g. an analysis crate on `^0.26` while this crate pins `=0.25.10`) cannot otherwise resolve a single lockfile, and adding `spec-spine-core` anywhere in that workspace fails resolution before compilation. The seam is minimal: the `SymbolIndex` / `ModuleIndex` types and their `resolve` lookups are plain `BTreeMap` wrappers (no tree-sitter) and stay compiled, so the index resolver, its readers, and `compile()` build with the feature off; only the `build_*` functions and their parse helpers are gated. No DTO, JSON Schema, or `INDEX_SCHEMA_VERSION` change: the on-disk index shape is identical. Filed off the OAP spec-217 engine-swap work, which is blocked workspace-wide by exactly this `links` clash across its eight planned read-path consumers.\n",
     "title": "Feature-gate tree-sitter symbol/module resolution for dependency-free embedding"
   },
-  "shardHash": "9d3c7e8d6b878b12ce0b0e9c85b84abd09eebfb741136c84e4b12963faf73c1a",
+  "shardHash": "5e2995ada4bfdc3084df4c0e9576e27d52fbc846951d7e619daa5b755e8ff819",
   "specVersion": "1.0.0"
 }

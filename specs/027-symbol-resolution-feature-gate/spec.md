@@ -1,7 +1,7 @@
 ---
 id: "027-symbol-resolution-feature-gate"
 title: "Feature-gate tree-sitter symbol/module resolution for dependency-free embedding"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-18"
 owner: "The spec-spine Authors"
