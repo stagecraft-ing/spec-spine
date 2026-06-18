@@ -93,8 +93,8 @@
       }
     ],
     "specId": "028-references-provenance-derived-at",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "3a65dc76ab946dc0ed22a747fb3b2666200fc6e722d1a30e5c4709a677f23e25"
+  "shardHash": "ac827d266daec624a5389c8d94d7bb1e14fcb5c56d41554104c8c96b8781837f"
 }

@@ -66,10 +66,10 @@
       "6. Out of scope"
     ],
     "specPath": "specs/028-references-provenance-derived-at/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "Adds an optional `derived_at` field to the `Provenance` struct carried on a `references` edge: `{ kind, ref, derived_at? }`. `derived_at` is a generic, optional ISO-8601 timestamp recording when the reference was derived, preserved verbatim with no format validation in the type (an adopter that wants format enforcement adds a lint). The field is additive and optional, so a corpus that declares none is unaffected and `deny_unknown_fields` is preserved (the field becomes known, not a hole in the schema). The registry format gains an emittable field, so `REGISTRY_SCHEMA_VERSION` bumps an additive minor 1.0.0 -> 1.1.0 (the permissive shard schema file is unchanged; the bump only restamps the `specVersion` carried by each committed registry shard, leaving every `shardHash` and `record` body byte-identical, because a shard hash is taken over the `spec.md` source bytes). Filed off the OAP spec-217 engine-swap, whose decomposition synthesizer (OAP spec 165) emits this shape because OAP spec 161 FR-007 requires `provenance.derived_at`; the published library rejected it at parse with `V-002: unknown field derived_at`, producing zero shards. This is the second small, broadly-useful additive concession from the 217 swap (the first was the spec-027 symbol-resolution feature gate, shipped as 0.7.0).\n",
     "title": "References provenance: optional derived_at timestamp"
   },
-  "shardHash": "2d6a8958dde22c390c36b1015779265269c4df6291b100100a3bea7f5fb31bfe",
+  "shardHash": "85123e46582582bb58f48238fa80313d7a14c4e51efc0a0dca39ca59d6730bea",
   "specVersion": "1.1.0"
 }
