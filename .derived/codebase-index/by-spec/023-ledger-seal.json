@@ -198,8 +198,8 @@
       }
     ],
     "specId": "023-ledger-seal",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "daacb7dfa772a1c4246c363966fc8bd58a6386746fb6d6269e2549dbd38019e4"
+  "shardHash": "0857bc446ae484a9905a2e3f826be12f502955cfc161a86e206005b162bad44b"
 }
