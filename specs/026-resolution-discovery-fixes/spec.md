@@ -1,7 +1,7 @@
 ---
 id: "026-resolution-discovery-fixes"
 title: "Indexer resolution + discovery fixes: foreign-YAML regions, Makefile tags, nested-workspace globs"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-18"
 owner: "The spec-spine Authors"
