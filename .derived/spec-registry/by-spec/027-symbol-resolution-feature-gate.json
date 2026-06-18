@@ -67,5 +67,5 @@
     "title": "Feature-gate tree-sitter symbol/module resolution for dependency-free embedding"
   },
   "shardHash": "5e2995ada4bfdc3084df4c0e9576e27d52fbc846951d7e619daa5b755e8ff819",
-  "specVersion": "1.0.0"
+  "specVersion": "1.1.0"
 }

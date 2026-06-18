@@ -32,5 +32,5 @@
     "title": "Derived-artifact merge driver and merge-queue serialization"
   },
   "shardHash": "f451c26d859ab652c9455b462c6667701c863533fa1e47b01f6a7e846c15c9fd",
-  "specVersion": "1.0.0"
+  "specVersion": "1.1.0"
 }

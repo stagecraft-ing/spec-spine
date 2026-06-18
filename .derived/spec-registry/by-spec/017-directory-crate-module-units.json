@@ -84,5 +84,5 @@
     "title": "Authority units: resolve the reserved directory / crate / module kinds"
   },
   "shardHash": "94f909f1a86ecc36103aa32f3ba13a5c7b0d32fd5aae939a30ceebe61603b368",
-  "specVersion": "1.0.0"
+  "specVersion": "1.1.0"
 }

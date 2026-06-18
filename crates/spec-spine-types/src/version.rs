@@ -18,7 +18,11 @@
 /// under `by-spec/<id>.json`; the single `registry.json` is no longer emitted.
 /// The aggregate view (validation, content hash) is recomputed on read. Loaders
 /// reject an unknown MAJOR, so a 0.x reader cannot misread a 1.x shard tree.
-pub const REGISTRY_SCHEMA_VERSION: &str = "1.0.0";
+/// `1.1.0`: additive MINOR (spec 028). A `references` provenance item may carry
+/// an optional `derived_at` ISO-8601 timestamp; the registry format gains an
+/// emittable field, so the minor bumps. The permissive shard schema is unchanged
+/// and a corpus that declares no `derived_at` emits byte-identical record bodies.
+pub const REGISTRY_SCHEMA_VERSION: &str = "1.1.0";
 
 /// `schemaVersion` emitted in the codebase index, carried by each index shard.
 /// `0.2.0`: additive `build.sliceHashes` (spec 012).

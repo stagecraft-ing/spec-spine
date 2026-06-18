@@ -312,3 +312,64 @@ fn supersedes_full_and_partial_forms_parse() {
     assert!(!fm.supersedes[3].is_full());
     assert_eq!(fm.supersedes[3].partial_unit(), None);
 }
+
+#[test]
+fn references_provenance_derived_at_round_trips() {
+    // Spec 028 AC-1: a `references` provenance `{ kind, ref, derived_at }` parses
+    // and the timestamp is preserved on re-emit. (The shape OAP spec 165 emits.)
+    let fm = fm_with_edges(
+        "references:\n  - { role: decomposition-origin, provenance: { kind: code-fingerprint, ref: \"xray-fingerprint://abc123\", derived_at: \"2026-06-18T00:00:00Z\" } }\n",
+    );
+    assert_eq!(fm.references.len(), 1);
+    assert_eq!(
+        fm.references[0].role.as_deref(),
+        Some("decomposition-origin")
+    );
+    let prov = fm.references[0]
+        .provenance
+        .as_ref()
+        .expect("provenance present");
+    assert_eq!(prov.kind, "code-fingerprint");
+    assert_eq!(prov.reference, "xray-fingerprint://abc123");
+    assert_eq!(prov.derived_at.as_deref(), Some("2026-06-18T00:00:00Z"));
+
+    // Re-emit preserves the timestamp under the wire name `derived_at` (and `ref`).
+    let json = serde_json::to_string(prov).unwrap();
+    assert!(
+        json.contains("\"derived_at\":\"2026-06-18T00:00:00Z\""),
+        "{json}"
+    );
+    assert!(
+        json.contains("\"ref\":\"xray-fingerprint://abc123\""),
+        "{json}"
+    );
+}
+
+#[test]
+fn references_provenance_without_derived_at_omits_the_field() {
+    // Spec 028 AC-2: an item without `derived_at` parses unchanged and does NOT
+    // serialize the field (`skip_serializing_if`), so existing goldens are
+    // byte-identical.
+    let fm = fm_with_edges(
+        "references:\n  - { provenance: { kind: knowledge, ref: \"knowledge://x\" } }\n",
+    );
+    let prov = fm.references[0]
+        .provenance
+        .as_ref()
+        .expect("provenance present");
+    assert_eq!(prov.derived_at, None);
+    let json = serde_json::to_string(prov).unwrap();
+    assert!(
+        !json.contains("derived_at"),
+        "absent field must not serialize: {json}"
+    );
+}
+
+#[test]
+fn references_provenance_unknown_field_is_rejected() {
+    // Spec 028 AC-3: a genuinely-unknown provenance field still trips
+    // `deny_unknown_fields`; the gate is not weakened by the additive field.
+    let src = "---\nid: x\ntitle: t\nstatus: draft\ncreated: \"2026-06-08\"\nsummary: s\n\
+references:\n  - { provenance: { kind: k, ref: \"r\", bogus: \"x\" } }\n---\n";
+    assert!(parse_frontmatter(src).is_err());
+}

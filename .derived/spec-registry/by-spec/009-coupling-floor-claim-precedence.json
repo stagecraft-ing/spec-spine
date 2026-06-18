@@ -64,5 +64,5 @@
     "title": "Coupling gate: explicit unit claims take precedence over the bypass floor"
   },
   "shardHash": "fafe4b8775e6cffee0338ce5f7facbefbc9bce0b681a6cfcecdd167bb085b2c8",
-  "specVersion": "1.0.0"
+  "specVersion": "1.1.0"
 }

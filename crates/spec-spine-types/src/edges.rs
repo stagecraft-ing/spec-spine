@@ -271,9 +271,15 @@ pub struct ReferenceItem {
     pub role: Option<String>,
 }
 
-/// A provenance reference carried on a `references` edge: `{ kind, ref }`.
+/// A provenance reference carried on a `references` edge:
+/// `{ kind, ref, derived_at? }`.
 ///
 /// `kind` keys into `config.provenance.uri_schemes` to validate `ref`'s scheme.
+/// `derived_at` is a generic, optional ISO-8601 timestamp recording when the
+/// reference was derived (spec 028): additive and preserved verbatim, with no
+/// timestamp-format validation in the type (an adopter that wants format
+/// enforcement adds a lint). `deny_unknown_fields` is preserved: the field is
+/// now known, not a hole in the schema.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Provenance {
@@ -281,6 +287,11 @@ pub struct Provenance {
     /// The provenance URI. (`ref` is a Rust keyword, hence the rename.)
     #[serde(rename = "ref")]
     pub reference: String,
+    /// Optional ISO-8601 timestamp recording when this reference was derived
+    /// (spec 028). Absent items do not serialize the field, so existing goldens
+    /// stay byte-identical.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub derived_at: Option<String>,
 }
 
 /// The `origin` bootstrap marker, NOT a relationship edge.

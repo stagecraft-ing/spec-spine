@@ -67,5 +67,5 @@
     "title": "Edge grammar: `paths:` list sugar on extends/refines items"
   },
   "shardHash": "1b4b94a2fa4356c421601553521fdd8ec9ef8f26268169d75c524f1093cdd61c",
-  "specVersion": "1.0.0"
+  "specVersion": "1.1.0"
 }
