@@ -11,9 +11,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use spec_spine_types::{
-    CodebaseIndex, Diagnostic, Diagnostics, Error, INDEX_SCHEMA_VERSION, ImplementingPath,
-    IndexBuild, IndexPackageShard, IndexSpecShard, PackageKind, PackageRecord, ResolvedLocation,
-    ResolvedUnit, SourceField, TraceMapping, TraceSource, Traceability, Unit,
+    CodebaseIndex, Diagnostic, Diagnostics, Error, INDEX_SCHEMA_VERSION, Implementation,
+    ImplementingPath, IndexBuild, IndexPackageShard, IndexSpecShard, PackageKind, PackageRecord,
+    ResolvedLocation, ResolvedUnit, SourceField, TraceMapping, TraceSource, Traceability, Unit,
     parse_frontmatter_with,
 };
 
@@ -59,10 +59,23 @@ pub enum Freshness {
 struct SpecInfo {
     id: String,
     status: String,
+    /// The owning spec's implementation lifecycle. Spec 025's lifecycle severity
+    /// tier keys on `draft` status or `pending` implementation; carried here so
+    /// the resolve loop has both signals without re-reading frontmatter.
+    implementation: Option<Implementation>,
     depends_on: Vec<String>,
     amends: Vec<String>,
     /// (source_field, unit, ownership) for every declared unit.
     units: Vec<(SourceField, Unit, bool)>,
+}
+
+impl SpecInfo {
+    /// True when the spec is still in flight, so an unresolved *owning* unit is a
+    /// counted warning rather than a blocking error (spec 025 §3.1 arm 2):
+    /// `status: draft` or `implementation: pending`.
+    fn in_flight(&self) -> bool {
+        self.status == "draft" || matches!(self.implementation, Some(Implementation::Pending))
+    }
 }
 
 /// Build the codebase index under `repo_root`.
@@ -131,7 +144,13 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
         let mut spec_diags = Diagnostics::default();
 
         // Source 3: spec edges (units).
+        let in_flight = spec.in_flight();
         for (field, unit, ownership) in &spec.units {
+            // `resolve_unit` always emits the natural `I-0xx` hard error into a
+            // local buffer; spec 025 then reclassifies an unresolved unit by
+            // severity tier (edge authority, then owning-spec lifecycle) before
+            // merging it into the spec's diagnostics.
+            let mut unit_diags = Diagnostics::default();
             let locations = resolve_unit(
                 repo_root,
                 unit,
@@ -139,8 +158,9 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
                 &symbol_index,
                 &module_index,
                 &spec.id,
-                &mut spec_diags,
+                &mut unit_diags,
             );
+            classify_unresolved(&mut spec_diags, unit_diags, *ownership, in_flight);
             for loc in &locations {
                 paths
                     .entry(loc.file.clone())
@@ -701,12 +721,52 @@ fn discover_specs(
         out.push(SpecInfo {
             id: fm.id,
             status: status_str(fm.status),
+            implementation: fm.implementation,
             depends_on: fm.depends_on,
             amends: fm.amends,
             units,
         });
     }
     Ok(out)
+}
+
+/// Route an unresolved unit's diagnostic by severity tier (spec 025 §3.1).
+/// `resolve_unit` always produces the natural `I-0xx` hard error; this
+/// reclassifies it, by first-match precedence, before it reaches the spec's
+/// diagnostics:
+///   1. non-owning edge (`references`)        -> `W-002` warning (any lifecycle)
+///   2. owning edge on a draft / pending spec -> `W-001` warning
+///   3. owning edge on a settled spec         -> the `I-0xx` error, unchanged
+///
+/// The downgrade never drops the unit: it always lands in exactly one tier and
+/// is counted (FR-004). `W-001` / `W-002` are deliberately absent from
+/// [`BLOCKING_CODES`], so a warned shard is not flagged stale by `index check`.
+/// The original message (unit kind, path/id, reason) is preserved verbatim; only
+/// the code changes, so the distinct, countable class carries the same evidence
+/// as the error it replaces.
+fn classify_unresolved(
+    dst: &mut Diagnostics,
+    produced: Diagnostics,
+    owning: bool,
+    in_flight: bool,
+) {
+    for d in produced.errors {
+        if !owning {
+            dst.warnings.push(Diagnostic {
+                code: "W-002".to_string(),
+                ..d
+            });
+        } else if in_flight {
+            dst.warnings.push(Diagnostic {
+                code: "W-001".to_string(),
+                ..d
+            });
+        } else {
+            dst.errors.push(d);
+        }
+    }
+    // `resolve_unit` emits no warnings today; forward any for forward-compat.
+    dst.warnings.extend(produced.warnings);
 }
 
 fn resolve_unit(

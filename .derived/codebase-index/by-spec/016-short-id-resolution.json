@@ -44,6 +44,6 @@
     "specId": "016-short-id-resolution",
     "specStatus": "approved"
   },
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "shardHash": "a1731b6bb178d3ea1f5289172ee6e776c9f724e3093734f1361d167764ee57ba"
 }

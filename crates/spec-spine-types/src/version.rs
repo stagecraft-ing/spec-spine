@@ -27,7 +27,11 @@ pub const REGISTRY_SCHEMA_VERSION: &str = "1.0.0";
 /// `by-spec/<id>.json` and per-package under `by-package/<slug>.json`; the single
 /// `index.json` is no longer emitted. The aggregate view (orphans, untraced code,
 /// content hash) is recomputed on read; staleness is per-shard.
-pub const INDEX_SCHEMA_VERSION: &str = "1.0.0";
+/// `1.1.0`: additive (spec 025). The resolver downgrades an unresolved unit to a
+/// non-blocking `W-001` (draft/pending owning) or `W-002` (non-owning reference)
+/// warning instead of a hard error; the `warnings` tier and free-form diagnostic
+/// `code` already exist, so no schema-file edit is needed.
+pub const INDEX_SCHEMA_VERSION: &str = "1.1.0";
 
 /// `schemaVersion` emitted in `build-meta.json` (the non-deterministic artifact).
 pub const BUILD_META_SCHEMA_VERSION: &str = "0.1.0";

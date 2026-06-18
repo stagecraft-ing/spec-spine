@@ -28,6 +28,6 @@
     "specId": "022-keypath-section-anchors",
     "specStatus": "approved"
   },
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "shardHash": "9f691bd8024d7405d041150c675d2048338096b444c1c1d6acfcf0bf642235ce"
 }

@@ -1,0 +1,83 @@
+{
+  "record": {
+    "amends": [
+      "004-codebase-index"
+    ],
+    "created": "2026-06-17",
+    "dependsOn": [
+      "001-compile-registry",
+      "004-codebase-index",
+      "005-coupling-gate"
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/index.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/index.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/src/version.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "004-codebase-index",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-types/tests/dtos.rs"
+        }
+      }
+    ],
+    "id": "025-unresolved-unit-severity",
+    "implementation": "pending",
+    "kind": "tooling",
+    "owner": "The spec-spine Authors",
+    "references": [
+      {
+        "role": "context",
+        "unit": {
+          "kind": "file",
+          "path": "docs/design/00-architecture.md"
+        }
+      }
+    ],
+    "risk": "medium",
+    "sectionHeadings": [
+      "025: Severity tiers for unresolved units",
+      "1. Purpose",
+      "2. Territory",
+      "3. Behavior",
+      "3.1 The severity decision",
+      "3.2 The two warning codes",
+      "3.3 Surface, never skip",
+      "3.4 No fabricated mapping (the index's boundary)",
+      "3.5 Authority is a registry property (the consumer boundary)",
+      "3.6 Schema",
+      "4. Functional requirements",
+      "5. Acceptance criteria",
+      "6. Out of scope",
+      "7. Security rationale"
+    ],
+    "specPath": "specs/025-unresolved-unit-severity/spec.md",
+    "status": "draft",
+    "summary": "Today the indexer hard-errors (I-003..I-009) on every declared unit that does not resolve, regardless of whether the edge is authoritative or whether the owning spec is even built yet. Two of those errors are not governance failures: an unresolved unit on a non-owning `references` edge is a stale provenance pointer, and an unresolved owning unit on a `draft` / `implementation: pending` spec is legitimate work-in-progress. This spec adds two orthogonal severity tiers over the same resolver, keyed on (a) edge authority and (b) owning-spec lifecycle, so those two cases become counted warnings (a fresh `W-001` / `W-002` band) instead of blocking errors, while an unresolved owning unit on an approved + implemented spec stays a hard error. The downgrade never skips: every such unit is still surfaced and counted, never silently dropped, so the authority-laundering / invisible-drift vector stays closed. The index never fabricates a code location for an unresolved path; authority remains a property of the registry relationship graph, which the coupling gate consults independently of index resolution. Additive: the `warnings` tier and the free-form diagnostic `code` already exist, so this is an `INDEX_SCHEMA_VERSION` MINOR (1.0.0 -> 1.1.0) with no schema-file edit and no registry change.\n",
+    "title": "Severity tiers for unresolved units: lifecycle- and edge-aware (warn, count, never skip)"
+  },
+  "shardHash": "622adcfe8e750b30b3584965f4c88d10cbb54106d20015537b9d9b753d596211",
+  "specVersion": "1.0.0"
+}

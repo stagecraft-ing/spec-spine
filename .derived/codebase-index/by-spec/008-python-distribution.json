@@ -61,6 +61,6 @@
     "specId": "008-python-distribution",
     "specStatus": "approved"
   },
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "shardHash": "bebe21758d44ef3f48553042e4057b8dcf202b9e0b5816158dfcacdae6bcc107"
 }
