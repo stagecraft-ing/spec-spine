@@ -21,7 +21,7 @@ use crate::manifest;
 use crate::pathutil::{is_excluded, rel_posix};
 use crate::sections;
 use crate::shard;
-use crate::symbols::{self, ModuleIndex, SymbolIndex};
+use crate::symbols::{ModuleIndex, SymbolIndex};
 use crate::{canonical_json, hash};
 
 /// Resolver hard-error codes (`I-003`..`I-009`) that fail `index check`.
@@ -93,37 +93,51 @@ pub fn index(cfg: &spec_spine_types::Config, repo_root: &Path) -> Result<IndexOu
     let comment_links = scan_comment_headers(cfg, repo_root, &discovered.packages, &all_ids);
 
     // Symbol index, built only if some spec declares a symbol unit (avoids
-    // parsing all source for corpora that use only file/section units).
-    let needs_symbols = specs.iter().any(|s| {
-        s.units
-            .iter()
-            .any(|(_, u, _)| matches!(u, Unit::Symbol { .. }))
-    });
-    let symbol_index = if needs_symbols {
-        symbols::build_symbol_index(
-            repo_root,
-            &discovered.packages,
-            &cfg.index.resolver_exclusions,
-        )
-    } else {
-        SymbolIndex::default()
+    // parsing all source for corpora that use only file/section units). When the
+    // `symbol-resolution` feature is compiled out (spec 027), tree-sitter is not
+    // linked: no index is built and symbol units resolve to nothing (the same
+    // result a corpus declaring no symbol units already yields).
+    #[cfg(feature = "symbol-resolution")]
+    let symbol_index = {
+        let needs_symbols = specs.iter().any(|s| {
+            s.units
+                .iter()
+                .any(|(_, u, _)| matches!(u, Unit::Symbol { .. }))
+        });
+        if needs_symbols {
+            crate::symbols::build_symbol_index(
+                repo_root,
+                &discovered.packages,
+                &cfg.index.resolver_exclusions,
+            )
+        } else {
+            SymbolIndex::default()
+        }
     };
+    #[cfg(not(feature = "symbol-resolution"))]
+    let symbol_index = SymbolIndex::default();
 
     // Module index, built only if some spec declares a module unit (spec 017).
-    let needs_modules = specs.iter().any(|s| {
-        s.units
-            .iter()
-            .any(|(_, u, _)| matches!(u, Unit::Module { .. }))
-    });
-    let module_index = if needs_modules {
-        symbols::build_module_index(
-            repo_root,
-            &discovered.packages,
-            &cfg.index.resolver_exclusions,
-        )
-    } else {
-        ModuleIndex::default()
+    // Tree-sitter-backed, so likewise gated behind `symbol-resolution` (spec 027).
+    #[cfg(feature = "symbol-resolution")]
+    let module_index = {
+        let needs_modules = specs.iter().any(|s| {
+            s.units
+                .iter()
+                .any(|(_, u, _)| matches!(u, Unit::Module { .. }))
+        });
+        if needs_modules {
+            crate::symbols::build_module_index(
+                repo_root,
+                &discovered.packages,
+                &cfg.index.resolver_exclusions,
+            )
+        } else {
+            ModuleIndex::default()
+        }
     };
+    #[cfg(not(feature = "symbol-resolution"))]
+    let module_index = ModuleIndex::default();
 
     // The scalar folded into every shard hash so a config / extra-input change
     // restamps all shards (spec 024); two PRs touching only disjoint specs never

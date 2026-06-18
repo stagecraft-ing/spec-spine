@@ -5,11 +5,14 @@
 use std::fs;
 use std::path::Path;
 
+use spec_spine_core::{authorities, index, index_shard_files};
+// Freshness / shard-emit helpers are exercised only by the staleness tests, which
+// are gated on `symbol-resolution` (spec 027): their `mixed_fixture` declares
+// symbol units, so feature-off they emit blocking diagnostics.
+#[cfg(feature = "symbol-resolution")]
 use spec_spine_core::shard::{self, BY_PACKAGE_DIR, BY_SPEC_DIR};
-use spec_spine_core::{
-    Freshness, IndexOutcome, authorities, check_index_freshness, index, index_dir,
-    index_shard_files,
-};
+#[cfg(feature = "symbol-resolution")]
+use spec_spine_core::{Freshness, IndexOutcome, check_index_freshness, index_dir};
 use spec_spine_types::{Config, INDEX_SCHEMA, LineSpan, PackageKind, Unit};
 
 fn write(root: &Path, rel: &str, content: &str) {
@@ -20,6 +23,7 @@ fn write(root: &Path, rel: &str, content: &str) {
 
 /// Write an index outcome to disk as the CLI's `spec-spine index` does: the
 /// per-spec/per-package shard tree (spec 024), not a monolithic `index.json`.
+#[cfg(feature = "symbol-resolution")]
 fn emit_index_shards(cfg: &Config, repo: &Path, outcome: &IndexOutcome) {
     let dir = index_dir(cfg, repo);
     let (by_spec, by_package) = index_shard_files(&outcome.shards).unwrap();
@@ -108,6 +112,7 @@ fn mapping<'a>(
         .expect("mapping present")
 }
 
+#[cfg(feature = "symbol-resolution")]
 fn symbol_span(m: &spec_spine_types::TraceMapping, sym_id: &str) -> Option<LineSpan> {
     m.resolved_units
         .iter()
@@ -148,6 +153,7 @@ fn discovers_rust_and_npm_packages() {
     assert_eq!(web.spec_ref.as_deref(), Some("002-ts"));
 }
 
+#[cfg(feature = "symbol-resolution")]
 #[test]
 fn resolves_rust_symbols_with_exact_spans() {
     // Per-platform span golden (watch-item 2): pinned tree-sitter ⇒ identical
@@ -159,6 +165,7 @@ fn resolves_rust_symbols_with_exact_spans() {
     assert_eq!(symbol_span(m, "rs_thing::Beta"), Some(LineSpan::new(2, 4)));
 }
 
+#[cfg(feature = "symbol-resolution")]
 #[test]
 fn resolves_typescript_symbols_with_exact_spans() {
     let fx = mixed_fixture();
@@ -460,6 +467,11 @@ fn emitted_index_shards_conform_to_embedded_schema() {
     check(INDEX_PACKAGE_SHARD_SCHEMA, &by_package);
 }
 
+// Gated on `symbol-resolution` (spec 027): `mixed_fixture` declares symbol units
+// owned by settled specs, which without resolution emit blocking diagnostics, so
+// `check_index_freshness` reports the just-emitted index stale (correct contract,
+// but it makes this generic-staleness assertion unusable feature-off).
+#[cfg(feature = "symbol-resolution")]
 #[test]
 fn staleness_detects_input_change() {
     let fx = mixed_fixture();
@@ -485,6 +497,7 @@ fn staleness_detects_input_change() {
     ));
 }
 
+#[cfg(feature = "symbol-resolution")]
 #[test]
 fn staleness_detects_symbol_source_line_shift() {
     // The freshness false-negative (spec 004 §3.5): a source-line shift in a file
@@ -637,6 +650,7 @@ fn missing_directory_unit_is_blocking_diagnostic_i007() {
     assert!(idx.diagnostics.errors.iter().any(|d| d.code == "I-007"));
 }
 
+#[cfg(feature = "symbol-resolution")]
 #[test]
 fn module_unit_resolves_inline_and_file_modules() {
     let fx = module_fixture();

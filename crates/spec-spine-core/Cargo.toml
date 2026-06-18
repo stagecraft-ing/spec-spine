@@ -16,6 +16,16 @@ readme = "README.md"
 [package.metadata.spec-spine]
 spec = "001-compile-registry"
 
+[features]
+default = ["symbol-resolution"]
+# Tree-sitter symbol/module resolution (spec 027). Default-on, so the CLI and
+# `spec-spine index` are behaviorally unchanged. Library consumers that read only
+# the committed shards (`load_committed_registry`/`load_committed_index`) can
+# disable it with `default-features = false` to drop the tree-sitter native
+# dependency tree, avoiding a `links = "tree-sitter"` version clash when the host
+# workspace pins a different tree-sitter.
+symbol-resolution = ["dep:tree-sitter", "dep:tree-sitter-rust", "dep:tree-sitter-typescript"]
+
 [dependencies]
 spec-spine-types = { workspace = true }
 serde = { workspace = true }
@@ -24,9 +34,10 @@ sha2 = { workspace = true }
 # Symbol resolution. Pinned EXACT (=): the resolver is a determinism input
 # across the 5-triple release matrix (Phase-3 watch-item 2): an unpinned grammar
 # would shift symbol line-spans and surface as flaky goldens. Cargo.lock is committed.
-tree-sitter = "=0.25.10"
-tree-sitter-rust = "=0.24.2"
-tree-sitter-typescript = "=0.23.2"
+# Gated behind the default `symbol-resolution` feature (spec 027).
+tree-sitter = { version = "=0.25.10", optional = true }
+tree-sitter-rust = { version = "=0.24.2", optional = true }
+tree-sitter-typescript = { version = "=0.23.2", optional = true }
 toml = { workspace = true }
 toml_edit = { workspace = true }
 serde_yaml = { workspace = true }

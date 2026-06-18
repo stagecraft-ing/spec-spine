@@ -42,6 +42,22 @@ jobs:
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Format
         run: cargo fmt --all --check
+      # Spec 027: prove `spec-spine-core` compiles, tests, and lints with symbol
+      # resolution OFF, so a host workspace pinning a different tree-sitter can embed
+      # the committed-shard readers without a `links = "tree-sitter"` clash. A
+      # regression that re-couples the readers to tree-sitter fails here.
+      - name: Build (no default features)
+        run: cargo build -p spec-spine-core --no-default-features --locked
+      - name: Assert tree-sitter absent without the feature
+        run: |
+          if cargo tree -p spec-spine-core --no-default-features -i tree-sitter --locked 2>/dev/null | grep -q .; then
+            echo "::error::tree-sitter must NOT be in the --no-default-features dependency tree"
+            exit 1
+          fi
+      - name: Test (no default features)
+        run: cargo test -p spec-spine-core --no-default-features --locked
+      - name: Clippy (no default features)
+        run: cargo clippy -p spec-spine-core --no-default-features --all-targets --locked -- -D warnings
 
   self_governance:
     name: self-governance (compile · index · lint · couple)
