@@ -91,6 +91,13 @@ fn discover_rust(
     members.extend(cfg.layout.standalone_rust_workspaces.iter().cloned());
 
     for member in &members {
+        // A standalone entry may name a directory or a `Cargo.toml` path; strip a
+        // trailing manifest filename so glob_manifests appends it exactly once
+        // (spec 026 FR-005: a `.../Cargo.toml` entry must not double-join).
+        let member = member
+            .strip_suffix("Cargo.toml")
+            .map(|s| s.trim_end_matches('/'))
+            .unwrap_or(member.as_str());
         for manifest in glob_manifests(
             repo_root,
             member,
@@ -187,12 +194,20 @@ fn discover_npm(
                 manifests.push(decl_path.clone());
                 let ws = doc.get("workspaces");
                 if let Some(arr) = ws.and_then(|w| w.as_array()) {
-                    globs.extend(arr.iter().filter_map(|v| v.as_str().map(String::from)));
+                    globs.extend(
+                        arr.iter()
+                            .filter_map(|v| v.as_str())
+                            .map(|g| rebase_glob(decl, g)),
+                    );
                 } else if let Some(arr) = ws
                     .and_then(|w| w.get("packages"))
                     .and_then(|p| p.as_array())
                 {
-                    globs.extend(arr.iter().filter_map(|v| v.as_str().map(String::from)));
+                    globs.extend(
+                        arr.iter()
+                            .filter_map(|v| v.as_str())
+                            .map(|g| rebase_glob(decl, g)),
+                    );
                 }
                 // The root package.json that declares workspaces is itself a record.
                 if doc.get("name").is_some() {
@@ -208,7 +223,11 @@ fn discover_npm(
             if let Ok(doc) = serde_yaml::from_str::<serde_yaml::Value>(&src) {
                 manifests.push(decl_path.clone());
                 if let Some(arr) = doc.get("packages").and_then(|p| p.as_sequence()) {
-                    globs.extend(arr.iter().filter_map(|v| v.as_str().map(String::from)));
+                    globs.extend(
+                        arr.iter()
+                            .filter_map(|v| v.as_str())
+                            .map(|g| rebase_glob(decl, g)),
+                    );
                 }
             }
         }
@@ -291,6 +310,21 @@ pub fn npm_hash_projection(content: &str, namespace: &str) -> Option<String> {
 }
 
 // ===== shared =====
+
+/// Rebase a workspace-member glob declared in `decl` (a repo-relative declaration
+/// file path) onto that file's parent directory, so a NON-root workspace file
+/// (e.g. `product/pnpm-workspace.yaml` declaring `apps/*`) resolves its members
+/// relative to itself, not the repo root (spec 026 D3). A root-level declaration
+/// (no parent) returns the glob unchanged. `standalone_npm_packages` are
+/// repo-root-relative by contract and are deliberately NOT routed through here.
+fn rebase_glob(decl: &str, glob: &str) -> String {
+    match Path::new(decl).parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => {
+            format!("{}/{}", parent.to_string_lossy(), glob)
+        }
+        _ => glob.to_string(),
+    }
+}
 
 /// Expand `<member>/<manifest_file>` under `repo_root` (member may contain glob
 /// metacharacters), returning matches not inside an excluded directory, sorted.

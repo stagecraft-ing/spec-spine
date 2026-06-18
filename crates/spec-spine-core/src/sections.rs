@@ -40,9 +40,14 @@ pub fn enumerate_sections(content: &str, file_name: &str) -> Vec<(String, LineSp
             // of the legacy bare-`jobs.<name>` behavior).
             workflow_yaml_sections(content)
         } else {
-            // Foreign YAML keeps the legacy bare-job behavior; routing it to
-            // region markers is spec 022 D4, deliberately deferred (§4).
-            ci_job_sections(content)
+            // Foreign YAML (Helm values, infra manifests) keeps whole-file /
+            // `# region:` ownership, exactly as spec 022 §3.2 promised. Spec 026
+            // implements that region half (retiring §4's deferred D4) and unions
+            // it with the legacy bare-`jobs.<name>` anchors so a foreign YAML that
+            // carried a resolvable job anchor does not regress (026 FR-002).
+            let mut out = region_sections(content, comment_token(base));
+            out.extend(ci_job_sections(content));
+            out
         }
     } else {
         region_sections(content, comment_token(base))
@@ -130,16 +135,20 @@ fn slug(text: &str) -> String {
 fn makefile_sections(content: &str) -> Vec<(String, LineSpan)> {
     let lines: Vec<&str> = content.lines().collect();
     let mut out: Vec<(String, LineSpan)> = Vec::new();
-    let mut pending_tag: Option<String> = None;
+    // Tags awaiting their target. A single `Option` silently clobbered an
+    // unconsumed `## tag:` when a second one preceded any target (spec 026 D2);
+    // a vector preserves every tag deterministically, so none is ever lost.
+    let mut pending_tags: Vec<String> = Vec::new();
 
     let mut i = 0;
     while i < lines.len() {
         let line = lines[i];
         let trimmed = line.trim_start();
 
-        // `## tag: name` tags the next target.
+        // `## tag: name` tags the next target. Multiple tags before one target
+        // all apply to it (none is dropped).
         if let Some(rest) = trimmed.strip_prefix("## tag:") {
-            pending_tag = Some(rest.trim().to_string());
+            pending_tags.push(rest.trim().to_string());
             i += 1;
             continue;
         }
@@ -175,7 +184,7 @@ fn makefile_sections(content: &str) -> Vec<(String, LineSpan)> {
                     j += 1;
                 }
                 out.push((target.clone(), LineSpan::new(start, end)));
-                if let Some(tag) = pending_tag.take() {
+                for tag in pending_tags.drain(..) {
                     out.push((tag, LineSpan::new(start, end)));
                 }
             }
@@ -819,6 +828,48 @@ mod tests {
             resolve_section(rs, "lib.rs", "core"),
             Some(LineSpan::new(2, 5))
         );
+    }
+
+    // ===== spec 026: resolution + discovery fixes =====
+
+    #[test]
+    fn foreign_yaml_resolves_region_markers() {
+        // A Helm values.yaml is not a governed workflow, so its `# region:`
+        // markers must resolve (spec 026 D1, fulfilling spec 022 §3.2).
+        let yaml = "image:\n  repo: x\n# region: access-gate\nrbac:\n  create: true\n# endregion\nother: 1\n";
+        assert_eq!(
+            resolve_section(yaml, "deploy/values.yaml", "access-gate"),
+            Some(LineSpan::new(3, 6))
+        );
+    }
+
+    #[test]
+    fn foreign_yaml_still_resolves_bare_jobs() {
+        // Non-regression (spec 026 FR-002): a foreign YAML with a `jobs:` block
+        // keeps its bare-job anchors via the union with ci_job_sections.
+        let yaml = "jobs:\n  build:\n    runs-on: x\n  test:\n    runs-on: y\n";
+        assert!(resolve_section(yaml, "other.yaml", "build").is_some());
+        assert!(resolve_section(yaml, "other.yaml", "test").is_some());
+    }
+
+    #[test]
+    fn makefile_multiple_pending_tags_are_not_lost() {
+        // spec 026 D2: a `## tag:` followed by non-target lines then a second
+        // `## tag:` must not clobber the first; both tag the next target.
+        let mk = "## tag: ci-fast\nVAR := 1\n## tag: ci-slow\ntest:\n\tcargo test\n";
+        let names: Vec<String> = enumerate_sections(mk, "Makefile")
+            .into_iter()
+            .map(|(a, _)| a)
+            .collect();
+        assert!(
+            names.contains(&"ci-fast".to_string()),
+            "first tag kept: {names:?}"
+        );
+        assert!(
+            names.contains(&"ci-slow".to_string()),
+            "second tag present: {names:?}"
+        );
+        assert!(names.contains(&"test".to_string()));
     }
 
     // ===== spec 022: keypath section anchors =====

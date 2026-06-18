@@ -1,0 +1,88 @@
+{
+  "mapping": {
+    "amends": [
+      "004-codebase-index",
+      "022-keypath-section-anchors"
+    ],
+    "dependsOn": [
+      "004-codebase-index",
+      "022-keypath-section-anchors"
+    ],
+    "implementingPaths": [
+      {
+        "path": "crates/spec-spine-core/src/manifest.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/spec-spine-core/src/sections.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/spec-spine-core/tests/index.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "docs/design/00-architecture.md",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/spec-spine-core/src/manifest.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/manifest.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/spec-spine-core/src/sections.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/src/sections.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/spec-spine-core/tests/index.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/spec-spine-core/tests/index.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "docs/design/00-architecture.md"
+          }
+        ],
+        "ownership": false,
+        "sourceField": "references",
+        "unit": {
+          "kind": "file",
+          "path": "docs/design/00-architecture.md"
+        }
+      }
+    ],
+    "specId": "026-resolution-discovery-fixes",
+    "specStatus": "draft"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "c86ff36e4f2fdc76a481749215202ffb94688ca022fb2175681fb1acf4a41a97"
+}

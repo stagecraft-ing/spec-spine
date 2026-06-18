@@ -183,6 +183,67 @@ fn missing_file_unit_is_blocking_diagnostic_i004() {
     assert!(idx.diagnostics.errors.iter().any(|d| d.code == "I-004"));
 }
 
+// ===== spec 026: resolution + discovery fixes =====
+
+/// AC-1 (spec 026 D1): a section unit on a foreign (non-workflow) YAML resolves
+/// via its `# region:` marker end to end, with no spurious I-006.
+#[test]
+fn foreign_yaml_section_unit_resolves_no_i006() {
+    let tmp = tempfile::tempdir().unwrap();
+    write(tmp.path(), "Cargo.toml", "[workspace]\nmembers = []\n");
+    write(
+        tmp.path(),
+        "deploy/values.yaml",
+        "image:\n  repo: x\n# region: access-gate\nrbac:\n  create: true\n# endregion\n",
+    );
+    write(
+        tmp.path(),
+        "specs/001-x/spec.md",
+        &spec(
+            "001-x",
+            "establishes:\n  - { kind: section, file: \"deploy/values.yaml\", anchor: \"access-gate\" }\n",
+        ),
+    );
+    let idx = index(&Config::default(), tmp.path()).unwrap().index;
+    assert!(
+        idx.diagnostics.errors.iter().all(|d| d.code != "I-006"),
+        "no spurious I-006 for a present region marker: {:?}",
+        idx.diagnostics.errors
+    );
+    let m = mapping(&idx, "001-x");
+    assert!(
+        m.resolved_units.iter().any(|u| !u.locations.is_empty()),
+        "the section unit resolved to a location"
+    );
+}
+
+/// AC-4 (spec 026 D3): a non-root pnpm-workspace.yaml resolves its member globs
+/// relative to its own directory, not the repo root.
+#[test]
+fn nested_pnpm_workspace_discovers_members() {
+    let tmp = tempfile::tempdir().unwrap();
+    write(tmp.path(), "Cargo.toml", "[workspace]\nmembers = []\n");
+    write(
+        tmp.path(),
+        "product/pnpm-workspace.yaml",
+        "packages:\n  - \"apps/*\"\n",
+    );
+    write(
+        tmp.path(),
+        "product/apps/web/package.json",
+        "{\n  \"name\": \"web\"\n}\n",
+    );
+    write(tmp.path(), "specs/001-x/spec.md", &spec("001-x", ""));
+    let mut cfg = Config::default();
+    cfg.layout.npm_workspaces = vec!["product/pnpm-workspace.yaml".to_string()];
+    let idx = index(&cfg, tmp.path()).unwrap().index;
+    let names: Vec<&str> = idx.packages.iter().map(|p| p.name.as_str()).collect();
+    assert!(
+        names.contains(&"web"),
+        "nested-workspace member discovered relative to the decl file: {names:?}"
+    );
+}
+
 // ===== spec 025: lifecycle- and edge-aware unresolved-unit severity =====
 
 /// AC-1: an unresolved unit on a non-owning `references` edge is a counted
