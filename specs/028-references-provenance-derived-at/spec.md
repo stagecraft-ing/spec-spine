@@ -1,7 +1,7 @@
 ---
 id: "028-references-provenance-derived-at"
 title: "References provenance: optional derived_at timestamp"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-18"
 owner: "The spec-spine Authors"
