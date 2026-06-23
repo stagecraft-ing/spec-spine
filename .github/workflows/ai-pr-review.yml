@@ -1,0 +1,200 @@
+# Part of the spec-spine CI workflow surface. Like ci.yml and determinism.yml,
+# this file is unclaimed by any spec: the coupling floor covers .github/, and
+# claim-precedence (spec 009) would otherwise enforce a spec on every edit.
+#
+# AI-Powered PR Review. Uses the Claude Code CLI (subscription-OAuth,
+# App-free) to review the PR diff for bugs, security issues, and spec-spine
+# compliance. Ported from the Open Agentic Platform precedent (OAP specs 177 +
+# 085). It deliberately does NOT use `anthropics/claude-code-action@v1`: that
+# action requires the Claude GitHub App to be installed on the org. This
+# workflow needs only the CLAUDE_CODE_OAUTH_TOKEN secret plus the built-in
+# GITHUB_TOKEN.
+#
+# Hardening (inherited from the OAP precedent):
+#   - diff is passed to Claude via stdin, never `$(cat ...)` interpolation, so
+#     backticks / $( ) in contributor-controlled diff content are never
+#     shell-evaluated.
+#   - Claude CLI version pinned via env (CLAUDE_CLI_VERSION).
+#   - draft PRs are skipped to avoid burning subscription tokens on WIP.
+#   - oversized diffs are skipped but the skip is made VISIBLE via a PR
+#     comment, so a green ci-gate never falsely implies "reviewed".
+#   - API-failure resilience (OAP spec 177, 2026-06-23): a Claude API outage
+#     passes ci-gate with a loud, visible notice instead of red-gating merges,
+#     while an auth failure still hard-fails (anti-silent-green guard).
+
+name: AI PR Review
+
+on:
+  # Dispatched as a reusable workflow from ci.yml so the AI review is part of
+  # the orchestrated PR-gate suite and the terminal `ci-gate` `needs:` it (a
+  # failed or absent review blocks merge; green ci-gate => actually reviewed or
+  # visibly skipped). It does NOT trigger standalone on `pull_request` (that
+  # would double-run it).
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  # Pinned to the npm `stable` dist-tag value at time of pin. Bump deliberately.
+  CLAUDE_CLI_VERSION: '2.1.116'
+  DIFF_SIZE_CAP: '2000'
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    name: ai-review / diff scan
+    timeout-minutes: 10
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Compute diff size
+        id: diff
+        run: |
+          DIFF_LINES=$(git diff origin/main...HEAD --stat | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo "0")
+          echo "lines=$DIFF_LINES" >> "$GITHUB_OUTPUT"
+          if [ "$DIFF_LINES" -gt "$DIFF_SIZE_CAP" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate diff
+        if: steps.diff.outputs.skip != 'true'
+        run: git diff origin/main...HEAD > /tmp/pr-diff.txt
+
+      - name: Install Claude CLI
+        if: steps.diff.outputs.skip != 'true'
+        run: npm install -g "@anthropic-ai/claude-code@${CLAUDE_CLI_VERSION}"
+
+      # Prompt prelude is fed via -p; the diff is piped to stdin. No shell
+      # interpolation of contributor-controlled content occurs.
+      - name: Run AI Review
+        id: aireview
+        if: steps.diff.outputs.skip != 'true'
+        env:
+          # Subscription-backed auth via the Claude Code OAuth token, NOT an
+          # API key. ANTHROPIC_API_KEY is deliberately NOT set: an empty/unset
+          # API key wins by precedence over the OAuth token and is a silent
+          # auth failure.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -o pipefail
+          # Distinct, surfaced failure if the OAuth secret is unset, so an
+          # operator can tell "secret missing" from "API error".
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is unset; AI review cannot authenticate."
+            exit 1
+          fi
+          PROMPT='You are reviewing a pull request for a spec-spine substrate project. The diff is provided on stdin. Review it for:
+          1. Bugs and logic errors
+          2. Security vulnerabilities (OWASP top 10)
+          3. Spec-spine compliance: every spec-claimed code path that changed should change together with its owning spec.md (the coupling-gate discipline); [package.metadata.<namespace>].spec annotations and `# Spec:` headers should match a real spec under specs/; new external `uses:` refs must be SHA-pinned.
+          4. Performance concerns
+
+          Be concise. Focus on issues, not praise. Format as markdown with ## sections.'
+          # API-failure resilience (OAP spec 177, 2026-06-23): a Claude API
+          # outage must not block merges, but a pass must never be silent.
+          # Capture claude's exit + output, then classify the failure:
+          #   - secret unset (handled above) -> hard fail (config bug).
+          #   - auth / permission error -> hard fail: a broken token must be
+          #     fixed, not masked (preserves the anti-silent-green guard).
+          #   - anything else (overloaded_error, rate_limit_error, 5xx,
+          #     timeout, network, unclassified) -> PASS, with a LOUD
+          #     ::warning:: and a PR notice, so a third-party API incident rides
+          #     through instead of red-gating every PR. The pass is visible (a
+          #     comment is posted), never silent.
+          if claude -p "$PROMPT" --output-format text < /tmp/pr-diff.txt > /tmp/review.md 2> /tmp/review.err; then
+            echo "review_status=ok" >> "$GITHUB_OUTPUT"
+          else
+            rc=$?
+            err="$(cat /tmp/review.err /tmp/review.md 2>/dev/null)"
+            echo "claude exited ${rc}; captured output follows:" >&2
+            printf '%s\n' "$err" >&2
+            if printf '%s' "$err" | grep -qiE 'authentication_error|permission_error|invalid[^a-z]*(x-)?api[^a-z]*key|unauthorized|forbidden|oauth[^a-z]*(token)?[^a-z]*(invalid|expired|revoked|missing)'; then
+              echo "::error::AI review could not authenticate (not an API outage); fix CLAUDE_CODE_OAUTH_TOKEN. Details above."
+              exit 1
+            fi
+            excerpt="$(printf '%s' "$err" | tr '\n\r\t' '   ' | sed 's/  */ /g' | cut -c1-280)"
+            [ -z "$excerpt" ] && excerpt="claude CLI exited ${rc} with no captured output"
+            {
+              echo "review_status=api_failure"
+              echo "api_rc=${rc}"
+              echo "api_excerpt=${excerpt}"
+            } >> "$GITHUB_OUTPUT"
+            echo "::warning::AI review could not run due to a Claude API failure (rc=${rc}): ${excerpt}. Passing ci-gate so the API incident does not block merges; re-run once the API recovers."
+          fi
+
+      - name: Post review comment
+        # Explicit success(): the post step must run only when Run AI Review
+        # succeeded AND actually produced a review, so a partial/empty review is
+        # never posted.
+        if: success() && steps.diff.outputs.skip != 'true' && steps.aireview.outputs.review_status == 'ok'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DIFF_LINES: ${{ steps.diff.outputs.lines }}
+        run: |
+          {
+            echo "## AI Code Review"
+            echo ""
+            cat /tmp/review.md
+            echo ""
+            echo "---"
+            echo "_Automated review by Claude. Diff size: ${DIFF_LINES} lines._"
+          } > /tmp/comment.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/comment.md
+
+      - name: Post API-failure notice (review could not run; make the pass VISIBLE)
+        # A Claude API outage must not block merges, but the pass must never be
+        # silent. Run AI Review classified the failure as an API outage
+        # (review_status=api_failure) and exited 0; surface that here so a human
+        # sees the review did NOT happen and ci-gate passed anyway. Same posture
+        # as the oversized-diff skip notice below.
+        if: steps.aireview.outputs.review_status == 'api_failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          API_RC: ${{ steps.aireview.outputs.api_rc }}
+          API_EXCERPT: ${{ steps.aireview.outputs.api_excerpt }}
+        run: |
+          echo "::warning::AI review SKIPPED due to a Claude API failure (rc=${API_RC}); ci-gate passes so the incident does not block merges. Re-run after recovery."
+          {
+            echo "## AI Code Review: SKIPPED (Claude API failure)"
+            echo ""
+            echo "The automated AI review could **not** run because the Claude API failed (\`rc=${API_RC}\`)."
+            echo ""
+            echo "Error excerpt:"
+            echo ""
+            printf '> %s\n' "${API_EXCERPT}"
+            echo ""
+            echo "\`ci-gate\` is passing anyway so a transient Anthropic API incident does not block merges (API-failure resilience). A green \`ci-gate\` here does **not** imply an AI review happened: re-run this job once the API recovers."
+          } > /tmp/api-fail-comment.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/api-fail-comment.md || echo "::warning::could not post API-failure notice comment"
+
+      - name: Skip notice (oversized diff; make the skip VISIBLE, not silent)
+        # When the diff exceeds DIFF_SIZE_CAP the review can't run, but the job
+        # still succeeds, so ci-gate passes. That would be a SILENT hole in the
+        # "green ci-gate => reviewed" claim. Post a PR comment so the skip is
+        # visible and a human knows manual review is needed.
+        if: steps.diff.outputs.skip == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DIFF_LINES: ${{ steps.diff.outputs.lines }}
+        run: |
+          echo "::warning::AI review SKIPPED; diff exceeds ${DIFF_SIZE_CAP} lines (${DIFF_LINES}); manual review required."
+          {
+            echo "## AI Code Review: SKIPPED (oversized diff)"
+            echo ""
+            echo "This PR's diff (**${DIFF_LINES} lines**) exceeds \`DIFF_SIZE_CAP\` (${DIFF_SIZE_CAP}), so the automated AI review did **not** run."
+            echo ""
+            echo "\`ci-gate\` still passes (the review job is skipped, not failed), so **a human reviewer must review this PR manually.** A green \`ci-gate\` on this PR does **not** imply an AI review happened."
+          } > /tmp/skip-comment.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/skip-comment.md
