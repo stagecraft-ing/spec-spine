@@ -99,6 +99,21 @@ jobs:
     name: determinism
     uses: ./.github/workflows/determinism.yml
 
+  # AI PR review folded into the gate (OAP spec 177 + 085 precedent). PR-only:
+  # it needs PR context (number, base/head diff), so it is skipped on
+  # push/merge_group/workflow_dispatch, which ci-gate treats as success.
+  # Job-level pull-requests: write overrides the workflow read default (the
+  # review posts a comment); secrets: inherit passes CLAUDE_CODE_OAUTH_TOKEN.
+  # A Claude API outage passes with a visible notice (spec 177 resilience); an
+  # auth failure or unset secret still hard-fails.
+  ai-review:
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets: inherit
+    uses: ./.github/workflows/ai-pr-review.yml
+
   # Spec 020: the single required status check for branch protection and the
   # merge queue. It aggregates every CI job, so branch protection requires just
   # this one name instead of an enumerated, drift-prone list. A skipped job
@@ -107,15 +122,15 @@ jobs:
   ci-gate:
     name: ci-gate
     if: ${{ always() }}
-    needs: [test, self_governance, determinism]
+    needs: [test, self_governance, determinism, ai-review]
     runs-on: ubuntu-latest
     steps:
       - name: Require all CI jobs to have passed
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         run: |
           echo "A required CI job failed or was cancelled:"
-          echo "  test=${{ needs.test.result }}  self_governance=${{ needs.self_governance.result }}  determinism=${{ needs.determinism.result }}"
+          echo "  test=${{ needs.test.result }}  self_governance=${{ needs.self_governance.result }}  determinism=${{ needs.determinism.result }}  ai-review=${{ needs.ai-review.result }}"
           exit 1
       - name: All required CI jobs passed
         run: |
-          echo "ci-gate passed: test, self_governance, and determinism are all green"
+          echo "ci-gate passed: test, self_governance, determinism, and ai-review are all green or skipped"
