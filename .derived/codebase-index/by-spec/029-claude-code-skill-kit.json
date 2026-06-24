@@ -1,0 +1,32 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "006-init-scaffold"
+    ],
+    "implementingPaths": [
+      {
+        "path": "kit/",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "kit/"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "kit/"
+        }
+      }
+    ],
+    "specId": "029-claude-code-skill-kit",
+    "specStatus": "draft"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "0bc017464afa2258cdd7c9b832e7e74bf476a36bd91ab30468cbeca70c2b242e"
+}

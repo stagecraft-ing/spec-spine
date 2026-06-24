@@ -72,9 +72,20 @@ const sidebars: SidebarsConfig = {
       label: 'FAQ and Troubleshooting',
     },
     {
-      type: 'link',
-      label: 'Adopt the governed workflow',
-      href: 'https://stagecraft-ing.github.io/spec-spine-adoption-kit/',
+      type: 'category',
+      label: 'Use with Claude Code',
+      items: [
+        'claude-code/overview',
+        'claude-code/install',
+        'claude-code/session-init',
+        'claude-code/governed-loop',
+        'claude-code/skills',
+        'claude-code/agents',
+        'claude-code/rules',
+        'claude-code/configuration',
+        'claude-code/adopt-in-your-repo',
+        'claude-code/troubleshooting',
+      ],
     },
   ],
 };

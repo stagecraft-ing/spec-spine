@@ -103,8 +103,8 @@ const config: Config = {
           title: 'More',
           items: [
             {
-              label: 'Adoption Kit (spec-spine + Claude Code)',
-              href: '/spec-spine/docs/adoption-guide',
+              label: 'Use with Claude Code',
+              to: '/docs/claude-code/overview',
             },
           ],
         },
