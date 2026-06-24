@@ -43,3 +43,7 @@ __pycache__/
 # learned memory is local, session-generated state (like the user's own memory
 # dir, which lives outside the repo), so it is not version-controlled.
 .claude/agent-memory/
+
+# Docusaurus website build output
+/website/build/
+/website/.docusaurus/
