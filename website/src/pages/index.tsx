@@ -86,7 +86,7 @@ function AdoptionKitCard() {
               </p>
               <Link
                 className="button button--primary button--lg"
-                href="https://stagecraft-ing.github.io/spec-spine-adoption-kit/">
+                to="/docs/claude-code/overview">
                 View the Adoption Kit
               </Link>
             </div>

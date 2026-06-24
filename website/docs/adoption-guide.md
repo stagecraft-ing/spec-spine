@@ -8,6 +8,10 @@ sidebar_position: 5
 
 This guide explains how to take a conventional repository from zero to spec-governed. There are no source edits to the library required; every project-specific assumption is a configurable knob.
 
+:::tip Driving spec-spine with Claude Code
+To run the governed workflow with an AI agent, see [Use with Claude Code](claude-code/overview.md): a ready-to-copy kit of skills, agents, and rules that chains the gate into everyday development.
+:::
+
 The process involves four steps: **install**, **init**, **annotate**, and **wire CI**.
 
 ## 1. Install

@@ -1,0 +1,80 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(spec-spine *)",
+      "Bash(npx spec-spine *)",
+      "Bash(npx --no-install spec-spine *)",
+      "Bash(make *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git ls-files*)",
+      "Bash(git rev-parse*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(ls *)",
+      "Bash(ls)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Read(**)",
+      "Edit(**)",
+      "Write(**)"
+    ],
+    "deny": [
+      "Bash(cargo publish*)",
+      "Bash(npm publish*)",
+      "Bash(gh release create *)",
+      "Bash(gh release delete *)",
+      "Bash(gh repo delete *)",
+      "Bash(gh repo archive *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; sc=spec-spine; if command -v \"$sc\" >/dev/null 2>&1; then \"$sc\" compile >/dev/null 2>&1 && reg='recompiled fresh' || reg='compile FAILED, run spec-spine compile'; \"$sc\" index check >/dev/null 2>&1 && idx='fresh' || idx='STALE, run spec-spine index'; else reg='spec-spine CLI absent, run /setup'; idx='spec-spine CLI absent, run /setup'; fi; echo \"[session-freshness] spec registry: $reg; codebase index: $idx\"; true"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null 2>&1 || { echo '[hook] jq missing, staleness check skipped'; exit 0; }; fp=$(jq -r '.tool_input.file_path // empty' 2>/dev/null); cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; command -v spec-spine >/dev/null 2>&1 || exit 0; case \"$fp\" in */specs/*/spec.md) spec-spine compile >/dev/null 2>&1 && echo '[spec-registry] recompiled after spec edit' || echo '[spec-registry] compile FAILED after spec edit, run spec-spine compile' ;; esac; case \"$fp\" in */specs/*/spec.md|*/spec-spine.toml|*/.claude/settings.json|*/.mcp.json|*/.claude/agents/*.md|*/.claude/rules/*.md|*/.claude/skills/*/*.md|*/.github/workflows/*.yml|*/standards/*) spec-spine index check 2>&1 | tail -5 ;; esac; true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null 2>&1 || exit 0; cmd=$(jq -r '.tool_input.command // empty' 2>/dev/null); case \"$cmd\" in \"gh pr create\"*|*\"&& gh pr create\"*|*\"; gh pr create\"*) ;; *) exit 0 ;; esac; cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; command -v spec-spine >/dev/null 2>&1 || exit 0; spec-spine index >/dev/null 2>&1; out=$(spec-spine couple --base origin/main --head HEAD 2>&1); ec=$?; if [ $ec -ne 0 ]; then case \"$cmd\" in *--body*Spec-Drift-Waiver*) echo '[pr-gate] coupling gate failed; Spec-Drift-Waiver present after --body, allowing (CI honours the body-at-creation waiver).' ;; *) { echo '[pr-gate] BLOCKED: coupling gate failed and no Spec-Drift-Waiver in the PR body:'; echo \"$out\" | tail -25; echo '[pr-gate] Either fix the coupling (edit the owning spec.md so its relationship graph covers the changed paths), or with explicit user approval include the Spec-Drift-Waiver block inline in --body (not --body-file) and retry.'; } >&2; exit 2 ;; esac; fi; if ! git diff --quiet -- .derived/ 2>/dev/null; then { echo '[pr-gate] BLOCKED: the index was regenerated and the result is uncommitted.'; echo '[pr-gate] Run: git add .derived/ then commit, push, and retry.'; } >&2; exit 2; fi; true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; sc=spec-spine; command -v \"$sc\" >/dev/null 2>&1 || exit 0; \"$sc\" index check >/dev/null 2>&1 && exit 0; gd=$(git rev-parse --git-dir 2>/dev/null) || gd=.git; if [ -d \"$gd/rebase-merge\" ] || [ -d \"$gd/rebase-apply\" ] || [ -f \"$gd/MERGE_HEAD\" ] || [ -f \"$gd/CHERRY_PICK_HEAD\" ]; then echo '[codebase-index] stale, but a rebase/merge is in progress, left untouched; run spec-spine index afterwards'; exit 0; fi; out=$(\"$sc\" index 2>&1); if [ $? -eq 0 ]; then echo '[codebase-index] was stale, auto-regenerated via spec-spine index; review git diff .derived/ and include it in your commit'; else echo '[codebase-index] stale and spec-spine index FAILED:'; echo \"$out\" | tail -10; fi; true"
+          }
+        ]
+      }
+    ]
+  }
+}
