@@ -24,10 +24,6 @@ If you do not have a Rust toolchain, you can install the prebuilt binary using t
 curl -fsSL https://raw.githubusercontent.com/stagecraft-ing/spec-spine/main/install.sh | sh
 ```
 
-:::note
-The install script currently points to `stagecraft-ing/spec-spine`. Verify the URL against the canonical repository.
-:::
-
 You can pin a specific version and target directory using environment variables:
 
 ```bash
