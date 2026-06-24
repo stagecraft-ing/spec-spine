@@ -1,7 +1,7 @@
 ---
 id: "029-claude-code-skill-kit"
 title: "Claude Code skill kit: a vendored, governed adoption bundle"
-status: draft
+status: approved
 kind: "tooling"
 created: "2026-06-24"
 implementation: complete

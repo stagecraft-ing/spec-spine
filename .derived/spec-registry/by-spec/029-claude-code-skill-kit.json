@@ -27,10 +27,10 @@
       "4. Out of scope"
     ],
     "specPath": "specs/029-claude-code-skill-kit/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "spec-spine ships a copy-ready Claude Code skill kit under kit/: a substrate- agnostic bundle of skills, agents, rules, and config templates that layers a full governed-development loop (init, plan, implement, validate, review, commit, ship) on top of the spec-spine substrate. The bundle is the artifact the \"Use with Claude Code\" documentation points at: an adopter copies kit/.claude into their repository, customizes the bracketed placeholders, and runs the loop. The skills, agents, and rules were extracted from the Open Agentic Platform and generalized for any spec-spine adopter, then distributed here under Apache-2.0. This spec claims authority over the kit/ subtree so the bundle evolves under the same coupling discipline as the rest of the corpus; it does not change any engine behavior.\n",
     "title": "Claude Code skill kit: a vendored, governed adoption bundle"
   },
-  "shardHash": "bc0fa620a2f94bc119abcfb0593e5c5f6083e6a3a74b5648bdac09f1278d34ae",
+  "shardHash": "2ddd4789254cdb2be6184f6cb728bdc2babb3163977eff61171ddc5c255719ad",
   "specVersion": "1.1.0"
 }

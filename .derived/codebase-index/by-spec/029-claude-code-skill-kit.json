@@ -25,8 +25,8 @@
       }
     ],
     "specId": "029-claude-code-skill-kit",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "0bc017464afa2258cdd7c9b832e7e74bf476a36bd91ab30468cbeca70c2b242e"
+  "shardHash": "8ec2928b80091296ff871f61d208c8d64369f1390058dbf6c97e52b0d947eca2"
 }
