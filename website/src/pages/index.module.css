@@ -1,0 +1,46 @@
+.heroBanner {
+  padding: 4rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.installBlock {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+.installBlock code {
+  color: #fff;
+  background: none;
+  padding: 0;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.features {
+  display: flex;
+  align-items: center;
+  padding: 2rem 0;
+  width: 100%;
+}
+
+.adoptionCard {
+  padding: 3rem 0;
+  background: var(--ifm-color-emphasis-100);
+}
+
+.adoptionCardInner {
+  text-align: center;
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+}
