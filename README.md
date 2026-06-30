@@ -1,7 +1,5 @@
-[![CI](https://github.com/bartekus/spec-spine/actions/workflows/ci.yml/badge.svg)](https://github.com/bartekus/spec-spine/actions/workflows/ci.yml)
-&nbsp;License: Apache-2.0
-
-# spec-spine
+# [spec-spine](https://stagecraft-ing.github.io/spec-spine/) [![CI](https://github.com/bartekus/spec-spine/actions/workflows/ci.yml/badge.svg)](https://github.com/bartekus/spec-spine/actions/workflows/ci.yml)
+![Spec Spine Intent Evolution](.github/img/spec-spine-github_banner_3d_tech.jpg)
 
 **A typed, hash-verifiable authority ledger over a markdown spec corpus.**
 Installable Rust library + CLI; API-first, binding-ready, deterministic.
